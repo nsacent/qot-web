@@ -110,6 +110,26 @@ export default async function ListingDetailsPage({ params }: PageProps) {
                                 {listing.category?.name || listing.category_name || "Listing"}
                             </p>
 
+                            <div className="mt-3 flex flex-wrap gap-2">
+                                {(listing.is_featured || listing.featured || listing.featured_until) && (
+                                    <span className="rounded-full bg-orange-500 px-3 py-1 text-xs font-bold text-white">
+                                        Featured
+                                    </span>
+                                )}
+
+                                {(listing.seller?.is_verified || listing.seller?.verified) && (
+                                    <span className="rounded-full bg-green-600 px-3 py-1 text-xs font-bold text-white">
+                                        Verified Seller
+                                    </span>
+                                )}
+
+                                {listing.status && (
+                                    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold uppercase text-slate-700">
+                                        {listing.status}
+                                    </span>
+                                )}
+                            </div>
+
                             <h1 className="mt-2 text-3xl font-bold md:text-4xl">
                                 {listing.title || "Untitled listing"}
                             </h1>
@@ -133,6 +153,9 @@ export default async function ListingDetailsPage({ params }: PageProps) {
                                 </p>
                             </div>
                         </div>
+
+
+
                     </div>
 
                     <aside className="space-y-6">

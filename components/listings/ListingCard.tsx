@@ -4,6 +4,25 @@ type ListingCardProps = {
     listing: any;
 };
 
+function formatPrice(price: any) {
+    if (!price) return "Contact seller";
+
+    return `UGX ${Number(price).toLocaleString()}`;
+}
+
+function formatDate(dateValue: string) {
+    if (!dateValue) return "";
+
+    const date = new Date(dateValue);
+    if (Number.isNaN(date.getTime())) return "";
+
+    return date.toLocaleDateString("en-UG", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+    });
+}
+
 export default function ListingCard({ listing }: ListingCardProps) {
     const image =
         listing.primary_image ||
@@ -12,40 +31,84 @@ export default function ListingCard({ listing }: ListingCardProps) {
         listing.images?.[0]?.image ||
         listing.images?.[0]?.url;
 
+    const isFeatured =
+        listing.is_featured ||
+        listing.featured ||
+        Boolean(listing.featured_until);
+
+    const isVerifiedSeller =
+        listing.seller?.is_verified ||
+        listing.seller?.verified ||
+        listing.is_seller_verified;
+
     return (
-        <article className="overflow-hidden rounded-2xl border bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-md">
-            <div className="flex h-52 items-center justify-center bg-slate-200 text-slate-500">
-                {image ? (
-                    <img
-                        src={image}
-                        alt={listing.title || "Listing image"}
-                        className="h-full w-full object-cover"
-                    />
-                ) : (
-                    <span>No image</span>
-                )}
-            </div>
+        <article className="group overflow-hidden rounded-2xl border bg-white shadow-sm transition hover:-translate-y-1 hover:border-orange-200 hover:shadow-md">
+            <a href={`/listings/${listing.id}`} className="block">
+                <div className="relative flex h-52 items-center justify-center bg-slate-200 text-slate-500">
+                    {image ? (
+                        <img
+                            src={image}
+                            alt={listing.title || "Listing image"}
+                            className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+                        />
+                    ) : (
+                        <span>No image</span>
+                    )}
+
+                    <div className="absolute left-3 top-3 flex flex-wrap gap-2">
+                        {isFeatured && (
+                            <span className="rounded-full bg-orange-500 px-3 py-1 text-xs font-bold text-white shadow-sm">
+                                Featured
+                            </span>
+                        )}
+
+                        {isVerifiedSeller && (
+                            <span className="rounded-full bg-green-600 px-3 py-1 text-xs font-bold text-white shadow-sm">
+                                Verified
+                            </span>
+                        )}
+                    </div>
+
+                    {listing.status && listing.status !== "active" && (
+                        <span className="absolute bottom-3 left-3 rounded-full bg-slate-900/80 px-3 py-1 text-xs font-bold uppercase text-white">
+                            {listing.status}
+                        </span>
+                    )}
+                </div>
+            </a>
 
             <div className="p-5">
                 <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-orange-600">
                     {listing.category?.name || listing.category_name || "Listing"}
                 </p>
 
-                <h3 className="line-clamp-2 text-lg font-semibold text-slate-900">
-                    {listing.title || "Untitled listing"}
-                </h3>
+                <a href={`/listings/${listing.id}`}>
+                    <h3 className="line-clamp-2 text-lg font-semibold text-slate-900 hover:text-orange-600">
+                        {listing.title || "Untitled listing"}
+                    </h3>
+                </a>
 
                 <p className="mt-2 text-sm text-slate-500">
                     {listing.city?.name || listing.location || "Uganda"}
                 </p>
 
                 <p className="mt-4 text-xl font-bold text-orange-600">
-                    {listing.price
-                        ? `UGX ${Number(listing.price).toLocaleString()}`
-                        : "Contact seller"}
+                    {formatPrice(listing.price)}
                 </p>
 
-                <div className="mt-4 flex items-center justify-between gap-3">
+                <div className="mt-4 flex flex-wrap items-center gap-3 text-xs text-slate-500">
+                    {listing.views_count !== undefined && (
+                        <span>{listing.views_count} views</span>
+                    )}
+
+                    {listing.favorites_count !== undefined && (
+                        <span>{listing.favorites_count} saves</span>
+                    )}
+
+                    {listing.created_at && <span>{formatDate(listing.created_at)}</span>}
+                </div>
+
+                <div className="mt-5 flex items-center justify-between gap-3">
                     <a
                         href={`/listings/${listing.id}`}
                         className="text-sm font-semibold text-slate-900 hover:text-orange-600"
@@ -55,7 +118,6 @@ export default function ListingCard({ listing }: ListingCardProps) {
 
                     <FavoriteButton listingId={listing.id} small />
                 </div>
-
             </div>
         </article>
     );
