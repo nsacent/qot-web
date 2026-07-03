@@ -19,20 +19,28 @@ export default function AuthMenu() {
 
     if (!isLoggedIn) {
         return (
-            <a href="/login" className="hover:text-orange-600">
-                Login
-            </a>
+            <>
+                <a href="/login" className="hover:text-orange-600">
+                    Login
+                </a>
+
+                <a href="/register" className="hover:text-orange-600">
+                    Register
+                </a>
+            </>
         );
     }
 
     return (
-        <div className="flex items-center gap-4">
+        <>
             <a href="/saved" className="hover:text-orange-600">
                 Saved
             </a>
+
             <a href="/messages" className="hover:text-orange-600">
                 Messages
             </a>
+
             <a href="/my-listings" className="hover:text-orange-600">
                 My Listings
             </a>
@@ -40,6 +48,6 @@ export default function AuthMenu() {
             <button onClick={logout} className="hover:text-orange-600">
                 Logout
             </button>
-        </div>
+        </>
     );
 }
