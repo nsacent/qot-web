@@ -21,6 +21,9 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
     const params = await searchParams;
 
     let listings: any[] = [];
+    let categories: any[] = [];
+    let regions: any[] = [];
+    let cities: any[] = [];
 
     const query = new URLSearchParams();
 
@@ -69,6 +72,27 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
         console.error("Listings API error:", error);
     }
 
+    try {
+        const regionsData = await apiGet("/locations/regions/");
+        regions = getArray(regionsData);
+    } catch (error) {
+        console.error("Regions API error:", error);
+    }
+
+    try {
+        const citiesData = await apiGet("/locations/cities/");
+        cities = getArray(citiesData);
+    } catch (error) {
+        console.error("Cities API error:", error);
+    }
+
+    try {
+        const categoriesData = await apiGet("/categories/");
+        categories = getArray(categoriesData);
+    } catch (error) {
+        console.error("Categories API error:", error);
+    }
+
     return (
         <main className="min-h-screen bg-slate-50 text-slate-900">
             <Navbar />
@@ -96,6 +120,9 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
                             condition: params.condition,
                             sort: params.sort,
                         }}
+                        categories={categories}
+                        regions={regions}
+                        cities={cities}
                     />
 
                     {(params.category || searchTerm) && (

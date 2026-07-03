@@ -9,30 +9,67 @@ type ListingFiltersProps = {
         condition?: string;
         sort?: string;
     };
+    categories?: any[];
+    regions?: any[];
+    cities?: any[];
 };
 
-export default function ListingFilters({ params }: ListingFiltersProps) {
+export default function ListingFilters({
+    params,
+    categories = [],
+    regions = [],
+    cities = [],
+}: ListingFiltersProps) {
     return (
         <form
             action="/listings"
-            className="mt-6 grid gap-4 rounded-2xl border bg-white p-4 md:grid-cols-5"
+            className="mt-6 grid gap-4 rounded-2xl border bg-white p-4 md:grid-cols-6"
         >
-            {params.category && (
-                <input type="hidden" name="category" value={params.category} />
-            )}
-
-            {params.city && <input type="hidden" name="city" value={params.city} />}
-
-            {params.region && (
-                <input type="hidden" name="region" value={params.region} />
-            )}
-
             <input
                 name="q"
                 defaultValue={params.q || ""}
                 placeholder="Search listings..."
                 className="rounded-xl border px-4 py-3 outline-none focus:border-orange-500 md:col-span-2"
             />
+
+            <select
+                name="category"
+                defaultValue={params.category || ""}
+                className="rounded-xl border px-4 py-3 outline-none focus:border-orange-500"
+            >
+                <option value="">All categories</option>
+                {categories.map((category: any) => (
+                    <option key={category.id || category.slug} value={category.slug}>
+                        {category.name || category.title}
+                    </option>
+                ))}
+            </select>
+
+            <select
+                name="region"
+                defaultValue={params.region || ""}
+                className="rounded-xl border px-4 py-3 outline-none focus:border-orange-500"
+            >
+                <option value="">All regions</option>
+                {regions.map((region: any) => (
+                    <option key={region.id || region.slug} value={region.slug}>
+                        {region.name}
+                    </option>
+                ))}
+            </select>
+
+            <select
+                name="city"
+                defaultValue={params.city || ""}
+                className="rounded-xl border px-4 py-3 outline-none focus:border-orange-500"
+            >
+                <option value="">All cities</option>
+                {cities.map((city: any) => (
+                    <option key={city.id || city.slug} value={city.slug}>
+                        {city.name}
+                    </option>
+                ))}
+            </select>
 
             <input
                 name="min_price"
