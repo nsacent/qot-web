@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import MyListingCard from "@/components/dashboard/MyListingCard";
+import SellerStats from "@/components/dashboard/SellerStats";
 
 const API_BASE_URL =
     process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000/api/v1";
@@ -99,6 +100,8 @@ export default function MyListingsClient() {
                     Post New Advert
                 </a>
             </div>
+
+            <SellerStats listings={listings} />
 
             {listings.length > 0 ? (
                 <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">

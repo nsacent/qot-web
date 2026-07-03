@@ -83,8 +83,13 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
         totalCount = typeof data?.count === "number" ? data.count : undefined;
         hasNext = Boolean(data?.next);
         hasPrevious = Boolean(data?.previous);
-    } catch (error) {
-        console.error("Listings API error:", error);
+    } catch (error: any) {
+        console.error("Listings API error:", error?.message || error);
+
+        listings = [];
+        totalCount = 0;
+        hasNext = false;
+        hasPrevious = Number(params.page || 1) > 1;
     }
 
     try {

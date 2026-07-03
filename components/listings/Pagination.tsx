@@ -18,7 +18,11 @@ function buildPageUrl(
         }
     });
 
-    params.set("page", String(page));
+    if (page > 1) {
+        params.set("page", String(page));
+    } else {
+        params.delete("page");
+    }
 
     return `/listings?${params.toString()}`;
 }
