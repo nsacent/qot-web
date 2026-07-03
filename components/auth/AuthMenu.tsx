@@ -30,6 +30,9 @@ export default function AuthMenu() {
             <a href="/saved" className="hover:text-orange-600">
                 Saved
             </a>
+            <a href="/messages" className="hover:text-orange-600">
+                Messages
+            </a>
             <a href="/my-listings" className="hover:text-orange-600">
                 My Listings
             </a>
