@@ -12,6 +12,7 @@ export default function PostAdForm() {
     const [category, setCategory] = useState("");
     const [city, setCity] = useState("");
     const [condition, setCondition] = useState("used");
+    const [images, setImages] = useState<File[]>([]);
 
     const [categories, setCategories] = useState<any[]>([]);
     const [cities, setCities] = useState<any[]>([]);
@@ -51,6 +52,49 @@ export default function PostAdForm() {
 
         loadFormData();
     }, []);
+
+    function handleImageChange(event: React.ChangeEvent<HTMLInputElement>) {
+        const selectedFiles = Array.from(event.target.files || []);
+
+        if (selectedFiles.length > 6) {
+            setError("You can upload a maximum of 6 images.");
+            return;
+        }
+
+        setImages(selectedFiles);
+    }
+
+    async function uploadImages(listingId: number | string, token: string) {
+        if (images.length === 0) return;
+
+        for (const image of images) {
+            const formData = new FormData();
+            formData.append("image", image);
+
+            const response = await fetch(
+                `${API_BASE_URL}/listings/${listingId}/images/`,
+                {
+                    method: "POST",
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                    body: formData,
+                }
+            );
+
+            if (!response.ok) {
+                const data = await response.json().catch(() => null);
+
+                throw new Error(
+                    data?.detail ||
+                    data?.message ||
+                    data?.error ||
+                    JSON.stringify(data) ||
+                    "Listing was created, but image upload failed."
+                );
+            }
+        }
+    }
 
     async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
         event.preventDefault();
@@ -96,6 +140,7 @@ export default function PostAdForm() {
             const listingId = data?.id || data?.data?.id;
 
             if (listingId) {
+                await uploadImages(listingId, token);
                 window.location.href = `/listings/${listingId}`;
             } else {
                 window.location.href = "/listings";
@@ -219,6 +264,40 @@ export default function PostAdForm() {
                         ))}
                     </select>
                 </div>
+            </div>
+
+            <div>
+                <label className="mb-2 block text-sm font-semibold text-slate-700">
+                    Upload Images
+                </label>
+                <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleImageChange}
+                    className="w-full rounded-xl border px-4 py-3 outline-none focus:border-orange-500"
+                />
+
+                <p className="mt-2 text-sm text-slate-500">
+                    You can upload up to 6 images.
+                </p>
+
+                {images.length > 0 && (
+                    <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-3">
+                        {images.map((image, index) => (
+                            <div
+                                key={index}
+                                className="overflow-hidden rounded-xl border bg-slate-100"
+                            >
+                                <img
+                                    src={URL.createObjectURL(image)}
+                                    alt={`Preview ${index + 1}`}
+                                    className="h-32 w-full object-cover"
+                                />
+                            </div>
+                        ))}
+                    </div>
+                )}
             </div>
 
             <button
