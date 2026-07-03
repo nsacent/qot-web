@@ -1,3 +1,5 @@
+import FavoriteButton from "@/components/listings/FavoriteButton";
+
 type ListingCardProps = {
     listing: any;
 };
@@ -43,12 +45,17 @@ export default function ListingCard({ listing }: ListingCardProps) {
                         : "Contact seller"}
                 </p>
 
-                <a
-                    href={`/listings/${listing.id}`}
-                    className="mt-4 inline-block text-sm font-semibold text-slate-900 hover:text-orange-600"
-                >
-                    View details →
-                </a>
+                <div className="mt-4 flex items-center justify-between gap-3">
+                    <a
+                        href={`/listings/${listing.id}`}
+                        className="text-sm font-semibold text-slate-900 hover:text-orange-600"
+                    >
+                        View details →
+                    </a>
+
+                    <FavoriteButton listingId={listing.id} small />
+                </div>
+
             </div>
         </article>
     );

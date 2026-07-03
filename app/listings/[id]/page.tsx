@@ -1,5 +1,6 @@
 import Navbar from "@/components/layout/Navbar";
 import { apiGet } from "@/lib/api";
+import FavoriteButton from "@/components/listings/FavoriteButton";
 
 type PageProps = {
     params: Promise<{
@@ -122,6 +123,7 @@ export default async function ListingDetailsPage({ params }: PageProps) {
                                     : "Contact seller"}
                             </p>
 
+
                             <div className="mt-8 border-t pt-6">
                                 <h2 className="text-xl font-bold">Description</h2>
 
@@ -169,6 +171,8 @@ export default async function ListingDetailsPage({ params }: PageProps) {
                             </div>
 
                             <div className="mt-6 space-y-3">
+                                <FavoriteButton listingId={listing.id} />
+
                                 <a
                                     href="/login"
                                     className="block rounded-xl bg-orange-500 px-5 py-3 text-center font-semibold text-white hover:bg-orange-600"

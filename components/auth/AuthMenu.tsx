@@ -27,6 +27,9 @@ export default function AuthMenu() {
 
     return (
         <div className="flex items-center gap-4">
+            <a href="/saved" className="hover:text-orange-600">
+                Saved
+            </a>
             <a href="/my-listings" className="hover:text-orange-600">
                 My Listings
             </a>
