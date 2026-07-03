@@ -2,6 +2,7 @@ import Navbar from "@/components/layout/Navbar";
 import ListingCard from "@/components/listings/ListingCard";
 import { apiGet, getArray } from "@/lib/api";
 import ListingFilters from "@/components/listings/ListingFilters";
+import Pagination from "@/components/listings/Pagination";
 
 type ListingsPageProps = {
     searchParams: Promise<{
@@ -14,6 +15,8 @@ type ListingsPageProps = {
         max_price?: string;
         condition?: string;
         sort?: string;
+        page?: string;
+
     }>;
 };
 
@@ -21,6 +24,9 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
     const params = await searchParams;
 
     let listings: any[] = [];
+    let totalCount: number | undefined = undefined;
+    let hasNext = false;
+    let hasPrevious = false;
     let categories: any[] = [];
     let regions: any[] = [];
     let cities: any[] = [];
@@ -31,6 +37,10 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
 
     if (searchTerm) {
         query.set("q", searchTerm);
+    }
+
+    if (params.page) {
+        query.set("page", params.page);
     }
 
     if (params.category) {
@@ -67,7 +77,12 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
 
     try {
         const data = await apiGet(endpoint);
+
         listings = getArray(data);
+
+        totalCount = typeof data?.count === "number" ? data.count : undefined;
+        hasNext = Boolean(data?.next);
+        hasPrevious = Boolean(data?.previous);
     } catch (error) {
         console.error("Listings API error:", error);
     }
@@ -148,6 +163,24 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
                         No listings found.
                     </div>
                 )}
+
+                <Pagination
+                    currentPage={Number(params.page || 1)}
+                    hasNext={hasNext}
+                    hasPrevious={hasPrevious}
+                    totalCount={totalCount}
+                    searchParams={{
+                        q: searchTerm,
+                        category: params.category,
+                        city: params.city,
+                        region: params.region,
+                        min_price: params.min_price,
+                        max_price: params.max_price,
+                        condition: params.condition,
+                        sort: params.sort,
+                    }}
+                />
+
             </section>
         </main>
     );
