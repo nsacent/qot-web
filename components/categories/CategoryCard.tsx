@@ -3,8 +3,7 @@ type CategoryCardProps = {
 };
 
 export default function CategoryCard({ category }: CategoryCardProps) {
-    const id = category.id || category.slug;
-
+    const id = category.slug || category.id;
     return (
         <a
             href={`/listings?category=${id}`}

@@ -40,15 +40,23 @@ export default async function HomePage() {
             Find phones, laptops, cars, property, jobs, services, and more from sellers around Uganda.
           </p>
 
-          <div className="mt-8 flex max-w-2xl overflow-hidden rounded-2xl bg-white p-2">
+          <form
+            action="/listings"
+            className="mt-8 flex max-w-2xl overflow-hidden rounded-2xl bg-white p-2"
+          >
             <input
+              name="q"
               placeholder="Search for phones, laptops, cars..."
               className="flex-1 px-4 py-3 text-slate-900 outline-none"
             />
-            <button className="rounded-xl bg-orange-500 px-6 py-3 font-semibold text-white">
+
+            <button
+              type="submit"
+              className="rounded-xl bg-orange-500 px-6 py-3 font-semibold text-white hover:bg-orange-600"
+            >
               Search
             </button>
-          </div>
+          </form>
         </div>
       </section>
 

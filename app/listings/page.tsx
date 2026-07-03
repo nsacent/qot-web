@@ -4,8 +4,15 @@ import { apiGet, getArray } from "@/lib/api";
 
 type ListingsPageProps = {
     searchParams: Promise<{
-        category?: string;
+        q?: string;
         search?: string;
+        category?: string;
+        city?: string;
+        region?: string;
+        min_price?: string;
+        max_price?: string;
+        condition?: string;
+        sort?: string;
     }>;
 };
 
@@ -16,12 +23,38 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
 
     const query = new URLSearchParams();
 
+    const searchTerm = params.q || params.search || "";
+
+    if (searchTerm) {
+        query.set("q", searchTerm);
+    }
+
     if (params.category) {
         query.set("category", params.category);
     }
 
-    if (params.search) {
-        query.set("search", params.search);
+    if (params.city) {
+        query.set("city", params.city);
+    }
+
+    if (params.region) {
+        query.set("region", params.region);
+    }
+
+    if (params.min_price) {
+        query.set("min_price", params.min_price);
+    }
+
+    if (params.max_price) {
+        query.set("max_price", params.max_price);
+    }
+
+    if (params.condition) {
+        query.set("condition", params.condition);
+    }
+
+    if (params.sort) {
+        query.set("sort", params.sort);
     }
 
     const endpoint = query.toString()
@@ -41,9 +74,14 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
 
             <section className="border-b bg-white">
                 <div className="mx-auto max-w-7xl px-6 py-10">
-                    <h1 className="text-3xl font-bold md:text-5xl">Browse Listings</h1>
+                    <h1 className="text-3xl font-bold md:text-5xl">
+                        {searchTerm ? `Search results for "${searchTerm}"` : "Browse Listings"}
+                    </h1>
+
                     <p className="mt-3 max-w-2xl text-slate-600">
-                        Discover trusted ads from sellers around Uganda.
+                        {searchTerm
+                            ? "Showing adverts that match your search."
+                            : "Discover trusted ads from sellers around Uganda."}
                     </p>
 
                     <form
@@ -55,8 +93,8 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
                         )}
 
                         <input
-                            name="search"
-                            defaultValue={params.search || ""}
+                            name="q"
+                            defaultValue={searchTerm}
                             placeholder="Search listings..."
                             className="flex-1 px-4 py-3 outline-none"
                         />
@@ -66,7 +104,7 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
                         </button>
                     </form>
 
-                    {(params.category || params.search) && (
+                    {(params.category || searchTerm) && (
                         <a
                             href="/listings"
                             className="mt-4 inline-block text-sm font-semibold text-orange-600"
@@ -86,7 +124,7 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
                     </div>
                 ) : (
                     <div className="rounded-2xl border bg-white p-8 text-slate-600">
-                        No listings found yet.
+                        No listings found.
                     </div>
                 )}
             </section>
