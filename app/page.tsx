@@ -1,9 +1,11 @@
 import Navbar from "@/components/layout/Navbar";
 import { apiGet, getArray } from "@/lib/api";
+import HomeCategoryMegaSection from "@/components/categories/HomeCategoryMegaSection";
 
 export default async function HomePage() {
   let categories: any[] = [];
   let listings: any[] = [];
+  let allCategories: any[] = [];
 
   try {
     const homeData = await apiGet("/home/");
@@ -20,6 +22,13 @@ export default async function HomePage() {
     );
   } catch (error) {
     console.error("Homepage API error:", error);
+  }
+
+  try {
+    const categoriesData = await apiGet("/categories/");
+    allCategories = getArray(categoriesData);
+  } catch (error) {
+    console.error("Categories API error:", error);
   }
 
   return (
@@ -60,32 +69,9 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-6 py-12">
-        <h2 className="mb-6 text-2xl font-bold">Popular Categories</h2>
-
-        {categories.length > 0 ? (
-          <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
-            {categories.slice(0, 10).map((category: any, index: number) => (
-              <div
-                key={category.id || category.slug || index}
-                className="rounded-2xl border bg-white p-5 shadow-sm"
-              >
-                <h3 className="font-semibold">
-                  {category.name || category.title || "Category"}
-                </h3>
-                <p className="mt-1 text-sm text-slate-500">
-                  {category.listings_count || category.count || 0} listings
-                </p>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="rounded-2xl border bg-white p-6 text-slate-600">
-            No categories found yet.
-          </div>
-        )}
-      </section>
-
+      <HomeCategoryMegaSection
+        categories={allCategories.length > 0 ? allCategories : categories}
+      />
       <section className="mx-auto max-w-7xl px-6 pb-16">
         <h2 className="mb-6 text-2xl font-bold">Latest Listings</h2>
 
