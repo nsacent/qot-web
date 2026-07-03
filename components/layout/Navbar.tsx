@@ -1,3 +1,5 @@
+import AuthMenu from "@/components/auth/AuthMenu";
+
 export default function Navbar() {
     return (
         <header className="border-b bg-white">
@@ -7,10 +9,16 @@ export default function Navbar() {
                 </a>
 
                 <nav className="hidden items-center gap-6 text-sm font-medium text-slate-700 md:flex">
-                    <a href="/">Home</a>
-                    <a href="/listings">Listings</a>
-                    <a href="/categories">Categories</a>
-                    <a href="/login">Login</a>
+                    <a href="/" className="hover:text-orange-600">
+                        Home
+                    </a>
+                    <a href="/listings" className="hover:text-orange-600">
+                        Listings
+                    </a>
+                    <a href="/categories" className="hover:text-orange-600">
+                        Categories
+                    </a>
+                    <AuthMenu />
                 </nav>
 
                 <a
