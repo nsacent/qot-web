@@ -41,6 +41,19 @@ export default function ListingCard({ listing }: ListingCardProps) {
         listing.seller?.verified ||
         listing.is_seller_verified;
 
+    const sellerId =
+        listing.seller?.id ||
+        listing.seller_id ||
+        listing.user?.id ||
+        listing.user_id;
+
+    const sellerName =
+        listing.seller?.full_name ||
+        listing.seller?.name ||
+        listing.seller?.username ||
+        listing.seller_name ||
+        "Seller";
+
     return (
         <article className="group overflow-hidden rounded-2xl border bg-white shadow-sm transition hover:-translate-y-1 hover:border-orange-200 hover:shadow-md">
             <a href={`/listings/${listing.id}`} className="block">
@@ -91,6 +104,15 @@ export default function ListingCard({ listing }: ListingCardProps) {
                 <p className="mt-2 text-sm text-slate-500">
                     {listing.city?.name || listing.location || "Uganda"}
                 </p>
+
+                {sellerId && (
+                    <a
+                        href={`/sellers/${sellerId}`}
+                        className="mt-2 inline-block text-sm font-semibold text-slate-700 hover:text-orange-600"
+                    >
+                        Seller: {sellerName}
+                    </a>
+                )}
 
                 <p className="mt-4 text-xl font-bold text-orange-600">
                     {formatPrice(listing.price)}

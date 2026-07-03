@@ -2,6 +2,7 @@ import Navbar from "@/components/layout/Navbar";
 import { apiGet } from "@/lib/api";
 import FavoriteButton from "@/components/listings/FavoriteButton";
 import ContactSellerButton from "@/components/chats/ContactSellerButton";
+import ReportListingButton from "@/components/listings/ReportListingButton";
 
 type PageProps = {
     params: Promise<{
@@ -43,6 +44,19 @@ export default async function ListingDetailsPage({ params }: PageProps) {
             </main>
         );
     }
+
+    const sellerId =
+        listing?.seller?.id ||
+        listing?.seller_id ||
+        listing?.user?.id ||
+        listing?.user_id;
+
+    const sellerName =
+        listing?.seller?.full_name ||
+        listing?.seller?.name ||
+        listing?.seller?.username ||
+        listing?.seller_name ||
+        "Seller";
 
     const images =
         listing.images?.length > 0
@@ -181,6 +195,15 @@ export default async function ListingDetailsPage({ params }: PageProps) {
                                         listing.seller_name ||
                                         "QOT Seller"
                                     )}
+
+                                    {sellerId && (
+                                        <a
+                                            href={`/sellers/${sellerId}`}
+                                            className="mt-3 inline-block rounded-xl border px-4 py-3 text-sm font-semibold hover:bg-slate-50"
+                                        >
+                                            View seller profile →
+                                        </a>
+                                    )}
                                 </p>
 
                                 <p>
@@ -205,6 +228,9 @@ export default async function ListingDetailsPage({ params }: PageProps) {
                                 >
                                     My Messages
                                 </a>
+
+                                <ReportListingButton listingId={listing.id} />
+
                             </div>
                         </div>
 
@@ -218,6 +244,7 @@ export default async function ListingDetailsPage({ params }: PageProps) {
                                 <li>• Report suspicious adverts to QOT support.</li>
                             </ul>
                         </div>
+
                     </aside>
                 </div>
             </section>
