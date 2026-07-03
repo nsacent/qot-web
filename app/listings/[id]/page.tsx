@@ -139,10 +139,22 @@ export default async function ListingDetailsPage({ params }: PageProps) {
                             <div className="mt-4 space-y-3 text-sm text-slate-700">
                                 <p>
                                     <span className="font-semibold">Seller:</span>{" "}
-                                    {listing.seller?.full_name ||
+                                    {listing.seller?.id ? (
+                                        <a
+                                            href={`/sellers/${listing.seller.id}`}
+                                            className="font-semibold text-orange-600 hover:text-orange-700"
+                                        >
+                                            {listing.seller?.full_name ||
+                                                listing.seller?.name ||
+                                                listing.seller_name ||
+                                                "QOT Seller"}
+                                        </a>
+                                    ) : (
+                                        listing.seller?.full_name ||
                                         listing.seller?.name ||
                                         listing.seller_name ||
-                                        "QOT Seller"}
+                                        "QOT Seller"
+                                    )}
                                 </p>
 
                                 <p>
