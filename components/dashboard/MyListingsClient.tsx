@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import ListingCard from "@/components/listings/ListingCard";
+import MyListingCard from "@/components/dashboard/MyListingCard";
 
 const API_BASE_URL =
     process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000/api/v1";
@@ -103,7 +103,11 @@ export default function MyListingsClient() {
             {listings.length > 0 ? (
                 <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                     {listings.map((listing: any) => (
-                        <ListingCard key={listing.id || listing.slug} listing={listing} />
+                        <MyListingCard
+                            key={listing.id || listing.slug}
+                            listing={listing}
+                            onChanged={() => window.location.reload()}
+                        />
                     ))}
                 </div>
             ) : (
