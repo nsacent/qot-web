@@ -1,6 +1,7 @@
 import Navbar from "@/components/layout/Navbar";
 import { apiGet, getArray } from "@/lib/api";
 import HomeCategoryMegaSection from "@/components/categories/HomeCategoryMegaSection";
+import TrustSafetySection from "@/components/home/TrustSafetySection";
 
 export default async function HomePage() {
   let categories: any[] = [];
@@ -118,6 +119,7 @@ export default async function HomePage() {
           </div>
         )}
       </section>
+      <TrustSafetySection />
     </main>
   );
 }
