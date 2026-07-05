@@ -10,15 +10,37 @@ export function getStoredToken() {
     );
 }
 
+export function decodeJwtPayload(token: string) {
+    try {
+        const parts = token.split(".");
+
+        if (parts.length < 2) return null;
+
+        const payload = parts[1];
+        const normalized = payload.replace(/-/g, "+").replace(/_/g, "/");
+        const decoded = atob(normalized);
+
+        return JSON.parse(decoded);
+    } catch {
+        return null;
+    }
+}
+
 export function getStoredUser() {
     if (typeof window === "undefined") return null;
 
     try {
         const rawUser = localStorage.getItem("qot_user");
 
-        if (!rawUser) return null;
+        if (rawUser) {
+            return JSON.parse(rawUser);
+        }
 
-        return JSON.parse(rawUser);
+        const token = getStoredToken();
+
+        if (!token) return null;
+
+        return decodeJwtPayload(token);
     } catch {
         return null;
     }
@@ -30,6 +52,7 @@ export function getUserRole(user: any) {
         user?.user_role ||
         user?.user_type ||
         user?.account_type ||
+        user?.type ||
         ""
     ).toLowerCase();
 }
@@ -43,7 +66,21 @@ export function isAdminOrModerator(user: any) {
         user?.is_staff === true ||
         user?.is_superuser === true ||
         user?.is_admin === true ||
-        user?.is_moderator === true
+        user?.is_moderator === true ||
+        user?.staff === true ||
+        user?.superuser === true
+    );
+}
+
+export function getUserDisplayName(user: any) {
+    return (
+        user?.full_name ||
+        user?.name ||
+        user?.username ||
+        user?.phone ||
+        user?.email ||
+        user?.identifier ||
+        "Account"
     );
 }
 

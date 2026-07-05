@@ -5,6 +5,7 @@ import LogoutButton from "@/components/auth/LogoutButton";
 import {
     getStoredToken,
     getStoredUser,
+    getUserDisplayName,
     isAdminOrModerator,
 } from "@/lib/auth";
 
@@ -79,7 +80,7 @@ export default function AuthMenu() {
                 href="/my-listings"
                 className="hidden text-sm font-semibold text-slate-700 hover:text-orange-600 md:inline"
             >
-                {getUserName(user)}
+                {getUserDisplayName(user)}
             </a>
 
             <a
