@@ -3,6 +3,7 @@ import ListingCard from "@/components/listings/ListingCard";
 import { apiGet, getArray } from "@/lib/api";
 import ListingFilters from "@/components/listings/ListingFilters";
 import Pagination from "@/components/listings/Pagination";
+import SaveSearchButton from "@/components/listings/SaveSearchButton";
 
 type ListingsPageProps = {
     searchParams: Promise<{
@@ -19,6 +20,8 @@ type ListingsPageProps = {
 
     }>;
 };
+
+
 
 export default async function ListingsPage({ searchParams }: ListingsPageProps) {
     const params = await searchParams;
@@ -144,6 +147,21 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
                         regions={regions}
                         cities={cities}
                     />
+
+                    <div className="mt-4 flex justify-end">
+                        <SaveSearchButton
+                            searchParams={{
+                                q: searchTerm,
+                                category: params.category,
+                                city: params.city,
+                                region: params.region,
+                                min_price: params.min_price,
+                                max_price: params.max_price,
+                                condition: params.condition,
+                                sort: params.sort,
+                            }}
+                        />
+                    </div>
 
                     {(params.category || searchTerm) && (
                         <a

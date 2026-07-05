@@ -6,7 +6,6 @@ import { getStoredToken } from "@/lib/auth";
 
 const NOTIFICATIONS_ENDPOINT = "/notifications/";
 
-
 const markReadEndpoint = (id: number | string) =>
     `/notifications/${id}/read/`;
 
@@ -55,6 +54,8 @@ function getLink(notification: any) {
 }
 
 export default function NotificationBell() {
+    const [mounted, setMounted] = useState(false);
+    const [hasToken, setHasToken] = useState(false);
     const [open, setOpen] = useState(false);
     const [notifications, setNotifications] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
@@ -80,7 +81,14 @@ export default function NotificationBell() {
     }
 
     useEffect(() => {
-        loadNotifications();
+        const token = getStoredToken();
+
+        setHasToken(Boolean(token));
+        setMounted(true);
+
+        if (token) {
+            loadNotifications();
+        }
     }, []);
 
     async function openNotification(notification: any) {
@@ -105,9 +113,10 @@ export default function NotificationBell() {
         window.location.href = "/notifications";
     }
 
-    const unreadCount = notifications.filter(isUnread).length;
+    if (!mounted) return null;
+    if (!hasToken) return null;
 
-    if (!getStoredToken()) return null;
+    const unreadCount = notifications.filter(isUnread).length;
 
     return (
         <div className="relative">
