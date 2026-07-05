@@ -2,28 +2,11 @@
 
 import { useEffect, useState } from "react";
 import LogoutButton from "@/components/auth/LogoutButton";
-
-function getStoredToken() {
-    return (
-        localStorage.getItem("qot_access_token") ||
-        localStorage.getItem("access_token") ||
-        localStorage.getItem("access") ||
-        localStorage.getItem("token") ||
-        ""
-    );
-}
-
-function getStoredUser() {
-    try {
-        const rawUser = localStorage.getItem("qot_user");
-
-        if (!rawUser) return null;
-
-        return JSON.parse(rawUser);
-    } catch {
-        return null;
-    }
-}
+import {
+    getStoredToken,
+    getStoredUser,
+    isAdminOrModerator,
+} from "@/lib/auth";
 
 function getUserName(user: any) {
     return (
@@ -43,11 +26,12 @@ export default function AuthMenu() {
 
     useEffect(() => {
         const token = getStoredToken();
+        const storedUser = getStoredUser();
 
         if (token) {
             localStorage.setItem("qot_access_token", token);
             setLoggedIn(true);
-            setUser(getStoredUser());
+            setUser(storedUser);
         } else {
             setLoggedIn(false);
             setUser(null);
@@ -56,9 +40,7 @@ export default function AuthMenu() {
         setMounted(true);
     }, []);
 
-    if (!mounted) {
-        return null;
-    }
+    if (!mounted) return null;
 
     if (!loggedIn) {
         return (
@@ -80,8 +62,19 @@ export default function AuthMenu() {
         );
     }
 
+    const canAccessAdmin = isAdminOrModerator(user);
+
     return (
         <div className="flex items-center gap-3">
+            {canAccessAdmin && (
+                <a
+                    href="/admin"
+                    className="hidden rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800 md:inline-block"
+                >
+                    Admin
+                </a>
+            )}
+
             <a
                 href="/my-listings"
                 className="hidden text-sm font-semibold text-slate-700 hover:text-orange-600 md:inline"

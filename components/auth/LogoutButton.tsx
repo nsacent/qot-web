@@ -1,17 +1,10 @@
 "use client";
 
+import { clearAuthStorage } from "@/lib/auth";
+
 export default function LogoutButton() {
     function logout() {
-        localStorage.removeItem("qot_access_token");
-        localStorage.removeItem("qot_refresh_token");
-        localStorage.removeItem("qot_user");
-
-        localStorage.removeItem("access_token");
-        localStorage.removeItem("refresh_token");
-        localStorage.removeItem("access");
-        localStorage.removeItem("refresh");
-        localStorage.removeItem("token");
-
+        clearAuthStorage();
         window.location.href = "/login";
     }
 

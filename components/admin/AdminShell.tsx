@@ -1,6 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import {
+    getStoredUser,
+    isAdminOrModerator,
+} from "@/lib/auth";
 
 const links = [
     { label: "Dashboard", href: "/admin" },
@@ -31,6 +35,7 @@ export default function AdminShell({ children }: AdminShellProps) {
     useEffect(() => {
         try {
             const token = getStoredToken();
+            const user = getStoredUser();
 
             if (!token) {
                 setAllowed(false);
@@ -42,6 +47,17 @@ export default function AdminShell({ children }: AdminShellProps) {
             }
 
             localStorage.setItem("qot_access_token", token);
+
+            /*
+              If user details are available, enforce role.
+              If user details are missing, allow the API itself to decide.
+              This avoids blocking admin users when the login response does not store user data.
+            */
+            if (user && !isAdminOrModerator(user)) {
+                setAllowed(false);
+                setChecking(false);
+                return;
+            }
 
             setAllowed(true);
             setChecking(false);
@@ -67,18 +83,27 @@ export default function AdminShell({ children }: AdminShellProps) {
             <main className="min-h-screen bg-slate-50 px-6 py-20">
                 <div className="mx-auto max-w-3xl rounded-2xl border bg-white p-8">
                     <h1 className="text-2xl font-bold text-slate-900">
-                        Login required
+                        Admin access required
                     </h1>
                     <p className="mt-2 text-slate-600">
-                        You need to login before accessing the admin panel.
+                        This area is only available to admin or moderator accounts.
                     </p>
 
-                    <a
-                        href="/login?next=/admin"
-                        className="mt-6 inline-block rounded-xl bg-orange-500 px-5 py-3 font-semibold text-white hover:bg-orange-600"
-                    >
-                        Go to Login
-                    </a>
+                    <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+                        <a
+                            href="/"
+                            className="rounded-xl border px-5 py-3 text-center font-semibold hover:bg-slate-50"
+                        >
+                            Back to Website
+                        </a>
+
+                        <a
+                            href="/login?next=/admin"
+                            className="rounded-xl bg-orange-500 px-5 py-3 text-center font-semibold text-white hover:bg-orange-600"
+                        >
+                            Login as Admin
+                        </a>
+                    </div>
                 </div>
             </main>
         );

@@ -5,14 +5,49 @@ import { useState } from "react";
 const API_BASE_URL =
     process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000/api/v1";
 
+function getAccessToken(data: any) {
+    return (
+        data?.access ||
+        data?.access_token ||
+        data?.tokens?.access ||
+        data?.token?.access ||
+        data?.data?.access ||
+        data?.data?.access_token ||
+        ""
+    );
+}
+
+function getRefreshToken(data: any) {
+    return (
+        data?.refresh ||
+        data?.refresh_token ||
+        data?.tokens?.refresh ||
+        data?.token?.refresh ||
+        data?.data?.refresh ||
+        data?.data?.refresh_token ||
+        ""
+    );
+}
+
+function getUser(data: any) {
+    return (
+        data?.user ||
+        data?.data?.user ||
+        data?.account ||
+        data?.profile ||
+        null
+    );
+}
+
 export default function LoginForm() {
-    const [identifier, setIdentifier] = useState("+256700000103");
+    const [identifier, setIdentifier] = useState("+256700000999");
     const [password, setPassword] = useState("StrongPass123");
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
 
     async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
         event.preventDefault();
+
         setLoading(true);
         setError("");
 
@@ -28,40 +63,43 @@ export default function LoginForm() {
                 }),
             });
 
-            const data = await response.json();
+            const data = await response.json().catch(() => null);
 
             if (!response.ok) {
                 throw new Error(
                     data?.detail ||
                     data?.message ||
                     data?.error ||
+                    JSON.stringify(data) ||
                     "Login failed. Please check your details."
                 );
             }
 
-            const accessToken =
-                data?.access ||
-                data?.tokens?.access ||
-                data?.token?.access ||
-                data?.data?.access;
+            const accessToken = getAccessToken(data);
+            const refreshToken = getRefreshToken(data);
+            const user = getUser(data);
 
-            const refreshToken =
-                data?.refresh ||
-                data?.tokens?.refresh ||
-                data?.token?.refresh ||
-                data?.data?.refresh;
-
-            if (accessToken) {
-                localStorage.setItem("qot_access_token", accessToken);
+            if (!accessToken) {
+                console.log("Login response:", data);
+                throw new Error("Login worked, but no access token was found.");
             }
+
+            localStorage.setItem("qot_access_token", accessToken);
 
             if (refreshToken) {
                 localStorage.setItem("qot_refresh_token", refreshToken);
             }
 
-            localStorage.setItem("qot_user", JSON.stringify(data?.user || data));
+            if (user) {
+                localStorage.setItem("qot_user", JSON.stringify(user));
+            } else {
+                localStorage.removeItem("qot_user");
+            }
 
-            window.location.href = "/";
+            const params = new URLSearchParams(window.location.search);
+            const nextUrl = params.get("next") || "/";
+
+            window.location.href = nextUrl;
         } catch (err: any) {
             setError(err.message || "Something went wrong.");
         } finally {
