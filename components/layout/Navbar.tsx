@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import AuthMenu from "@/components/auth/AuthMenu";
+import NotificationBell from "@/components/notifications/NotificationBell";
 
 export default function Navbar() {
     const [open, setOpen] = useState(false);
@@ -38,7 +39,7 @@ export default function Navbar() {
                     <a href="/categories" className="hover:text-orange-600">
                         Categories
                     </a>
-
+                    <NotificationBell />
                     <AuthMenu />
                 </nav>
 
