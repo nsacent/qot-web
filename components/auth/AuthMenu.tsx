@@ -1,53 +1,102 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import LogoutButton from "@/components/auth/LogoutButton";
+
+function getStoredToken() {
+    return (
+        localStorage.getItem("qot_access_token") ||
+        localStorage.getItem("access_token") ||
+        localStorage.getItem("access") ||
+        localStorage.getItem("token") ||
+        ""
+    );
+}
+
+function getStoredUser() {
+    try {
+        const rawUser = localStorage.getItem("qot_user");
+
+        if (!rawUser) return null;
+
+        return JSON.parse(rawUser);
+    } catch {
+        return null;
+    }
+}
+
+function getUserName(user: any) {
+    return (
+        user?.full_name ||
+        user?.name ||
+        user?.username ||
+        user?.phone ||
+        user?.email ||
+        "Account"
+    );
+}
 
 export default function AuthMenu() {
-    const [isLoggedIn, setIsLoggedIn] = useState(false);
+    const [mounted, setMounted] = useState(false);
+    const [loggedIn, setLoggedIn] = useState(false);
+    const [user, setUser] = useState<any>(null);
 
     useEffect(() => {
-        const token = localStorage.getItem("qot_access_token");
-        setIsLoggedIn(Boolean(token));
+        const token = getStoredToken();
+
+        if (token) {
+            localStorage.setItem("qot_access_token", token);
+            setLoggedIn(true);
+            setUser(getStoredUser());
+        } else {
+            setLoggedIn(false);
+            setUser(null);
+        }
+
+        setMounted(true);
     }, []);
 
-    function logout() {
-        localStorage.removeItem("qot_access_token");
-        localStorage.removeItem("qot_refresh_token");
-        localStorage.removeItem("qot_user");
-        window.location.href = "/";
+    if (!mounted) {
+        return null;
     }
 
-    if (!isLoggedIn) {
+    if (!loggedIn) {
         return (
-            <>
-                <a href="/login" className="hover:text-orange-600">
+            <div className="flex items-center gap-3">
+                <a
+                    href="/login"
+                    className="rounded-xl border px-4 py-2 text-sm font-semibold hover:bg-slate-50"
+                >
                     Login
                 </a>
 
-                <a href="/register" className="hover:text-orange-600">
+                <a
+                    href="/register"
+                    className="rounded-xl bg-orange-500 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-600"
+                >
                     Register
                 </a>
-            </>
+            </div>
         );
     }
 
     return (
-        <>
-            <a href="/saved" className="hover:text-orange-600">
-                Saved
+        <div className="flex items-center gap-3">
+            <a
+                href="/my-listings"
+                className="hidden text-sm font-semibold text-slate-700 hover:text-orange-600 md:inline"
+            >
+                {getUserName(user)}
             </a>
 
-            <a href="/messages" className="hover:text-orange-600">
-                Messages
+            <a
+                href="/my-listings"
+                className="rounded-xl bg-orange-50 px-4 py-2 text-sm font-semibold text-orange-700 hover:bg-orange-100"
+            >
+                My Ads
             </a>
 
-            <a href="/my-listings" className="hover:text-orange-600">
-                My Listings
-            </a>
-
-            <button onClick={logout} className="hover:text-orange-600">
-                Logout
-            </button>
-        </>
+            <LogoutButton />
+        </div>
     );
 }
