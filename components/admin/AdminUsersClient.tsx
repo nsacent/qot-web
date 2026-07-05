@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { apiGet, apiPost } from "@/lib/apiClient";
 
 const API_BASE_URL =
     process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000/api/v1";
@@ -108,7 +109,7 @@ export default function AdminUsersClient() {
         setError("");
 
         try {
-            const data = await apiRequest(buildUsersEndpoint());
+            const data = await apiGet(buildUsersEndpoint());
             setUsers(getArray(data));
         } catch (error: any) {
             setError(error.message || "Failed to load users.");
@@ -130,14 +131,12 @@ export default function AdminUsersClient() {
         setActionLoading(`ban-${userId}`);
 
         try {
-            await apiRequest(banUserEndpoint(userId), {
-                method: "POST",
-                body: JSON.stringify({
-                    reason,
-                }),
-            });
 
+            await apiPost(banUserEndpoint(userId), {
+                reason,
+            });
             await loadUsers();
+
         } catch (error: any) {
             alert(error.message || "Failed to ban user.");
         } finally {
@@ -153,10 +152,7 @@ export default function AdminUsersClient() {
         setActionLoading(`unban-${userId}`);
 
         try {
-            await apiRequest(unbanUserEndpoint(userId), {
-                method: "POST",
-            });
-
+            await apiPost(unbanUserEndpoint(userId));
             await loadUsers();
         } catch (error: any) {
             alert(error.message || "Failed to unban user.");

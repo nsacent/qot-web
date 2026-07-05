@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { apiGet, apiPost } from "@/lib/apiClient";
 
 const API_BASE_URL =
     process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000/api/v1";
@@ -151,7 +152,7 @@ export default function AdminListingsClient() {
         setError("");
 
         try {
-            const data = await apiRequest(buildListingsEndpoint());
+            const data = await apiGet(buildListingsEndpoint());
             setListings(getArray(data));
         } catch (error: any) {
             setError(error.message || "Failed to load listings.");
@@ -169,9 +170,7 @@ export default function AdminListingsClient() {
         setActionLoading(`approve-${listingId}`);
 
         try {
-            await apiRequest(approveListingEndpoint(listingId), {
-                method: "POST",
-            });
+            await apiPost(approveListingEndpoint(listingId));
 
             await loadListings();
         } catch (error: any) {
@@ -191,11 +190,8 @@ export default function AdminListingsClient() {
         setActionLoading(`reject-${listingId}`);
 
         try {
-            await apiRequest(rejectListingEndpoint(listingId), {
-                method: "POST",
-                body: JSON.stringify({
-                    rejection_reason: rejectionReason,
-                }),
+            await apiPost(rejectListingEndpoint(listingId), {
+                rejection_reason: rejectionReason,
             });
 
             await loadListings();
@@ -221,11 +217,8 @@ export default function AdminListingsClient() {
         setActionLoading(`feature-${listingId}`);
 
         try {
-            await apiRequest(featureListingEndpoint(listingId), {
-                method: "POST",
-                body: JSON.stringify({
-                    days,
-                }),
+            await apiPost(featureListingEndpoint(listingId), {
+                days,
             });
 
             await loadListings();
@@ -244,10 +237,7 @@ export default function AdminListingsClient() {
         setActionLoading(`unfeature-${listingId}`);
 
         try {
-            await apiRequest(unfeatureListingEndpoint(listingId), {
-                method: "POST",
-            });
-
+            await apiPost(unfeatureListingEndpoint(listingId));
             await loadListings();
         } catch (error: any) {
             alert(error.message || "Failed to unfeature listing.");

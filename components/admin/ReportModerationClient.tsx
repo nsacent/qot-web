@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { apiGet, apiPost } from "@/lib/apiClient";
 
 const API_BASE_URL =
     process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000/api/v1";
@@ -134,7 +135,8 @@ export default function ReportModerationClient() {
         setError("");
 
         try {
-            const data = await apiRequest(buildReportsEndpoint());
+            const data = await apiGet(buildReportsEndpoint());
+
             setReports(getArray(data));
         } catch (error: any) {
             setError(error.message || "Failed to load reports.");
@@ -152,10 +154,7 @@ export default function ReportModerationClient() {
         setActionLoading(`resolve-${reportId}`);
 
         try {
-            await apiRequest(resolveReportEndpoint(reportId), {
-                method: "POST",
-            });
-
+            await apiPost(resolveReportEndpoint(reportId));
             await loadReports();
         } catch (error: any) {
             alert(error.message || "Failed to resolve report.");
@@ -174,11 +173,8 @@ export default function ReportModerationClient() {
         setActionLoading(`reject-${reportId}`);
 
         try {
-            await apiRequest(rejectListingEndpoint(reportId), {
-                method: "POST",
-                body: JSON.stringify({
-                    rejection_reason: rejectionReason,
-                }),
+            await apiPost(rejectListingEndpoint(reportId), {
+                rejection_reason: rejectionReason,
             });
 
             await loadReports();
@@ -199,9 +195,7 @@ export default function ReportModerationClient() {
         setActionLoading(`delete-${reportId}`);
 
         try {
-            await apiRequest(deleteListingEndpoint(reportId), {
-                method: "POST",
-            });
+            await apiPost(deleteListingEndpoint(reportId));
 
             await loadReports();
         } catch (error: any) {

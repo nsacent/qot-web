@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { apiGet } from "@/lib/apiClient";
 
 const API_BASE_URL =
     process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000/api/v1";
@@ -27,35 +28,11 @@ export default function AdminDashboardClient() {
     const [error, setError] = useState("");
 
     async function loadDashboard() {
-        const token = localStorage.getItem("qot_access_token");
-
-        if (!token) {
-            window.location.href = "/login";
-            return;
-        }
-
         setLoading(true);
         setError("");
 
         try {
-            const response = await fetch(`${API_BASE_URL}${DASHBOARD_ENDPOINT}`, {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                },
-            });
-
-            const data = await response.json().catch(() => null);
-
-            if (!response.ok) {
-                throw new Error(
-                    data?.detail ||
-                    data?.message ||
-                    data?.error ||
-                    JSON.stringify(data) ||
-                    "Failed to load admin dashboard."
-                );
-            }
-
+            const data = await apiGet(DASHBOARD_ENDPOINT);
             setDashboard(data);
         } catch (error: any) {
             setError(error.message || "Failed to load admin dashboard.");
