@@ -5,6 +5,7 @@ import ContactSellerButton from "@/components/chats/ContactSellerButton";
 import ReportListingButton from "@/components/listings/ReportListingButton";
 import RecentlyViewedTracker from "@/components/listings/RecentlyViewedTracker";
 import ShareListingButton from "@/components/listings/ShareListingButton";
+import SimilarListings from "@/components/listings/SimilarListings";
 
 type PageProps = {
     params: Promise<{
@@ -234,6 +235,7 @@ export default async function ListingDetailsPage({ params }: PageProps) {
                     </aside>
                 </div>
             </section>
+            <SimilarListings listing={listing} />
         </main>
     );
 }
