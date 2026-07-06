@@ -1,9 +1,6 @@
 "use client";
 
-import { useState } from "react";
-
-const API_BASE_URL =
-    process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000/api/v1";
+import SellerListingStatusActions from "@/components/dashboard/SellerListingStatusActions";
 
 type MyListingCardProps = {
     listing: any;
@@ -14,54 +11,12 @@ export default function MyListingCard({
     listing,
     onChanged,
 }: MyListingCardProps) {
-    const [loadingAction, setLoadingAction] = useState("");
-
     const image =
         listing.primary_image ||
         listing.image ||
         listing.cover_image ||
         listing.images?.[0]?.image ||
         listing.images?.[0]?.url;
-
-    async function updateStatus(status: string) {
-        const token = localStorage.getItem("qot_access_token");
-
-        if (!token) {
-            window.location.href = "/login";
-            return;
-        }
-
-        setLoadingAction(status);
-
-        try {
-            const response = await fetch(`${API_BASE_URL}/listings/${listing.id}/`, {
-                method: "PATCH",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`,
-                },
-                body: JSON.stringify({ status }),
-            });
-
-            const data = await response.json().catch(() => null);
-
-            if (!response.ok) {
-                throw new Error(
-                    data?.detail ||
-                    data?.message ||
-                    data?.error ||
-                    JSON.stringify(data) ||
-                    "Failed to update listing status."
-                );
-            }
-
-            if (onChanged) onChanged();
-        } catch (error: any) {
-            alert(error.message || "Something went wrong.");
-        } finally {
-            setLoadingAction("");
-        }
-    }
 
     return (
         <article className="overflow-hidden rounded-2xl border bg-white shadow-sm">
@@ -115,31 +70,10 @@ export default function MyListingCard({
                         View Public Page
                     </a>
 
-                    <button
-                        onClick={() => updateStatus("sold")}
-                        disabled={loadingAction === "sold"}
-                        className="rounded-xl bg-green-600 px-4 py-2 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-60"
-                    >
-                        {loadingAction === "sold" ? "Updating..." : "Mark Sold"}
-                    </button>
-
-                    <button
-                        onClick={() => updateStatus("active")}
-                        disabled={loadingAction === "active"}
-                        className="rounded-xl bg-orange-500 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-600 disabled:opacity-60"
-                    >
-                        {loadingAction === "active" ? "Updating..." : "Make Available"}
-                    </button>
-
-                    <button
-                        onClick={() => updateStatus("unavailable")}
-                        disabled={loadingAction === "unavailable"}
-                        className="rounded-xl bg-slate-700 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-60"
-                    >
-                        {loadingAction === "unavailable"
-                            ? "Updating..."
-                            : "Make Unavailable"}
-                    </button>
+                    <SellerListingStatusActions
+                        listing={listing}
+                        onChanged={onChanged}
+                    />
                 </div>
             </div>
         </article>
