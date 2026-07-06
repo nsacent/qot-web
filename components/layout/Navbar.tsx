@@ -102,6 +102,10 @@ export default function Navbar() {
                                     Saved
                                 </a>
 
+                                <a href="/recently-viewed" className="font-medium hover:text-orange-600">
+                                    Recently Viewed
+                                </a>
+
                                 <a
                                     href="/messages"
                                     className="rounded-xl px-3 py-3 hover:bg-slate-50"

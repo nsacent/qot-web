@@ -3,6 +3,8 @@ import { apiGet } from "@/lib/api";
 import FavoriteButton from "@/components/listings/FavoriteButton";
 import ContactSellerButton from "@/components/chats/ContactSellerButton";
 import ReportListingButton from "@/components/listings/ReportListingButton";
+import RecentlyViewedTracker from "@/components/listings/RecentlyViewedTracker";
+import ShareListingButton from "@/components/listings/ShareListingButton";
 
 type PageProps = {
     params: Promise<{
@@ -16,31 +18,18 @@ export default async function ListingDetailsPage({ params }: PageProps) {
     let listing: any = null;
 
     try {
-        listing = await apiGet(`/listings/${id}/`);
+        const data = await apiGet(`/listings/${id}/`);
+        listing = data?.listing || data?.data || data;
     } catch (error) {
         console.error("Listing detail API error:", error);
     }
 
     if (!listing) {
         return (
-            <main className="min-h-screen bg-slate-50 text-slate-900">
-                <Navbar />
-
-                <section className="mx-auto max-w-7xl px-6 py-16">
-                    <div className="rounded-2xl border bg-white p-8">
-                        <h1 className="text-2xl font-bold">Listing not found</h1>
-                        <p className="mt-2 text-slate-600">
-                            This advert may have been removed or is not available.
-                        </p>
-
-                        <a
-                            href="/listings"
-                            className="mt-6 inline-block rounded-xl bg-orange-500 px-5 py-3 font-semibold text-white"
-                        >
-                            Back to listings
-                        </a>
-                    </div>
-                </section>
+            <main className="min-h-screen bg-slate-50 px-6 py-20">
+                <div className="mx-auto max-w-3xl rounded-2xl border bg-white p-8">
+                    Listing not found.
+                </div>
             </main>
         );
     }
@@ -66,10 +55,15 @@ export default async function ListingDetailsPage({ params }: PageProps) {
                 : [];
 
     const mainImage =
-        images?.[0]?.image || images?.[0]?.url || listing.primary_image || listing.image;
+        images?.[0]?.image ||
+        images?.[0]?.url ||
+        listing.primary_image ||
+        listing.image;
 
     return (
         <main className="min-h-screen bg-slate-50 text-slate-900">
+            <RecentlyViewedTracker listing={listing} />
+
             <Navbar />
 
             <section className="mx-auto max-w-7xl px-6 py-10">
@@ -125,11 +119,13 @@ export default async function ListingDetailsPage({ params }: PageProps) {
                             </p>
 
                             <div className="mt-3 flex flex-wrap gap-2">
-                                {(listing.is_featured || listing.featured || listing.featured_until) && (
-                                    <span className="rounded-full bg-orange-500 px-3 py-1 text-xs font-bold text-white">
-                                        Featured
-                                    </span>
-                                )}
+                                {(listing.is_featured ||
+                                    listing.featured ||
+                                    listing.featured_until) && (
+                                        <span className="rounded-full bg-orange-500 px-3 py-1 text-xs font-bold text-white">
+                                            Featured
+                                        </span>
+                                    )}
 
                                 {(listing.seller?.is_verified || listing.seller?.verified) && (
                                     <span className="rounded-full bg-green-600 px-3 py-1 text-xs font-bold text-white">
@@ -158,7 +154,6 @@ export default async function ListingDetailsPage({ params }: PageProps) {
                                     : "Contact seller"}
                             </p>
 
-
                             <div className="mt-8 border-t pt-6">
                                 <h2 className="text-xl font-bold">Description</h2>
 
@@ -167,9 +162,6 @@ export default async function ListingDetailsPage({ params }: PageProps) {
                                 </p>
                             </div>
                         </div>
-
-
-
                     </div>
 
                     <aside className="space-y-6">
@@ -179,32 +171,26 @@ export default async function ListingDetailsPage({ params }: PageProps) {
                             <div className="mt-4 space-y-3 text-sm text-slate-700">
                                 <p>
                                     <span className="font-semibold">Seller:</span>{" "}
-                                    {listing.seller?.id ? (
-                                        <a
-                                            href={`/sellers/${listing.seller.id}`}
-                                            className="font-semibold text-orange-600 hover:text-orange-700"
-                                        >
-                                            {listing.seller?.full_name ||
-                                                listing.seller?.name ||
-                                                listing.seller_name ||
-                                                "QOT Seller"}
-                                        </a>
-                                    ) : (
-                                        listing.seller?.full_name ||
-                                        listing.seller?.name ||
-                                        listing.seller_name ||
-                                        "QOT Seller"
-                                    )}
-
-                                    {sellerId && (
+                                    {sellerId ? (
                                         <a
                                             href={`/sellers/${sellerId}`}
-                                            className="mt-3 inline-block rounded-xl border px-4 py-3 text-sm font-semibold hover:bg-slate-50"
+                                            className="font-semibold text-orange-600 hover:text-orange-700"
                                         >
-                                            View seller profile →
+                                            {sellerName}
                                         </a>
+                                    ) : (
+                                        sellerName
                                     )}
                                 </p>
+
+                                {sellerId && (
+                                    <a
+                                        href={`/sellers/${sellerId}`}
+                                        className="inline-block rounded-xl border px-4 py-3 text-sm font-semibold hover:bg-slate-50"
+                                    >
+                                        View seller profile →
+                                    </a>
+                                )}
 
                                 <p>
                                     <span className="font-semibold">Location:</span>{" "}
@@ -230,9 +216,10 @@ export default async function ListingDetailsPage({ params }: PageProps) {
                                 </a>
 
                                 <ReportListingButton listingId={listing.id} />
-
                             </div>
                         </div>
+
+                        <ShareListingButton listing={listing} />
 
                         <div className="rounded-2xl border bg-white p-6 shadow-sm">
                             <h2 className="text-xl font-bold">Safety Tips</h2>
@@ -244,7 +231,6 @@ export default async function ListingDetailsPage({ params }: PageProps) {
                                 <li>• Report suspicious adverts to QOT support.</li>
                             </ul>
                         </div>
-
                     </aside>
                 </div>
             </section>

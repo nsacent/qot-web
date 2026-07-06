@@ -9,41 +9,28 @@ import {
     isAdminOrModerator,
 } from "@/lib/auth";
 
-function getUserName(user: any) {
-    return (
-        user?.full_name ||
-        user?.name ||
-        user?.username ||
-        user?.phone ||
-        user?.email ||
-        "Account"
-    );
-}
-
 export default function AuthMenu() {
     const [mounted, setMounted] = useState(false);
-    const [loggedIn, setLoggedIn] = useState(false);
+    const [token, setToken] = useState("");
     const [user, setUser] = useState<any>(null);
 
     useEffect(() => {
-        const token = getStoredToken();
+        const storedToken = getStoredToken();
         const storedUser = getStoredUser();
 
-        if (token) {
-            localStorage.setItem("qot_access_token", token);
-            setLoggedIn(true);
+        if (storedToken) {
+            localStorage.setItem("qot_access_token", storedToken);
+            setToken(storedToken);
             setUser(storedUser);
         } else {
-            setLoggedIn(false);
+            setToken("");
             setUser(null);
         }
 
         setMounted(true);
     }, []);
 
-    if (!mounted) return null;
-
-    if (!loggedIn) {
+    if (!mounted) {
         return (
             <div className="flex items-center gap-3">
                 <a
@@ -63,7 +50,27 @@ export default function AuthMenu() {
         );
     }
 
-    const canAccessAdmin = isAdminOrModerator(user);
+    if (!token) {
+        return (
+            <div className="flex items-center gap-3">
+                <a
+                    href="/login"
+                    className="rounded-xl border px-4 py-2 text-sm font-semibold hover:bg-slate-50"
+                >
+                    Login
+                </a>
+
+                <a
+                    href="/register"
+                    className="rounded-xl bg-orange-500 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-600"
+                >
+                    Register
+                </a>
+            </div>
+        );
+    }
+
+    const canAccessAdmin = user ? isAdminOrModerator(user) : false;
 
     return (
         <div className="flex items-center gap-3">

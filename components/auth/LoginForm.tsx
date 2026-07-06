@@ -9,10 +9,14 @@ function getAccessToken(data: any) {
     return (
         data?.access ||
         data?.access_token ||
+        data?.token ||
         data?.tokens?.access ||
         data?.token?.access ||
         data?.data?.access ||
         data?.data?.access_token ||
+        data?.data?.token ||
+        data?.data?.tokens?.access ||
+        data?.data?.token?.access ||
         ""
     );
 }
@@ -25,6 +29,8 @@ function getRefreshToken(data: any) {
         data?.token?.refresh ||
         data?.data?.refresh ||
         data?.data?.refresh_token ||
+        data?.data?.tokens?.refresh ||
+        data?.data?.token?.refresh ||
         ""
     );
 }
@@ -35,6 +41,8 @@ function getUser(data: any) {
         data?.data?.user ||
         data?.account ||
         data?.profile ||
+        data?.data?.account ||
+        data?.data?.profile ||
         null
     );
 }
@@ -79,8 +87,11 @@ export default function LoginForm() {
             const refreshToken = getRefreshToken(data);
             const user = getUser(data);
 
+            console.log("Login response:", data);
+            console.log("Access token found:", accessToken);
+            console.log("User found:", user);
+
             if (!accessToken) {
-                console.log("Login response:", data);
                 throw new Error("Login worked, but no access token was found.");
             }
 
@@ -119,6 +130,7 @@ export default function LoginForm() {
                 <label className="mb-2 block text-sm font-semibold text-slate-700">
                     Phone or Email
                 </label>
+
                 <input
                     value={identifier}
                     onChange={(event) => setIdentifier(event.target.value)}
@@ -132,6 +144,7 @@ export default function LoginForm() {
                 <label className="mb-2 block text-sm font-semibold text-slate-700">
                     Password
                 </label>
+
                 <input
                     type="password"
                     value={password}
