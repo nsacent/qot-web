@@ -1,18 +1,24 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import MyListingCard from "@/components/dashboard/MyListingCard";
 import SellerStats from "@/components/dashboard/SellerStats";
+import { apiGet, buildQuery } from "@/lib/apiClient";
 
-const API_BASE_URL =
-    process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000/api/v1";
+const STATUS_OPTIONS = [
+    { label: "All", value: "" },
+    { label: "Active", value: "active" },
+    { label: "Pending", value: "pending" },
+    { label: "Sold", value: "sold" },
+    { label: "Draft", value: "draft" },
+    { label: "Unavailable", value: "unavailable" },
+];
 
 function getArray(data: any): any[] {
     if (Array.isArray(data)) return data;
     if (Array.isArray(data?.results)) return data.results;
     if (Array.isArray(data?.data)) return data.data;
     if (Array.isArray(data?.listings)) return data.listings;
-    if (Array.isArray(data?.my_listings)) return data.my_listings;
     return [];
 }
 
@@ -21,75 +27,85 @@ export default function MyListingsClient() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
 
-    useEffect(() => {
-        async function loadMyListings() {
-            const token = localStorage.getItem("qot_access_token");
+    const [status, setStatus] = useState("");
+    const [searchInput, setSearchInput] = useState("");
+    const [search, setSearch] = useState("");
 
-            if (!token) {
-                window.location.href = "/login";
-                return;
-            }
+    async function loadListings() {
+        setLoading(true);
+        setError("");
 
-            const possibleEndpoints = [
-                "/seller/listings/",
-                "/listings/me/",
-                "/seller/dashboard/",
-            ];
+        try {
+            const query = buildQuery({
+                status,
+                q: search,
+            });
+
+            let data: any = null;
 
             try {
-                let successfulData: any = null;
-
-                for (const endpoint of possibleEndpoints) {
-                    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-                        headers: {
-                            Authorization: `Bearer ${token}`,
-                        },
-                    });
-
-                    if (response.ok) {
-                        successfulData = await response.json();
-                        break;
-                    }
-                }
-
-                if (!successfulData) {
-                    throw new Error("Could not load your listings from the API.");
-                }
-
-                setListings(getArray(successfulData));
-            } catch (err: any) {
-                setError(err.message || "Failed to load your listings.");
-            } finally {
-                setLoading(false);
+                data = await apiGet(`/listings/my/${query}`);
+            } catch {
+                data = await apiGet(`/listings/${query}`);
             }
+
+            setListings(getArray(data));
+        } catch (error: any) {
+            setError(error.message || "Failed to load your listings.");
+        } finally {
+            setLoading(false);
         }
-
-        loadMyListings();
-    }, []);
-
-    if (loading) {
-        return (
-            <div className="rounded-2xl border bg-white p-8 text-slate-600">
-                Loading your listings...
-            </div>
-        );
     }
 
-    if (error) {
-        return (
-            <div className="rounded-2xl border border-red-200 bg-red-50 p-8 text-red-700">
-                {error}
-            </div>
-        );
+    useEffect(() => {
+        loadListings();
+    }, [status, search]);
+
+    const filteredListings = useMemo(() => {
+        let items = listings;
+
+        if (status) {
+            items = items.filter(
+                (listing) =>
+                    String(listing.status || "").toLowerCase() === status.toLowerCase()
+            );
+        }
+
+        if (search) {
+            const searchLower = search.toLowerCase();
+
+            items = items.filter((listing) =>
+                String(listing.title || "").toLowerCase().includes(searchLower)
+            );
+        }
+
+        return items;
+    }, [listings, status, search]);
+
+    function handleSearch(event: React.FormEvent<HTMLFormElement>) {
+        event.preventDefault();
+        setSearch(searchInput.trim());
+    }
+
+    function clearFilters() {
+        setStatus("");
+        setSearchInput("");
+        setSearch("");
     }
 
     return (
-        <section>
-            <div className="mb-6 flex flex-col justify-between gap-4 md:flex-row md:items-center">
+        <section className="mx-auto max-w-7xl px-6 py-10">
+            <div className="mb-8 flex flex-col justify-between gap-4 md:flex-row md:items-end">
                 <div>
-                    <h2 className="text-2xl font-bold">Your Adverts</h2>
-                    <p className="mt-1 text-slate-600">
-                        You have {listings.length} advert{listings.length === 1 ? "" : "s"}.
+                    <p className="text-sm font-semibold uppercase tracking-wide text-orange-600">
+                        Seller Dashboard
+                    </p>
+                    <h1 className="mt-2 text-3xl font-bold text-slate-900">
+                        My Listings
+                    </h1>
+                    <p className="mt-2 text-slate-600">
+                        Manage your adverts, update status, edit details, and track your
+                        selling activity.
                     </p>
                 </div>
 
@@ -103,19 +119,93 @@ export default function MyListingsClient() {
 
             <SellerStats listings={listings} />
 
-            {listings.length > 0 ? (
-                <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                    {listings.map((listing: any) => (
+            <div className="mt-8 rounded-2xl border bg-white p-5 shadow-sm">
+                <div className="grid gap-4 lg:grid-cols-[1fr_auto] lg:items-end">
+                    <form onSubmit={handleSearch}>
+                        <label className="mb-2 block text-sm font-semibold text-slate-700">
+                            Search your adverts
+                        </label>
+
+                        <div className="flex gap-2">
+                            <input
+                                value={searchInput}
+                                onChange={(event) => setSearchInput(event.target.value)}
+                                placeholder="Search by title..."
+                                className="w-full rounded-xl border px-4 py-3 outline-none focus:border-orange-500"
+                            />
+
+                            <button
+                                type="submit"
+                                className="rounded-xl bg-slate-900 px-5 py-3 font-semibold text-white hover:bg-slate-800"
+                            >
+                                Search
+                            </button>
+                        </div>
+                    </form>
+
+                    <button
+                        type="button"
+                        onClick={clearFilters}
+                        className="rounded-xl border px-5 py-3 font-semibold hover:bg-slate-50"
+                    >
+                        Clear Filters
+                    </button>
+                </div>
+
+                <div className="mt-5 flex flex-wrap gap-2">
+                    {STATUS_OPTIONS.map((option) => (
+                        <button
+                            key={option.label}
+                            type="button"
+                            onClick={() => setStatus(option.value)}
+                            className={
+                                status === option.value
+                                    ? "rounded-full bg-orange-500 px-4 py-2 text-sm font-semibold text-white"
+                                    : "rounded-full border bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                            }
+                        >
+                            {option.label}
+                        </button>
+                    ))}
+                </div>
+            </div>
+
+            <div className="mt-6 flex items-center justify-between gap-3">
+                <p className="text-sm font-semibold text-slate-600">
+                    Showing {filteredListings.length} advert
+                    {filteredListings.length === 1 ? "" : "s"}
+                </p>
+
+                {(status || search) && (
+                    <p className="text-sm text-slate-500">
+                        Filters applied
+                        {status ? `: ${status}` : ""}
+                        {search ? `, search: "${search}"` : ""}
+                    </p>
+                )}
+            </div>
+
+            {loading ? (
+                <div className="mt-6 rounded-2xl border bg-white p-8 text-slate-600">
+                    Loading your listings...
+                </div>
+            ) : error ? (
+                <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 p-8 text-red-700">
+                    {error}
+                </div>
+            ) : filteredListings.length === 0 ? (
+                <div className="mt-6 rounded-2xl border bg-white p-8 text-slate-600">
+                    No listings found. Try changing the filters or post a new advert.
+                </div>
+            ) : (
+                <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                    {filteredListings.map((listing) => (
                         <MyListingCard
                             key={listing.id || listing.slug}
                             listing={listing}
-                            onChanged={() => window.location.reload()}
+                            onChanged={loadListings}
                         />
                     ))}
-                </div>
-            ) : (
-                <div className="rounded-2xl border bg-white p-8 text-slate-600">
-                    You have not posted any adverts yet.
                 </div>
             )}
         </section>
