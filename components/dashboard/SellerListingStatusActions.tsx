@@ -1,18 +1,32 @@
 "use client";
 
 import { useState } from "react";
-import { apiPatch } from "@/lib/apiClient";
+import { apiPost } from "@/lib/apiClient";
 
 type SellerListingStatusActionsProps = {
     listing: any;
     onChanged?: () => void;
 };
 
-const listingUpdateEndpoint = (listingId: number | string) =>
-    `/listings/${listingId}/`;
-
 function getStatus(listing: any) {
-    return String(listing?.status || "").toLowerCase();
+    return String(listing?.status || "active").toLowerCase();
+}
+
+function isExpired(listing: any) {
+    return (
+        listing?.is_expired === true ||
+        listing?.expired === true ||
+        getStatus(listing) === "expired"
+    );
+}
+
+function needsRenewal(listing: any) {
+    return (
+        listing?.needs_renewal === true ||
+        listing?.requires_renewal === true ||
+        listing?.renewal_required === true ||
+        isExpired(listing)
+    );
 }
 
 export default function SellerListingStatusActions({
@@ -24,21 +38,17 @@ export default function SellerListingStatusActions({
     const status = getStatus(listing);
     const listingId = listing?.id;
 
-    async function updateStatus(nextStatus: string) {
+    async function runAction(action: string, label: string) {
         if (!listingId) return;
 
-        const confirmed = window.confirm(
-            `Are you sure you want to mark this advert as ${nextStatus}?`
-        );
+        const confirmed = window.confirm(`Are you sure you want to ${label}?`);
 
         if (!confirmed) return;
 
-        setLoading(nextStatus);
+        setLoading(action);
 
         try {
-            await apiPatch(listingUpdateEndpoint(listingId), {
-                status: nextStatus,
-            });
+            await apiPost(`/listings/${listingId}/${action}/`);
 
             if (onChanged) {
                 onChanged();
@@ -46,7 +56,7 @@ export default function SellerListingStatusActions({
                 window.location.reload();
             }
         } catch (error: any) {
-            alert(error.message || "Failed to update listing status.");
+            alert(error.message || `Failed to ${label}.`);
         } finally {
             setLoading("");
         }
@@ -57,33 +67,61 @@ export default function SellerListingStatusActions({
             {status !== "sold" && (
                 <button
                     type="button"
-                    onClick={() => updateStatus("sold")}
-                    disabled={loading === "sold"}
+                    onClick={() => runAction("mark-sold", "mark this advert as sold")}
+                    disabled={loading === "mark-sold"}
                     className="rounded-xl bg-green-600 px-4 py-3 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-60"
                 >
-                    {loading === "sold" ? "Marking..." : "Mark as Sold"}
+                    {loading === "mark-sold" ? "Marking..." : "Mark as Sold"}
                 </button>
             )}
 
-            {status === "sold" && (
+            {(status === "sold" || status === "unavailable") && (
                 <button
                     type="button"
-                    onClick={() => updateStatus("active")}
-                    disabled={loading === "active"}
+                    onClick={() =>
+                        runAction("mark-available", "make this advert available")
+                    }
+                    disabled={loading === "mark-available"}
                     className="rounded-xl bg-orange-500 px-4 py-3 text-sm font-semibold text-white hover:bg-orange-600 disabled:opacity-60"
                 >
-                    {loading === "active" ? "Reactivating..." : "Reactivate Advert"}
+                    {loading === "mark-available" ? "Updating..." : "Make Available"}
                 </button>
             )}
 
-            {status !== "draft" && status !== "sold" && (
+            {status === "active" && (
                 <button
                     type="button"
-                    onClick={() => updateStatus("draft")}
-                    disabled={loading === "draft"}
+                    onClick={() =>
+                        runAction("mark-unavailable", "make this advert unavailable")
+                    }
+                    disabled={loading === "mark-unavailable"}
+                    className="rounded-xl bg-slate-700 px-4 py-3 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-60"
+                >
+                    {loading === "mark-unavailable"
+                        ? "Updating..."
+                        : "Make Unavailable"}
+                </button>
+            )}
+
+            {isExpired(listing) && (
+                <button
+                    type="button"
+                    onClick={() => runAction("relist", "relist this advert")}
+                    disabled={loading === "relist"}
+                    className="rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
+                >
+                    {loading === "relist" ? "Relisting..." : "Relist Advert"}
+                </button>
+            )}
+
+            {needsRenewal(listing) && (
+                <button
+                    type="button"
+                    onClick={() => runAction("renew", "renew this advert")}
+                    disabled={loading === "renew"}
                     className="rounded-xl border px-4 py-3 text-sm font-semibold hover:bg-slate-50 disabled:opacity-60"
                 >
-                    {loading === "draft" ? "Saving..." : "Move to Draft"}
+                    {loading === "renew" ? "Renewing..." : "Renew Advert"}
                 </button>
             )}
         </div>

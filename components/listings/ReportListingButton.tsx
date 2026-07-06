@@ -1,159 +1,133 @@
 "use client";
 
 import { useState } from "react";
-
-const API_BASE_URL =
-    process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000/api/v1";
+import { apiPost } from "@/lib/apiClient";
 
 type ReportListingButtonProps = {
     listingId: number | string;
 };
 
+const REPORT_REASONS = [
+    { label: "Scam or fraud", value: "scam" },
+    { label: "Fake item", value: "fake" },
+    { label: "Duplicate advert", value: "duplicate" },
+    { label: "Wrong category", value: "wrong_category" },
+    { label: "Offensive content", value: "offensive" },
+    { label: "Already sold", value: "sold" },
+    { label: "Other issue", value: "other" },
+];
+
 export default function ReportListingButton({
     listingId,
 }: ReportListingButtonProps) {
     const [open, setOpen] = useState(false);
-    const [reason, setReason] = useState("fraud");
-    const [details, setDetails] = useState("");
+    const [reason, setReason] = useState("scam");
+    const [description, setDescription] = useState("");
     const [loading, setLoading] = useState(false);
+    const [success, setSuccess] = useState("");
 
-    async function submitReport() {
-        const token = localStorage.getItem("qot_access_token");
-
-        if (!token) {
-            window.location.href = "/login";
-            return;
-        }
-
+    async function submitReport(event: React.FormEvent<HTMLFormElement>) {
+        event.preventDefault();
         setLoading(true);
+        setSuccess("");
 
         try {
-            const response = await fetch(
-                `${API_BASE_URL}/listings/${listingId}/report/`,
-                {
-                    method: "POST",
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({
-                        reason,
-                        details,
-                    }),
-                }
-            );
+            await apiPost(`/listings/${listingId}/report/`, {
+                reason,
+                description,
+            });
 
-            const data = await response.json().catch(() => null);
+            setSuccess("Report submitted successfully. Thank you for helping keep QOT safe.");
+            setDescription("");
 
-            if (!response.ok) {
-                throw new Error(
-                    data?.detail ||
-                    data?.message ||
-                    data?.error ||
-                    "Failed to submit report."
-                );
-            }
-
-            alert(data?.detail || "Advert reported successfully.");
-            setOpen(false);
-            setDetails("");
-            setReason("fraud");
+            setTimeout(() => {
+                setOpen(false);
+                setSuccess("");
+            }, 1800);
         } catch (error: any) {
-            alert(error.message || "Something went wrong.");
+            alert(error.message || "Failed to submit report.");
         } finally {
             setLoading(false);
         }
     }
 
-    return (
-        <div className="mt-4">
+    if (!open) {
+        return (
             <button
                 type="button"
                 onClick={() => setOpen(true)}
-                className="text-sm font-semibold text-red-600 hover:text-red-700"
+                className="w-full rounded-xl border border-red-200 bg-red-50 px-5 py-3 font-semibold text-red-700 hover:bg-red-100"
             >
-                Report this advert
+                Report Advert
             </button>
+        );
+    }
 
-            {open && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
-                    <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl">
-                        <div className="flex items-start justify-between gap-4">
-                            <div>
-                                <h2 className="text-xl font-bold text-slate-900">
-                                    Report this advert
-                                </h2>
-                                <p className="mt-2 text-sm text-slate-600">
-                                    Help us keep QOT safe by reporting suspicious or misleading
-                                    adverts.
-                                </p>
-                            </div>
-
-                            <button
-                                type="button"
-                                onClick={() => setOpen(false)}
-                                className="rounded-full border px-3 py-1 text-sm font-bold hover:bg-slate-50"
-                            >
-                                ×
-                            </button>
-                        </div>
-
-                        <div className="mt-5">
-                            <label className="text-sm font-semibold text-slate-700">
-                                Reason
-                            </label>
-
-                            <select
-                                value={reason}
-                                onChange={(event) => setReason(event.target.value)}
-                                className="mt-2 w-full rounded-xl border px-4 py-3 outline-none focus:border-orange-500"
-                            >
-                                <option value="fraud">Fraud or scam</option>
-                                <option value="wrong_category">Wrong category</option>
-                                <option value="fake_item">Fake item</option>
-                                <option value="offensive">Offensive content</option>
-                                <option value="duplicate">Duplicate advert</option>
-                                <option value="sold_unavailable">
-                                    Item sold or unavailable
-                                </option>
-                                <option value="other">Other</option>
-                            </select>
-                        </div>
-
-                        <div className="mt-4">
-                            <label className="text-sm font-semibold text-slate-700">
-                                Details
-                            </label>
-
-                            <textarea
-                                value={details}
-                                onChange={(event) => setDetails(event.target.value)}
-                                rows={4}
-                                placeholder="Briefly explain the issue..."
-                                className="mt-2 w-full rounded-xl border px-4 py-3 outline-none focus:border-orange-500"
-                            />
-                        </div>
-
-                        <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-                            <button
-                                type="button"
-                                onClick={() => setOpen(false)}
-                                className="rounded-xl border px-5 py-3 font-semibold hover:bg-slate-50"
-                            >
-                                Cancel
-                            </button>
-
-                            <button
-                                type="button"
-                                onClick={submitReport}
-                                disabled={loading}
-                                className="rounded-xl bg-red-600 px-5 py-3 font-semibold text-white hover:bg-red-700 disabled:opacity-60"
-                            >
-                                {loading ? "Submitting..." : "Submit Report"}
-                            </button>
-                        </div>
-                    </div>
+    return (
+        <div className="rounded-2xl border border-red-200 bg-red-50 p-4">
+            <div className="flex items-start justify-between gap-3">
+                <div>
+                    <h3 className="font-bold text-red-800">Report this advert</h3>
+                    <p className="mt-1 text-sm text-red-700">
+                        Tell us what looks wrong with this listing.
+                    </p>
                 </div>
+
+                <button
+                    type="button"
+                    onClick={() => setOpen(false)}
+                    className="rounded-lg px-2 py-1 text-sm font-bold text-red-700 hover:bg-red-100"
+                >
+                    ✕
+                </button>
+            </div>
+
+            {success ? (
+                <div className="mt-4 rounded-xl border border-green-200 bg-green-50 p-3 text-sm font-semibold text-green-700">
+                    {success}
+                </div>
+            ) : (
+                <form onSubmit={submitReport} className="mt-4 space-y-3">
+                    <div>
+                        <label className="mb-2 block text-sm font-semibold text-red-800">
+                            Reason
+                        </label>
+
+                        <select
+                            value={reason}
+                            onChange={(event) => setReason(event.target.value)}
+                            className="w-full rounded-xl border bg-white px-4 py-3 outline-none focus:border-red-500"
+                        >
+                            {REPORT_REASONS.map((item) => (
+                                <option key={item.value} value={item.value}>
+                                    {item.label}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <div>
+                        <label className="mb-2 block text-sm font-semibold text-red-800">
+                            Description
+                        </label>
+
+                        <textarea
+                            value={description}
+                            onChange={(event) => setDescription(event.target.value)}
+                            placeholder="Explain the issue briefly..."
+                            rows={4}
+                            className="w-full rounded-xl border bg-white px-4 py-3 outline-none focus:border-red-500"
+                        />
+                    </div>
+
+                    <button
+                        type="submit"
+                        disabled={loading}
+                        className="w-full rounded-xl bg-red-600 px-5 py-3 font-semibold text-white hover:bg-red-700 disabled:opacity-60"
+                    >
+                        {loading ? "Submitting..." : "Submit Report"}
+                    </button>
+                </form>
             )}
         </div>
     );

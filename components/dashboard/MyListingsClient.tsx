@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import MyListingCard from "@/components/dashboard/MyListingCard";
 import SellerStats from "@/components/dashboard/SellerStats";
-import { apiGet, buildQuery } from "@/lib/apiClient";
+import { apiGet } from "@/lib/apiClient";
 
 const STATUS_OPTIONS = [
     { label: "All", value: "" },
@@ -18,12 +18,34 @@ function getArray(data: any): any[] {
     if (Array.isArray(data)) return data;
     if (Array.isArray(data?.results)) return data.results;
     if (Array.isArray(data?.data)) return data.data;
+    if (Array.isArray(data?.data?.results)) return data.data.results;
     if (Array.isArray(data?.listings)) return data.listings;
+    if (Array.isArray(data?.data?.listings)) return data.data.listings;
+    if (Array.isArray(data?.recent_listings)) return data.recent_listings;
     return [];
+}
+
+function cleanErrorMessage(error: any) {
+    const message = String(error?.message || "").trim();
+
+    if (!message || message === "null" || message === "undefined") {
+        return "Failed to load your listings. Please make sure you are logged in and your seller account is verified.";
+    }
+
+    if (
+        message.toLowerCase().includes("not verified") ||
+        message.toLowerCase().includes("verification") ||
+        message.toLowerCase().includes("verified")
+    ) {
+        return "Your account must be verified before you can access seller listings.";
+    }
+
+    return message;
 }
 
 export default function MyListingsClient() {
     const [listings, setListings] = useState<any[]>([]);
+    const [dashboard, setDashboard] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
 
@@ -36,30 +58,42 @@ export default function MyListingsClient() {
         setError("");
 
         try {
-            const query = buildQuery({
-                status,
-                q: search,
-            });
+            const [dashboardResult, listingsResult] = await Promise.allSettled([
+                apiGet("/seller/dashboard/"),
+                apiGet("/seller/listings/"),
+            ]);
 
-            let data: any = null;
-
-            try {
-                data = await apiGet(`/listings/my/${query}`);
-            } catch {
-                data = await apiGet(`/listings/${query}`);
+            if (dashboardResult.status === "fulfilled") {
+                setDashboard(dashboardResult.value);
+            } else {
+                console.warn("Seller dashboard API error:", dashboardResult.reason);
+                setDashboard(null);
             }
 
-            setListings(getArray(data));
+            if (listingsResult.status === "rejected") {
+                throw listingsResult.reason;
+            }
+
+            const sellerListings = getArray(listingsResult.value);
+            setListings(sellerListings);
         } catch (error: any) {
-            setError(error.message || "Failed to load your listings.");
+            setListings([]);
+            setDashboard(null);
+
+            const message = String(error?.message || "").trim();
+
+            setError(
+                !message || message === "null" || message === "undefined"
+                    ? "Failed to load your listings. Please make sure you are logged in and your seller account is verified."
+                    : message
+            );
         } finally {
             setLoading(false);
         }
     }
-
     useEffect(() => {
         loadListings();
-    }, [status, search]);
+    }, []);
 
     const filteredListings = useMemo(() => {
         let items = listings;
@@ -100,9 +134,11 @@ export default function MyListingsClient() {
                     <p className="text-sm font-semibold uppercase tracking-wide text-orange-600">
                         Seller Dashboard
                     </p>
+
                     <h1 className="mt-2 text-3xl font-bold text-slate-900">
                         My Listings
                     </h1>
+
                     <p className="mt-2 text-slate-600">
                         Manage your adverts, update status, edit details, and track your
                         selling activity.
@@ -117,8 +153,7 @@ export default function MyListingsClient() {
                 </a>
             </div>
 
-            <SellerStats listings={listings} />
-
+            <SellerStats listings={listings} dashboard={dashboard} />
             <div className="mt-8 rounded-2xl border bg-white p-5 shadow-sm">
                 <div className="grid gap-4 lg:grid-cols-[1fr_auto] lg:items-end">
                     <form onSubmit={handleSearch}>
@@ -172,7 +207,7 @@ export default function MyListingsClient() {
 
             <div className="mt-6 flex items-center justify-between gap-3">
                 <p className="text-sm font-semibold text-slate-600">
-                    Showing {filteredListings.length} advert
+                    Showing {filteredListings.length} of your advert
                     {filteredListings.length === 1 ? "" : "s"}
                 </p>
 
