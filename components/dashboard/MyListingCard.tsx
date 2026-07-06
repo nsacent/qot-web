@@ -1,6 +1,7 @@
 "use client";
 
 import SellerListingStatusActions from "@/components/dashboard/SellerListingStatusActions";
+import SellerListingDeleteAction from "@/components/dashboard/SellerListingDeleteAction";
 
 type MyListingCardProps = {
     listing: any;
@@ -71,6 +72,10 @@ export default function MyListingCard({
                     </a>
 
                     <SellerListingStatusActions
+                        listing={listing}
+                        onChanged={onChanged}
+                    />
+                    <SellerListingDeleteAction
                         listing={listing}
                         onChanged={onChanged}
                     />
