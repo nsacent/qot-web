@@ -16,12 +16,12 @@ type ListingsPageProps = {
         max_price?: string;
         condition?: string;
         sort?: string;
+        brand?: string;
+        ram?: string;
+        bedrooms?: string;
         page?: string;
-
     }>;
 };
-
-
 
 export default async function ListingsPage({ searchParams }: ListingsPageProps) {
     const params = await searchParams;
@@ -30,6 +30,7 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
     let totalCount: number | undefined = undefined;
     let hasNext = false;
     let hasPrevious = false;
+
     let categories: any[] = [];
     let regions: any[] = [];
     let cities: any[] = [];
@@ -38,45 +39,47 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
 
     const searchTerm = params.q || params.search || "";
 
-    if (searchTerm) {
-        query.set("q", searchTerm);
-    }
+    if (searchTerm) query.set("q", searchTerm);
+    if (params.category) query.set("category", params.category);
+    if (params.city) query.set("city", params.city);
+    if (params.region) query.set("region", params.region);
+    if (params.min_price) query.set("min_price", params.min_price);
+    if (params.max_price) query.set("max_price", params.max_price);
+    if (params.condition) query.set("condition", params.condition);
+    if (params.sort) query.set("sort", params.sort);
+    if (params.brand) query.set("brand", params.brand);
+    if (params.ram) query.set("ram", params.ram);
+    if (params.bedrooms) query.set("bedrooms", params.bedrooms);
 
-    if (params.page) {
+    if (params.page && params.page !== "1") {
         query.set("page", params.page);
-    }
-
-    if (params.category) {
-        query.set("category", params.category);
-    }
-
-    if (params.city) {
-        query.set("city", params.city);
-    }
-
-    if (params.region) {
-        query.set("region", params.region);
-    }
-
-    if (params.min_price) {
-        query.set("min_price", params.min_price);
-    }
-
-    if (params.max_price) {
-        query.set("max_price", params.max_price);
-    }
-
-    if (params.condition) {
-        query.set("condition", params.condition);
-    }
-
-    if (params.sort) {
-        query.set("sort", params.sort);
     }
 
     const endpoint = query.toString()
         ? `/listings/?${query.toString()}`
         : "/listings/";
+
+    try {
+        const [categoriesData, regionsData, citiesData] = await Promise.allSettled([
+            apiGet("/categories/"),
+            apiGet("/locations/regions/"),
+            apiGet("/locations/cities/"),
+        ]);
+
+        if (categoriesData.status === "fulfilled") {
+            categories = getArray(categoriesData.value);
+        }
+
+        if (regionsData.status === "fulfilled") {
+            regions = getArray(regionsData.value);
+        }
+
+        if (citiesData.status === "fulfilled") {
+            cities = getArray(citiesData.value);
+        }
+    } catch (error) {
+        console.error("Filters API error:", error);
+    }
 
     try {
         const data = await apiGet(endpoint);
@@ -95,26 +98,18 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
         hasPrevious = Number(params.page || 1) > 1;
     }
 
-    try {
-        const regionsData = await apiGet("/locations/regions/");
-        regions = getArray(regionsData);
-    } catch (error) {
-        console.error("Regions API error:", error);
-    }
-
-    try {
-        const citiesData = await apiGet("/locations/cities/");
-        cities = getArray(citiesData);
-    } catch (error) {
-        console.error("Cities API error:", error);
-    }
-
-    try {
-        const categoriesData = await apiGet("/categories/");
-        categories = getArray(categoriesData);
-    } catch (error) {
-        console.error("Categories API error:", error);
-    }
+    const hasFilters =
+        searchTerm ||
+        params.category ||
+        params.city ||
+        params.region ||
+        params.min_price ||
+        params.max_price ||
+        params.condition ||
+        params.sort ||
+        params.brand ||
+        params.ram ||
+        params.bedrooms;
 
     return (
         <main className="min-h-screen bg-slate-50 text-slate-900">
@@ -122,48 +117,71 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
 
             <section className="border-b bg-white">
                 <div className="mx-auto max-w-7xl px-6 py-10">
-                    <h1 className="text-3xl font-bold md:text-5xl">
-                        {searchTerm ? `Search results for "${searchTerm}"` : "Browse Listings"}
-                    </h1>
+                    <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
+                        <div>
+                            <p className="text-sm font-semibold uppercase tracking-wide text-orange-600">
+                                Browse Listings
+                            </p>
 
-                    <p className="mt-3 max-w-2xl text-slate-600">
-                        {searchTerm
-                            ? "Showing adverts that match your search."
-                            : "Discover trusted ads from sellers around Uganda."}
-                    </p>
+                            <h1 className="mt-2 text-3xl font-bold md:text-5xl">
+                                {searchTerm
+                                    ? `Search results for "${searchTerm}"`
+                                    : "Browse Listings"}
+                            </h1>
 
-                    <ListingFilters
-                        params={{
-                            q: searchTerm,
-                            category: params.category,
-                            city: params.city,
-                            region: params.region,
-                            min_price: params.min_price,
-                            max_price: params.max_price,
-                            condition: params.condition,
-                            sort: params.sort,
-                        }}
-                        categories={categories}
-                        regions={regions}
-                        cities={cities}
-                    />
+                            <p className="mt-3 max-w-2xl text-slate-600">
+                                {searchTerm
+                                    ? "Showing adverts that match your search."
+                                    : "Discover trusted ads from sellers around Uganda."}
+                            </p>
+                        </div>
 
-                    <div className="mt-4 flex justify-end">
-                        <SaveSearchButton />
+                        <div className="flex flex-col gap-3 sm:flex-row">
+                            <SaveSearchButton />
+
+                            <a
+                                href="/saved-searches"
+                                className="rounded-xl border bg-white px-5 py-3 text-center text-sm font-semibold hover:bg-slate-50"
+                            >
+                                Saved Searches
+                            </a>
+                        </div>
                     </div>
 
-                    {(params.category || searchTerm) && (
+                    <div className="mt-8">
+                        <ListingFilters
+                            categories={categories}
+                            regions={regions}
+                            cities={cities}
+                        />
+                    </div>
+
+                    {hasFilters && (
                         <a
                             href="/listings"
-                            className="mt-4 inline-block text-sm font-semibold text-orange-600"
+                            className="mt-4 inline-block text-sm font-semibold text-orange-600 hover:text-orange-700"
                         >
-                            Clear filters
+                            Clear all filters
                         </a>
                     )}
                 </div>
             </section>
 
             <section className="mx-auto max-w-7xl px-6 py-10">
+                <div className="mb-6 flex flex-col justify-between gap-3 md:flex-row md:items-center">
+                    <p className="text-sm font-semibold text-slate-600">
+                        {typeof totalCount === "number"
+                            ? `${totalCount.toLocaleString()} listing${totalCount === 1 ? "" : "s"
+                            } found`
+                            : `${listings.length.toLocaleString()} listing${listings.length === 1 ? "" : "s"
+                            } found`}
+                    </p>
+
+                    {hasFilters && (
+                        <p className="text-sm text-slate-500">Filters applied</p>
+                    )}
+                </div>
+
                 {listings.length > 0 ? (
                     <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                         {listings.map((listing: any) => (
@@ -172,7 +190,7 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
                     </div>
                 ) : (
                     <div className="rounded-2xl border bg-white p-8 text-slate-600">
-                        No listings found.
+                        No listings found. Try changing your filters.
                     </div>
                 )}
 
@@ -190,9 +208,11 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
                         max_price: params.max_price,
                         condition: params.condition,
                         sort: params.sort,
+                        brand: params.brand,
+                        ram: params.ram,
+                        bedrooms: params.bedrooms,
                     }}
                 />
-
             </section>
         </main>
     );

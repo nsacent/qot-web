@@ -2,6 +2,7 @@ import Navbar from "@/components/layout/Navbar";
 import { apiGet, getArray } from "@/lib/api";
 import HomeCategoryMegaSection from "@/components/categories/HomeCategoryMegaSection";
 import TrustSafetySection from "@/components/home/TrustSafetySection";
+import QuickSearchCards from "@/components/home/QuickSearchCards";
 
 export default async function HomePage() {
   let categories: any[] = [];
@@ -73,6 +74,8 @@ export default async function HomePage() {
       <HomeCategoryMegaSection
         categories={allCategories.length > 0 ? allCategories : categories}
       />
+
+      <QuickSearchCards />
       <section className="mx-auto max-w-7xl px-6 pb-16">
         <h2 className="mb-6 text-2xl font-bold">Latest Listings</h2>
 
