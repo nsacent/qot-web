@@ -8,6 +8,7 @@ import ShareListingButton from "@/components/listings/ShareListingButton";
 import SimilarListings from "@/components/listings/SimilarListings";
 import SellerContactActions from "@/components/listings/SellerContactActions";
 import ReviewSellerForm from "@/components/reviews/ReviewSellerForm";
+import ListingImageGallery from "@/components/listings/ListingImageGallery";
 
 type PageProps = {
     params: Promise<{
@@ -79,42 +80,7 @@ export default async function ListingDetailsPage({ params }: PageProps) {
 
                 <div className="grid gap-8 lg:grid-cols-3">
                     <div className="lg:col-span-2">
-                        <div className="overflow-hidden rounded-2xl border bg-white shadow-sm">
-                            <div className="flex h-[420px] items-center justify-center bg-slate-200 text-slate-500">
-                                {mainImage ? (
-                                    <img
-                                        src={mainImage}
-                                        alt={listing.title || "Listing image"}
-                                        className="h-full w-full object-cover"
-                                    />
-                                ) : (
-                                    <span>No image available</span>
-                                )}
-                            </div>
-
-                            {images.length > 1 && (
-                                <div className="grid grid-cols-4 gap-3 p-4">
-                                    {images.slice(0, 4).map((item: any, index: number) => {
-                                        const image = item.image || item.url;
-
-                                        return (
-                                            <div
-                                                key={index}
-                                                className="h-24 overflow-hidden rounded-xl bg-slate-200"
-                                            >
-                                                {image && (
-                                                    <img
-                                                        src={image}
-                                                        alt={`Listing image ${index + 1}`}
-                                                        className="h-full w-full object-cover"
-                                                    />
-                                                )}
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            )}
-                        </div>
+                        <ListingImageGallery listing={listing} />
 
                         <div className="mt-6 rounded-2xl border bg-white p-6 shadow-sm">
                             <p className="text-sm font-semibold uppercase tracking-wide text-orange-600">
