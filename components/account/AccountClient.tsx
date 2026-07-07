@@ -80,6 +80,12 @@ export default function AccountClient() {
         },
 
         {
+            label: "Safety Report",
+            href: "/safety/report",
+            description: "Report scams or suspicious adverts",
+        },
+
+        {
             label: "My Listings",
             href: "/my-listings",
             description: "Manage your adverts",

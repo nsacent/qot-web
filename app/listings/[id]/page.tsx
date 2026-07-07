@@ -9,6 +9,7 @@ import SimilarListings from "@/components/listings/SimilarListings";
 import SellerContactActions from "@/components/listings/SellerContactActions";
 import ReviewSellerForm from "@/components/reviews/ReviewSellerForm";
 import ListingImageGallery from "@/components/listings/ListingImageGallery";
+import BuyerListingActions from "@/components/listings/BuyerListingActions";
 
 type PageProps = {
     params: Promise<{
@@ -51,19 +52,6 @@ export default async function ListingDetailsPage({ params }: PageProps) {
         listing?.seller_name ||
         "Seller";
 
-    const images =
-        listing.images?.length > 0
-            ? listing.images
-            : listing.primary_image || listing.image
-                ? [{ image: listing.primary_image || listing.image }]
-                : [];
-
-    const mainImage =
-        images?.[0]?.image ||
-        images?.[0]?.url ||
-        listing.primary_image ||
-        listing.image;
-
     return (
         <main className="min-h-screen bg-slate-50 text-slate-900">
             <RecentlyViewedTracker listing={listing} />
@@ -80,7 +68,6 @@ export default async function ListingDetailsPage({ params }: PageProps) {
 
                 <div className="grid gap-8 lg:grid-cols-3">
                     <div className="lg:col-span-2">
-
                         <ListingImageGallery listing={listing} />
 
                         <div className="mt-6 rounded-2xl border bg-white p-6 shadow-sm">
@@ -173,23 +160,8 @@ export default async function ListingDetailsPage({ params }: PageProps) {
                                 </p>
                             </div>
 
-                            <div className="mt-6 space-y-3">
-                                <FavoriteButton listingId={listing.id} />
-
-                                <ContactSellerButton listingId={listing.id} />
-
-                                <SellerContactActions listing={listing} />
-
-                                <ReviewSellerForm listing={listing} />
-
-                                <a
-                                    href="/messages"
-                                    className="block rounded-xl border px-5 py-3 text-center font-semibold text-slate-900 hover:bg-slate-50"
-                                >
-                                    My Messages
-                                </a>
-
-                                <ReportListingButton listingId={listing.id} />
+                            <div className="mt-6">
+                                <BuyerListingActions listing={listing} listingId={listing.id} />
                             </div>
                         </div>
 
@@ -208,6 +180,7 @@ export default async function ListingDetailsPage({ params }: PageProps) {
                     </aside>
                 </div>
             </section>
+
             <SimilarListings listing={listing} />
         </main>
     );

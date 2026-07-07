@@ -233,6 +233,13 @@ export default function AdminDashboardClient() {
                     >
                         View Payments
                     </a>
+
+                    <a
+                        href="/admin/reports"
+                        className="rounded-xl border bg-white px-5 py-3 text-center font-semibold hover:bg-slate-50"
+                    >
+                        Report Moderation
+                    </a>
                 </div>
             </div>
         </section>

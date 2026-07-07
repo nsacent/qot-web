@@ -223,8 +223,7 @@ export default function AdminUsersClient() {
                             setTimeout(loadUsers, 0);
                         }}
                         className="rounded-xl border px-5 py-3 font-semibold hover:bg-slate-50"
-                    >
-                        Clear
+                    >Clear
                     </button>
                 </div>
             </div>
