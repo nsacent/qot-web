@@ -1,4 +1,5 @@
 import Navbar from "@/components/layout/Navbar";
+import VerifiedAccountGuard from "@/components/auth/VerifiedAccountGuard";
 import ListingAnalyticsClient from "@/components/dashboard/ListingAnalyticsClient";
 
 type PageProps = {
@@ -15,7 +16,13 @@ export default async function SingleListingAnalyticsPage({
     return (
         <main className="min-h-screen bg-slate-50">
             <Navbar />
-            <ListingAnalyticsClient listingId={id} />
+
+            <VerifiedAccountGuard
+                title="Listing analytics requires verification"
+                description="Your account must be verified before you can view advert analytics."
+            >
+                <ListingAnalyticsClient listingId={id} />
+            </VerifiedAccountGuard>
         </main>
     );
 }

@@ -1,23 +1,34 @@
 import Navbar from "@/components/layout/Navbar";
+import VerifiedAccountGuard from "@/components/auth/VerifiedAccountGuard";
 import PostAdForm from "@/components/listings/PostAdForm";
 
 export default function PostAdPage() {
     return (
-        <main className="min-h-screen bg-slate-50 text-slate-900">
+        <main className="min-h-screen bg-slate-50">
             <Navbar />
 
-            <section className="mx-auto max-w-4xl px-6 py-12">
-                <div className="mb-8">
-                    <h1 className="text-3xl font-bold md:text-5xl">Post an Advert</h1>
-                    <p className="mt-3 text-slate-600">
-                        Create a listing and reach buyers across Uganda.
-                    </p>
-                </div>
+            <VerifiedAccountGuard
+                title="Posting adverts requires verification"
+                description="Your account must be verified before you can post adverts on QOT."
+            >
+                <section className="mx-auto max-w-4xl px-6 py-10">
+                    <div className="mb-8">
+                        <p className="text-sm font-semibold uppercase tracking-wide text-orange-600">
+                            Sell on QOT
+                        </p>
 
-                <div className="rounded-2xl border bg-white p-6 shadow-sm md:p-8">
+                        <h1 className="mt-2 text-3xl font-bold text-slate-900">
+                            Post New Advert
+                        </h1>
+
+                        <p className="mt-2 text-slate-600">
+                            Add clear details and images to help buyers trust your advert.
+                        </p>
+                    </div>
+
                     <PostAdForm />
-                </div>
-            </section>
+                </section>
+            </VerifiedAccountGuard>
         </main>
     );
 }
