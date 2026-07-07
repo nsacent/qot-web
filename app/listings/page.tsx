@@ -149,18 +149,7 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
                     />
 
                     <div className="mt-4 flex justify-end">
-                        <SaveSearchButton
-                            searchParams={{
-                                q: searchTerm,
-                                category: params.category,
-                                city: params.city,
-                                region: params.region,
-                                min_price: params.min_price,
-                                max_price: params.max_price,
-                                condition: params.condition,
-                                sort: params.sort,
-                            }}
-                        />
+                        <SaveSearchButton />
                     </div>
 
                     {(params.category || searchTerm) && (

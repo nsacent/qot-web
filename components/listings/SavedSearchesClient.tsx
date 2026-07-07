@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 
+const STORAGE_KEY = "qot_saved_searches";
+
 function formatDate(value: string) {
     if (!value) return "";
 
@@ -16,90 +18,133 @@ function formatDate(value: string) {
     });
 }
 
+function getSavedSearches() {
+    try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        return saved ? JSON.parse(saved) : [];
+    } catch {
+        return [];
+    }
+}
+
+function getParamLabel(key: string) {
+    const labels: Record<string, string> = {
+        q: "Keyword",
+        category: "Category",
+        city: "City",
+        region: "Region",
+        min_price: "Min price",
+        max_price: "Max price",
+        condition: "Condition",
+        sort: "Sort",
+        brand: "Brand",
+        ram: "RAM",
+        bedrooms: "Bedrooms",
+    };
+
+    return labels[key] || key;
+}
+
 export default function SavedSearchesClient() {
     const [mounted, setMounted] = useState(false);
-    const [searches, setSearches] = useState<any[]>([]);
+    const [items, setItems] = useState<any[]>([]);
 
-    function loadSearches() {
-        const saved = JSON.parse(localStorage.getItem("qot_saved_searches") || "[]");
-        setSearches(saved);
+    function loadItems() {
+        setItems(getSavedSearches());
     }
 
     useEffect(() => {
-        loadSearches();
+        loadItems();
         setMounted(true);
     }, []);
 
-    function removeSearch(id: number | string) {
-        const remaining = searches.filter((item) => String(item.id) !== String(id));
-
-        localStorage.setItem("qot_saved_searches", JSON.stringify(remaining));
-        setSearches(remaining);
+    function removeItem(id: number | string) {
+        const updated = items.filter((item) => String(item.id) !== String(id));
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+        setItems(updated);
     }
 
     function clearAll() {
         const confirmed = window.confirm("Clear all saved searches?");
-
         if (!confirmed) return;
 
-        localStorage.removeItem("qot_saved_searches");
-        setSearches([]);
+        localStorage.removeItem(STORAGE_KEY);
+        setItems([]);
     }
 
-    if (!mounted) return null;
+    if (!mounted) {
+        return null;
+    }
 
     return (
-        <section className="mx-auto max-w-7xl px-6 py-10">
-            <div className="mb-6 flex flex-col justify-between gap-4 md:flex-row md:items-center">
+        <section className="mx-auto max-w-6xl px-6 py-10">
+            <div className="mb-8 flex flex-col justify-between gap-4 md:flex-row md:items-end">
                 <div>
-                    <h2 className="text-2xl font-bold text-slate-900">
-                        Your Saved Searches
-                    </h2>
-                    <p className="mt-1 text-sm text-slate-600">
-                        {searches.length} saved search{searches.length === 1 ? "" : "es"}.
+                    <p className="text-sm font-semibold uppercase tracking-wide text-orange-600">
+                        Saved Searches
+                    </p>
+
+                    <h1 className="mt-2 text-3xl font-bold text-slate-900">
+                        Your Saved Search Filters
+                    </h1>
+
+                    <p className="mt-2 text-slate-600">
+                        Quickly reopen adverts you frequently search for.
                     </p>
                 </div>
 
-                {searches.length > 0 && (
+                {items.length > 0 && (
                     <button
                         type="button"
                         onClick={clearAll}
-                        className="rounded-xl border bg-white px-5 py-3 font-semibold hover:bg-slate-50"
+                        className="rounded-xl border border-red-200 bg-red-50 px-5 py-3 font-semibold text-red-700 hover:bg-red-100"
                     >
                         Clear All
                     </button>
                 )}
             </div>
 
-            {searches.length === 0 ? (
+            {items.length === 0 ? (
                 <div className="rounded-2xl border bg-white p-8 text-slate-600">
-                    No saved searches yet. Go to listings, apply filters, and click Save Search.
+                    You have not saved any searches yet. Go to listings, apply filters,
+                    then click “Save Search”.
                 </div>
             ) : (
-                <div className="grid gap-4">
-                    {searches.map((search) => (
+                <div className="grid gap-5">
+                    {items.map((item) => (
                         <article
-                            key={search.id}
-                            className="rounded-2xl border bg-white p-5 shadow-sm"
+                            key={item.id}
+                            className="rounded-2xl border bg-white p-6 shadow-sm"
                         >
-                            <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
+                            <div className="flex flex-col justify-between gap-4 md:flex-row md:items-start">
                                 <div>
-                                    <h3 className="font-bold text-slate-900">{search.title}</h3>
+                                    <h2 className="text-xl font-bold text-slate-900">
+                                        {item.title || "Saved search"}
+                                    </h2>
 
-                                    {search.created_at && (
+                                    {item.created_at && (
                                         <p className="mt-1 text-sm text-slate-500">
-                                            Saved on {formatDate(search.created_at)}
+                                            Saved on {formatDate(item.created_at)}
                                         </p>
                                     )}
 
-                                    <p className="mt-2 break-all text-sm text-slate-500">
-                                        {search.url}
-                                    </p>
+                                    {item.params && Object.keys(item.params).length > 0 && (
+                                        <div className="mt-4 flex flex-wrap gap-2">
+                                            {Object.entries(item.params).map(([key, value]) => (
+                                                <span
+                                                    key={key}
+                                                    className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700"
+                                                >
+                                                    {getParamLabel(key)}: {String(value)}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
 
-                                <div className="flex flex-col gap-3 sm:flex-row">
+                                <div className="grid gap-2 sm:min-w-40">
                                     <a
-                                        href={search.url}
+                                        href={item.url || "/listings"}
                                         className="rounded-xl bg-orange-500 px-5 py-3 text-center text-sm font-semibold text-white hover:bg-orange-600"
                                     >
                                         Open Search
@@ -107,8 +152,8 @@ export default function SavedSearchesClient() {
 
                                     <button
                                         type="button"
-                                        onClick={() => removeSearch(search.id)}
-                                        className="rounded-xl border px-5 py-3 text-sm font-semibold hover:bg-slate-50"
+                                        onClick={() => removeItem(item.id)}
+                                        className="rounded-xl border border-red-200 bg-red-50 px-5 py-3 text-sm font-semibold text-red-700 hover:bg-red-100"
                                     >
                                         Remove
                                     </button>

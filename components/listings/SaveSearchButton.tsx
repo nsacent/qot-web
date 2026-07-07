@@ -1,31 +1,32 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+
+const STORAGE_KEY = "qot_saved_searches";
 
 type SaveSearchButtonProps = {
-    searchParams: Record<string, string | undefined>;
+    searchParams?: Record<string, any>;
 };
 
-function buildSearchTitle(params: Record<string, string | undefined>) {
-    const parts = [];
+function getCurrentSearchParams() {
+    if (typeof window === "undefined") return {};
 
-    if (params.q) parts.push(`"${params.q}"`);
-    if (params.category) parts.push(`Category: ${params.category}`);
-    if (params.region) parts.push(`Region: ${params.region}`);
-    if (params.city) parts.push(`City: ${params.city}`);
-    if (params.min_price) parts.push(`Min: UGX ${params.min_price}`);
-    if (params.max_price) parts.push(`Max: UGX ${params.max_price}`);
-    if (params.condition) parts.push(`Condition: ${params.condition}`);
+    const params = new URLSearchParams(window.location.search);
+    const result: Record<string, string> = {};
 
-    return parts.length > 0 ? parts.join(" • ") : "All listings";
+    params.forEach((value, key) => {
+        if (value) result[key] = value;
+    });
+
+    return result;
 }
 
-function buildSearchUrl(params: Record<string, string | undefined>) {
+function buildSearchUrl(params: Record<string, any>) {
     const query = new URLSearchParams();
 
     Object.entries(params).forEach(([key, value]) => {
-        if (value) {
-            query.set(key, value);
+        if (value !== undefined && value !== null && String(value).trim() !== "") {
+            query.set(key, String(value));
         }
     });
 
@@ -34,55 +35,98 @@ function buildSearchUrl(params: Record<string, string | undefined>) {
     return queryString ? `/listings?${queryString}` : "/listings";
 }
 
-export default function SaveSearchButton({ searchParams }: SaveSearchButtonProps) {
-    const [mounted, setMounted] = useState(false);
+function getSearchTitle(params: Record<string, any>) {
+    const parts: string[] = [];
+
+    if (params.q) parts.push(`Search: ${params.q}`);
+    if (params.category) parts.push(`Category: ${params.category}`);
+    if (params.city) parts.push(`City: ${params.city}`);
+    if (params.region) parts.push(`Region: ${params.region}`);
+    if (params.brand) parts.push(`Brand: ${params.brand}`);
+    if (params.condition) parts.push(`Condition: ${params.condition}`);
+    if (params.ram) parts.push(`RAM: ${params.ram}`);
+    if (params.bedrooms) parts.push(`${params.bedrooms} bedroom(s)`);
+
+    if (params.min_price || params.max_price) {
+        parts.push(
+            `Price: ${params.min_price || "0"} - ${params.max_price || "Any"}`
+        );
+    }
+
+    if (parts.length === 0) return "All listings";
+
+    return parts.join(" · ");
+}
+
+function getSavedSearches() {
+    try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        return saved ? JSON.parse(saved) : [];
+    } catch {
+        return [];
+    }
+}
+
+export default function SaveSearchButton({
+    searchParams = {},
+}: SaveSearchButtonProps) {
     const [saved, setSaved] = useState(false);
 
-    const title = buildSearchTitle(searchParams);
-    const url = buildSearchUrl(searchParams);
-
-    useEffect(() => {
-        const existing = JSON.parse(localStorage.getItem("qot_saved_searches") || "[]");
-        setSaved(existing.some((item: any) => item.url === url));
-        setMounted(true);
-    }, [url]);
-
     function saveSearch() {
-        const existing = JSON.parse(localStorage.getItem("qot_saved_searches") || "[]");
+        const params =
+            Object.keys(searchParams || {}).length > 0
+                ? searchParams
+                : getCurrentSearchParams();
 
-        const alreadySaved = existing.some((item: any) => item.url === url);
+        const cleanParams: Record<string, string> = {};
 
-        if (alreadySaved) {
+        Object.entries(params).forEach(([key, value]) => {
+            if (value !== undefined && value !== null && String(value).trim() !== "") {
+                cleanParams[key] = String(value);
+            }
+        });
+
+        const url = buildSearchUrl(cleanParams);
+        const title = getSearchTitle(cleanParams);
+
+        const existing = getSavedSearches();
+
+        const alreadyExists = existing.some((item: any) => item.url === url);
+
+        if (alreadyExists) {
             setSaved(true);
+
+            setTimeout(() => {
+                setSaved(false);
+            }, 1800);
+
             return;
         }
 
-        const newSearch = {
+        const item = {
             id: Date.now(),
             title,
             url,
+            params: cleanParams,
             created_at: new Date().toISOString(),
         };
 
-        localStorage.setItem(
-            "qot_saved_searches",
-            JSON.stringify([newSearch, ...existing])
-        );
+        const updated = [item, ...existing].slice(0, 20);
+
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
 
         setSaved(true);
-    }
 
-    if (!mounted) return null;
+        setTimeout(() => {
+            setSaved(false);
+        }, 1800);
+    }
 
     return (
         <button
             type="button"
             onClick={saveSearch}
-            className={
-                saved
-                    ? "rounded-xl border border-green-300 bg-green-50 px-5 py-3 text-sm font-semibold text-green-700"
-                    : "rounded-xl border bg-white px-5 py-3 text-sm font-semibold hover:bg-slate-50"
-            }
+            className="rounded-xl border bg-white px-5 py-3 text-sm font-semibold text-slate-900 hover:bg-slate-50"
         >
             {saved ? "Search Saved ✓" : "Save Search"}
         </button>

@@ -74,6 +74,12 @@ export default function AccountClient() {
 
     const quickLinks = [
         {
+            label: "Saved Searches",
+            href: "/saved-searches",
+            description: "Reopen your saved filters",
+        },
+
+        {
             label: "My Listings",
             href: "/my-listings",
             description: "Manage your adverts",
