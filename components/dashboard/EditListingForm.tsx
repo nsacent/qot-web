@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import ListingImageManager from "@/components/dashboard/ListingImageManager";
 
 const API_BASE_URL =
     process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000/api/v1";
@@ -205,6 +206,7 @@ export default function EditListingForm({ listingId }: EditListingFormProps) {
                 >
                     {loading ? "Saving..." : "Save Changes"}
                 </button>
+
 
                 <a
                     href="/my-listings"

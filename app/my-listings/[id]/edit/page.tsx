@@ -1,5 +1,6 @@
 import Navbar from "@/components/layout/Navbar";
 import EditListingForm from "@/components/dashboard/EditListingForm";
+import ListingImageManager from "@/components/dashboard/ListingImageManager";
 
 type PageProps = {
     params: Promise<{
@@ -24,13 +25,18 @@ export default async function EditListingPage({ params }: PageProps) {
 
                 <div className="mb-8">
                     <h1 className="text-3xl font-bold md:text-5xl">Edit Listing</h1>
+
                     <p className="mt-3 text-slate-600">
-                        Update advert details, price, condition, and status.
+                        Update advert details, price, condition, status, and images.
                     </p>
                 </div>
 
-                <div className="rounded-2xl border bg-white p-6 shadow-sm md:p-8">
-                    <EditListingForm listingId={id} />
+                <div className="space-y-6">
+                    <div className="rounded-2xl border bg-white p-6 shadow-sm md:p-8">
+                        <EditListingForm listingId={id} />
+                    </div>
+
+                    <ListingImageManager listingId={id} />
                 </div>
             </section>
         </main>

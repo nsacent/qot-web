@@ -95,6 +95,13 @@ export default function Navbar() {
 
                         {isLoggedIn ? (
                             <>
+
+                                <a
+                                    href="/account"
+                                    className="block rounded-xl px-4 py-2 text-sm font-semibold hover:bg-slate-50"
+                                >
+                                    My Account
+                                </a>
                                 <a
                                     href="/saved"
                                     className="rounded-xl px-3 py-3 hover:bg-slate-50"
