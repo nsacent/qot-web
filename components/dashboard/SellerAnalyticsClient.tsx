@@ -3,13 +3,27 @@
 import { useEffect, useState } from "react";
 import { apiGet } from "@/lib/apiClient";
 
+const API_BASE_URL =
+    process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000/api/v1";
+
+function getApiOrigin() {
+    return API_BASE_URL.replace("/api/v1", "");
+}
+
+function normalizeImageUrl(image: string) {
+    if (!image) return "";
+    if (image.startsWith("http://") || image.startsWith("https://")) return image;
+    if (image.startsWith("/")) return `${getApiOrigin()}${image}`;
+    return `${getApiOrigin()}/${image}`;
+}
+
 function getArray(data: any): any[] {
     if (Array.isArray(data)) return data;
     if (Array.isArray(data?.results)) return data.results;
     if (Array.isArray(data?.data)) return data.data;
+    if (Array.isArray(data?.data?.results)) return data.data.results;
     if (Array.isArray(data?.listings)) return data.listings;
-    if (Array.isArray(data?.top_listings)) return data.top_listings;
-    if (Array.isArray(data?.analytics?.listings)) return data.analytics.listings;
+    if (Array.isArray(data?.data?.listings)) return data.data.listings;
     return [];
 }
 
@@ -19,52 +33,61 @@ function getNumber(...values: any[]) {
             return Number(value) || 0;
         }
     }
-
     return 0;
 }
 
-function getTitle(item: any) {
-    return (
-        item?.title ||
-        item?.listing?.title ||
-        item?.listing_title ||
-        "Untitled listing"
+function getListingId(listing: any) {
+    return listing?.id || listing?.listing?.id || listing?.listing_id || "";
+}
+
+function getTitle(listing: any) {
+    return listing?.title || listing?.listing?.title || "Untitled listing";
+}
+
+function getImage(listing: any) {
+    const image =
+        listing?.primary_image ||
+        listing?.image ||
+        listing?.cover_image ||
+        listing?.images?.[0]?.image ||
+        listing?.images?.[0]?.url ||
+        listing?.listing?.primary_image ||
+        listing?.listing?.image ||
+        "";
+
+    return normalizeImageUrl(image);
+}
+
+function getPrice(listing: any) {
+    if (!listing?.price) return "Contact seller";
+    return `UGX ${Number(listing.price).toLocaleString()}`;
+}
+
+function getViews(listing: any) {
+    return getNumber(
+        listing?.views_count,
+        listing?.views,
+        listing?.view_count,
+        listing?.total_views
     );
 }
 
-function getListingId(item: any) {
-    return item?.id || item?.listing?.id || item?.listing_id || "";
-}
-
-function getViews(item: any) {
+function getSaves(listing: any) {
     return getNumber(
-        item?.views,
-        item?.views_count,
-        item?.view_count,
-        item?.total_views,
-        item?.listing?.views_count
+        listing?.favorites_count,
+        listing?.favourites_count,
+        listing?.saved_count,
+        listing?.saves_count,
+        listing?.total_saves
     );
 }
 
-function getSaves(item: any) {
+function getMessages(listing: any) {
     return getNumber(
-        item?.saves,
-        item?.saved_count,
-        item?.saves_count,
-        item?.favorites_count,
-        item?.favourites_count,
-        item?.total_saves,
-        item?.listing?.favorites_count
-    );
-}
-
-function getMessages(item: any) {
-    return getNumber(
-        item?.messages,
-        item?.messages_count,
-        item?.chat_count,
-        item?.inquiries_count,
-        item?.total_messages
+        listing?.messages_count,
+        listing?.messages,
+        listing?.chat_count,
+        listing?.inquiries_count
     );
 }
 
@@ -72,31 +95,45 @@ function cleanErrorMessage(error: any) {
     const message = String(error?.message || "").trim();
 
     if (!message || message === "null" || message === "undefined") {
-        return "Failed to load seller analytics. Please make sure you are logged in and your seller account is verified.";
+        return "Failed to load seller analytics. Please make sure you are logged in and verified.";
     }
 
     return message;
 }
 
 export default function SellerAnalyticsClient() {
-    const [analytics, setAnalytics] = useState<any>(null);
+    const [dashboard, setDashboard] = useState<any>(null);
     const [listings, setListings] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
 
-    async function loadAnalytics() {
+    async function loadData() {
         setLoading(true);
         setError("");
 
         try {
-            const data = await apiGet("/seller/analytics/");
+            const [dashboardResult, listingsResult] = await Promise.allSettled([
+                apiGet("/seller/analytics/"),
+                apiGet("/seller/listings/"),
+            ]);
 
-            console.log("Seller analytics response:", data);
+            if (dashboardResult.status === "fulfilled") {
+                setDashboard(dashboardResult.value);
+                console.log("Seller analytics response:", dashboardResult.value);
+            } else {
+                setDashboard(null);
+                console.warn("Seller analytics failed:", dashboardResult.reason);
+            }
 
-            setAnalytics(data);
-            setListings(getArray(data));
+            if (listingsResult.status === "rejected") {
+                throw listingsResult.reason;
+            }
+
+            console.log("Seller listings response:", listingsResult.value);
+
+            setListings(getArray(listingsResult.value));
         } catch (error: any) {
-            setAnalytics(null);
+            setDashboard(null);
             setListings([]);
             setError(cleanErrorMessage(error));
         } finally {
@@ -105,78 +142,34 @@ export default function SellerAnalyticsClient() {
     }
 
     useEffect(() => {
-        loadAnalytics();
+        loadData();
     }, []);
 
     const totalViews = getNumber(
-        analytics?.total_views,
-        analytics?.views_count,
-        analytics?.summary?.total_views,
-        analytics?.data?.total_views,
+        dashboard?.total_views,
+        dashboard?.summary?.total_views,
         listings.reduce((sum, item) => sum + getViews(item), 0)
     );
 
     const totalSaves = getNumber(
-        analytics?.total_saves,
-        analytics?.saved_count,
-        analytics?.favorites_count,
-        analytics?.summary?.total_saves,
-        analytics?.data?.total_saves,
+        dashboard?.total_saves,
+        dashboard?.favorites_count,
+        dashboard?.summary?.total_saves,
         listings.reduce((sum, item) => sum + getSaves(item), 0)
     );
 
     const totalMessages = getNumber(
-        analytics?.total_messages,
-        analytics?.messages_count,
-        analytics?.inquiries_count,
-        analytics?.summary?.total_messages,
-        analytics?.data?.total_messages,
+        dashboard?.total_messages,
+        dashboard?.messages_count,
+        dashboard?.summary?.total_messages,
         listings.reduce((sum, item) => sum + getMessages(item), 0)
     );
 
-    const totalListings = getNumber(
-        analytics?.total_listings,
-        analytics?.listings_count,
-        analytics?.summary?.total_listings,
-        analytics?.data?.total_listings,
-        listings.length
-    );
-
-    const bestListing =
-        analytics?.best_listing ||
-        analytics?.top_listing ||
-        analytics?.summary?.best_listing ||
-        analytics?.data?.best_listing ||
-        listings.sort((a, b) => getViews(b) - getViews(a))[0];
-
-    const weakestListing =
-        analytics?.weakest_listing ||
-        analytics?.least_performing_listing ||
-        analytics?.summary?.weakest_listing ||
-        analytics?.data?.weakest_listing ||
-        listings.sort((a, b) => getViews(a) - getViews(b))[0];
-
     const stats = [
-        {
-            label: "Total Views",
-            value: totalViews,
-            helper: "All advert visits",
-        },
-        {
-            label: "Total Saves",
-            value: totalSaves,
-            helper: "Saved by buyers",
-        },
-        {
-            label: "Messages",
-            value: totalMessages,
-            helper: "Buyer inquiries",
-        },
-        {
-            label: "Tracked Listings",
-            value: totalListings,
-            helper: "Listings with analytics",
-        },
+        { label: "Total Listings", value: listings.length },
+        { label: "Total Views", value: totalViews },
+        { label: "Total Saves", value: totalSaves },
+        { label: "Messages", value: totalMessages },
     ];
 
     return (
@@ -186,13 +179,11 @@ export default function SellerAnalyticsClient() {
                     <p className="text-sm font-semibold uppercase tracking-wide text-orange-600">
                         Seller Analytics
                     </p>
-
                     <h1 className="mt-2 text-3xl font-bold text-slate-900">
                         Performance Overview
                     </h1>
-
                     <p className="mt-2 text-slate-600">
-                        Track advert views, buyer interest, saves, and listing performance.
+                        View performance for your seller adverts.
                     </p>
                 </div>
 
@@ -223,194 +214,77 @@ export default function SellerAnalyticsClient() {
                                 <p className="text-sm font-semibold text-slate-500">
                                     {stat.label}
                                 </p>
-
                                 <p className="mt-2 text-3xl font-black text-slate-900">
                                     {Number(stat.value).toLocaleString()}
                                 </p>
-
-                                <p className="mt-1 text-sm text-slate-500">{stat.helper}</p>
                             </div>
                         ))}
                     </div>
 
-                    <div className="mt-8 grid gap-6 lg:grid-cols-2">
-                        <div className="rounded-2xl border bg-white p-6 shadow-sm">
-                            <p className="text-sm font-semibold uppercase tracking-wide text-green-600">
-                                Best Performing Listing
-                            </p>
-
-                            {bestListing ? (
-                                <div className="mt-4">
-                                    <h2 className="text-xl font-bold text-slate-900">
-                                        {getTitle(bestListing)}
-                                    </h2>
-
-                                    <div className="mt-4 grid gap-3 sm:grid-cols-3">
-                                        <div className="rounded-xl bg-slate-50 p-4">
-                                            <p className="text-sm text-slate-500">Views</p>
-                                            <p className="text-2xl font-black">
-                                                {getViews(bestListing).toLocaleString()}
-                                            </p>
-                                        </div>
-
-                                        <div className="rounded-xl bg-slate-50 p-4">
-                                            <p className="text-sm text-slate-500">Saves</p>
-                                            <p className="text-2xl font-black">
-                                                {getSaves(bestListing).toLocaleString()}
-                                            </p>
-                                        </div>
-
-                                        <div className="rounded-xl bg-slate-50 p-4">
-                                            <p className="text-sm text-slate-500">Messages</p>
-                                            <p className="text-2xl font-black">
-                                                {getMessages(bestListing).toLocaleString()}
-                                            </p>
-                                        </div>
-                                    </div>
-
-                                    {getListingId(bestListing) && (
-                                        <a
-                                            href={`/listings/${getListingId(bestListing)}`}
-                                            className="mt-5 inline-block rounded-xl bg-orange-500 px-5 py-3 text-sm font-semibold text-white hover:bg-orange-600"
-                                        >
-                                            View Listing
-                                        </a>
-                                    )}
-                                </div>
-                            ) : (
-                                <p className="mt-4 text-slate-600">
-                                    No best listing data available yet.
-                                </p>
-                            )}
-                        </div>
-
-                        <div className="rounded-2xl border bg-white p-6 shadow-sm">
-                            <p className="text-sm font-semibold uppercase tracking-wide text-red-600">
-                                Weakest Listing
-                            </p>
-
-                            {weakestListing ? (
-                                <div className="mt-4">
-                                    <h2 className="text-xl font-bold text-slate-900">
-                                        {getTitle(weakestListing)}
-                                    </h2>
-
-                                    <div className="mt-4 grid gap-3 sm:grid-cols-3">
-                                        <div className="rounded-xl bg-slate-50 p-4">
-                                            <p className="text-sm text-slate-500">Views</p>
-                                            <p className="text-2xl font-black">
-                                                {getViews(weakestListing).toLocaleString()}
-                                            </p>
-                                        </div>
-
-                                        <div className="rounded-xl bg-slate-50 p-4">
-                                            <p className="text-sm text-slate-500">Saves</p>
-                                            <p className="text-2xl font-black">
-                                                {getSaves(weakestListing).toLocaleString()}
-                                            </p>
-                                        </div>
-
-                                        <div className="rounded-xl bg-slate-50 p-4">
-                                            <p className="text-sm text-slate-500">Messages</p>
-                                            <p className="text-2xl font-black">
-                                                {getMessages(weakestListing).toLocaleString()}
-                                            </p>
-                                        </div>
-                                    </div>
-
-                                    {getListingId(weakestListing) && (
-                                        <a
-                                            href={`/my-listings/${getListingId(weakestListing)}/edit`}
-                                            className="mt-5 inline-block rounded-xl border px-5 py-3 text-sm font-semibold hover:bg-slate-50"
-                                        >
-                                            Improve Listing
-                                        </a>
-                                    )}
-                                </div>
-                            ) : (
-                                <p className="mt-4 text-slate-600">
-                                    No weak listing data available yet.
-                                </p>
-                            )}
-                        </div>
-                    </div>
-
                     <div className="mt-8 rounded-2xl border bg-white p-6 shadow-sm">
-                        <div className="mb-5 flex flex-col justify-between gap-3 md:flex-row md:items-end">
-                            <div>
-                                <p className="text-sm font-semibold uppercase tracking-wide text-orange-600">
-                                    Listing Performance
-                                </p>
-
-                                <h2 className="mt-2 text-2xl font-bold text-slate-900">
-                                    Performance by advert
-                                </h2>
-                            </div>
-
-                            <p className="text-sm font-semibold text-slate-500">
-                                {listings.length} listing{listings.length === 1 ? "" : "s"}
+                        <div className="mb-5">
+                            <p className="text-sm font-semibold uppercase tracking-wide text-orange-600">
+                                Listing Performance
                             </p>
+                            <h2 className="mt-2 text-2xl font-bold text-slate-900">
+                                Performance by advert
+                            </h2>
                         </div>
 
                         {listings.length === 0 ? (
                             <div className="rounded-2xl bg-slate-50 p-6 text-slate-600">
-                                No listing analytics available yet.
+                                No seller listings found.
                             </div>
                         ) : (
-                            <div className="overflow-x-auto">
-                                <table className="w-full min-w-[720px] text-left text-sm">
-                                    <thead>
-                                        <tr className="border-b text-slate-500">
-                                            <th className="py-3 pr-4 font-semibold">Listing</th>
-                                            <th className="py-3 pr-4 font-semibold">Views</th>
-                                            <th className="py-3 pr-4 font-semibold">Saves</th>
-                                            <th className="py-3 pr-4 font-semibold">Messages</th>
-                                            <th className="py-3 pr-4 font-semibold">Action</th>
-                                        </tr>
-                                    </thead>
+                            <div className="grid gap-5">
+                                {listings.map((listing) => {
+                                    const listingId = getListingId(listing);
+                                    const image = getImage(listing);
 
-                                    <tbody>
-                                        {listings.map((item) => {
-                                            const listingId = getListingId(item);
+                                    return (
+                                        <article
+                                            key={listingId || getTitle(listing)}
+                                            className="grid gap-4 rounded-2xl border p-4 md:grid-cols-[140px_1fr_auto] md:items-center"
+                                        >
+                                            <div className="flex h-32 items-center justify-center overflow-hidden rounded-xl bg-slate-200 text-slate-500">
+                                                {image ? (
+                                                    <img
+                                                        src={image}
+                                                        alt={getTitle(listing)}
+                                                        className="h-full w-full object-cover"
+                                                    />
+                                                ) : (
+                                                    <span className="text-sm">No image</span>
+                                                )}
+                                            </div>
 
-                                            return (
-                                                <tr
-                                                    key={listingId || getTitle(item)}
-                                                    className="border-b last:border-0"
+                                            <div>
+                                                <h3 className="text-lg font-bold text-slate-900">
+                                                    {getTitle(listing)}
+                                                </h3>
+
+                                                <p className="mt-1 text-sm text-slate-500">
+                                                    {listing?.status || "active"} · {getPrice(listing)}
+                                                </p>
+
+                                                <p className="mt-3 text-sm text-slate-600">
+                                                    Views: {getViews(listing).toLocaleString()} · Saves:{" "}
+                                                    {getSaves(listing).toLocaleString()} · Messages:{" "}
+                                                    {getMessages(listing).toLocaleString()}
+                                                </p>
+                                            </div>
+
+                                            {listingId && (
+                                                <a
+                                                    href={`/seller/analytics/${listingId}`}
+                                                    className="rounded-xl bg-orange-500 px-5 py-3 text-center text-sm font-semibold text-white hover:bg-orange-600"
                                                 >
-                                                    <td className="py-4 pr-4 font-semibold text-slate-900">
-                                                        {getTitle(item)}
-                                                    </td>
-
-                                                    <td className="py-4 pr-4">
-                                                        {getViews(item).toLocaleString()}
-                                                    </td>
-
-                                                    <td className="py-4 pr-4">
-                                                        {getSaves(item).toLocaleString()}
-                                                    </td>
-
-                                                    <td className="py-4 pr-4">
-                                                        {getMessages(item).toLocaleString()}
-                                                    </td>
-
-                                                    <td className="py-4 pr-4">
-                                                        {listingId ? (
-                                                            <a
-                                                                href={`/seller/analytics/${listingId}`}
-                                                                className="font-semibold text-orange-600 hover:text-orange-700"
-                                                            >
-                                                                Details →
-                                                            </a>
-                                                        ) : (
-                                                            <span className="text-slate-400">N/A</span>
-                                                        )}
-                                                    </td>
-                                                </tr>
-                                            );
-                                        })}
-                                    </tbody>
-                                </table>
+                                                    Details
+                                                </a>
+                                            )}
+                                        </article>
+                                    );
+                                })}
                             </div>
                         )}
                     </div>
