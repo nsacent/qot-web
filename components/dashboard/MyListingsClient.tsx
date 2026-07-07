@@ -146,6 +146,13 @@ export default function MyListingsClient() {
                 </div>
 
                 <a
+                    href="/seller/analytics"
+                    className="rounded-xl border bg-white px-5 py-3 text-center font-semibold hover:bg-slate-50"
+                >
+                    Seller Analytics
+                </a>
+
+                <a
                     href="/post-ad"
                     className="rounded-xl bg-orange-500 px-5 py-3 text-center font-semibold text-white hover:bg-orange-600"
                 >
