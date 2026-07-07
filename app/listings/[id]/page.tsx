@@ -7,6 +7,7 @@ import RecentlyViewedTracker from "@/components/listings/RecentlyViewedTracker";
 import ShareListingButton from "@/components/listings/ShareListingButton";
 import SimilarListings from "@/components/listings/SimilarListings";
 import SellerContactActions from "@/components/listings/SellerContactActions";
+import ReviewSellerForm from "@/components/reviews/ReviewSellerForm";
 
 type PageProps = {
     params: Promise<{
@@ -211,6 +212,8 @@ export default async function ListingDetailsPage({ params }: PageProps) {
                                 <ContactSellerButton listingId={listing.id} />
 
                                 <SellerContactActions listing={listing} />
+
+                                <ReviewSellerForm listing={listing} />
 
                                 <a
                                     href="/messages"

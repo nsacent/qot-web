@@ -290,6 +290,7 @@ export default async function SellerProfilePage({ params }: PageProps) {
                         </p>
                     </div>
 
+
                     {reviews.length === 0 ? (
                         <div className="rounded-2xl bg-slate-50 p-6 text-slate-600">
                             No reviews yet.
