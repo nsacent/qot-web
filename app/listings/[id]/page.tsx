@@ -80,6 +80,7 @@ export default async function ListingDetailsPage({ params }: PageProps) {
 
                 <div className="grid gap-8 lg:grid-cols-3">
                     <div className="lg:col-span-2">
+
                         <ListingImageGallery listing={listing} />
 
                         <div className="mt-6 rounded-2xl border bg-white p-6 shadow-sm">

@@ -14,13 +14,19 @@ function unwrapObject(data: any) {
 
 function getSellerName(seller: any) {
     return (
+        seller?.business_name ||
+        seller?.shop_name ||
         seller?.full_name ||
         seller?.name ||
         seller?.username ||
-        seller?.business_name ||
-        seller?.shop_name ||
+        seller?.phone ||
         "Seller"
     );
+}
+
+function getSellerInitial(seller: any) {
+    const name = getSellerName(seller);
+    return name.charAt(0).toUpperCase();
 }
 
 function getSellerLocation(seller: any) {
@@ -34,18 +40,43 @@ function getSellerLocation(seller: any) {
     );
 }
 
-function getRating(summary: any, seller: any) {
+function getSellerPhone(seller: any) {
     return (
+        seller?.phone ||
+        seller?.phone_number ||
+        seller?.mobile ||
+        seller?.contact_phone ||
+        seller?.whatsapp ||
+        ""
+    );
+}
+
+function getSellerEmail(seller: any) {
+    return seller?.email || "";
+}
+
+function getSellerBio(seller: any) {
+    return (
+        seller?.bio ||
+        seller?.about ||
+        seller?.description ||
+        seller?.business_description ||
+        "This seller is active on QOT. Check available adverts, ratings, and contact options before making a purchase."
+    );
+}
+
+function getRating(summary: any, seller: any) {
+    return Number(
         summary?.average_rating ||
         summary?.avg_rating ||
         seller?.average_rating ||
-        seller?.avg_rating ||
+        seller?.rating ||
         0
     );
 }
 
 function getTotalReviews(summary: any, seller: any) {
-    return (
+    return Number(
         summary?.total_reviews ||
         summary?.reviews_count ||
         seller?.total_reviews ||
@@ -54,22 +85,43 @@ function getTotalReviews(summary: any, seller: any) {
     );
 }
 
-function getTrustScore(summary: any, seller: any) {
-    return summary?.trust_score || seller?.trust_score || 0;
+function getTrustScore(seller: any) {
+    return Number(
+        seller?.trust_score ||
+        seller?.seller_score ||
+        seller?.score ||
+        seller?.profile?.trust_score ||
+        0
+    );
 }
 
-function formatDate(value: any) {
-    if (!value) return "";
+function isVerifiedSeller(seller: any) {
+    return (
+        seller?.is_verified === true ||
+        seller?.verified === true ||
+        seller?.account_verified === true ||
+        seller?.phone_verified === true ||
+        seller?.profile?.is_verified === true
+    );
+}
 
-    const date = new Date(value);
+function formatPhoneForWhatsApp(phone: string) {
+    const cleaned = String(phone || "").replace(/\D/g, "");
 
-    if (Number.isNaN(date.getTime())) return "";
+    if (!cleaned) return "";
 
-    return date.toLocaleDateString("en-UG", {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-    });
+    if (cleaned.startsWith("256")) return cleaned;
+
+    if (cleaned.startsWith("0")) {
+        return `256${cleaned.slice(1)}`;
+    }
+
+    return cleaned;
+}
+
+function formatRating(value: number) {
+    if (!value) return "0.0";
+    return value.toFixed(1);
 }
 
 export default async function SellerProfilePage({ params }: PageProps) {
@@ -77,15 +129,15 @@ export default async function SellerProfilePage({ params }: PageProps) {
 
     let seller: any = null;
     let listings: any[] = [];
-    let reviewSummary: any = null;
     let reviews: any[] = [];
+    let reviewSummary: any = null;
 
-    const [sellerResult, listingsResult, summaryResult, reviewsResult] =
+    const [sellerResult, listingsResult, reviewsResult, summaryResult] =
         await Promise.allSettled([
             apiGet(`/sellers/${id}/`),
             apiGet(`/sellers/${id}/listings/`),
-            apiGet(`/reviews/sellers/${id}/summary/`),
             apiGet(`/reviews/sellers/${id}/`),
+            apiGet(`/reviews/sellers/${id}/summary/`),
         ]);
 
     if (sellerResult.status === "fulfilled") {
@@ -96,240 +148,269 @@ export default async function SellerProfilePage({ params }: PageProps) {
         listings = getArray(listingsResult.value);
     }
 
+    if (reviewsResult.status === "fulfilled") {
+        reviews = getArray(reviewsResult.value);
+    }
+
     if (summaryResult.status === "fulfilled") {
         reviewSummary = unwrapObject(summaryResult.value);
     }
 
-    if (reviewsResult.status === "fulfilled") {
-        reviews = getArray(reviewsResult.value).slice(0, 5);
-    }
-
-    if (!seller) {
-        return (
-            <main className="min-h-screen bg-slate-50">
-                <Navbar />
-
-                <section className="mx-auto max-w-4xl px-6 py-16">
-                    <div className="rounded-2xl border bg-white p-8 text-slate-600">
-                        Seller profile not found.
-                    </div>
-                </section>
-            </main>
-        );
-    }
-
-    const sellerName = getSellerName(seller);
-    const sellerLocation = getSellerLocation(seller);
+    const sellerName = seller ? getSellerName(seller) : "Seller";
+    const sellerLocation = seller ? getSellerLocation(seller) : "Uganda";
+    const sellerPhone = seller ? getSellerPhone(seller) : "";
+    const sellerEmail = seller ? getSellerEmail(seller) : "";
+    const sellerBio = seller ? getSellerBio(seller) : "";
     const rating = getRating(reviewSummary, seller);
     const totalReviews = getTotalReviews(reviewSummary, seller);
-    const trustScore = getTrustScore(reviewSummary, seller);
-
-    const activeListingCount =
-        seller?.active_listing_count ||
-        seller?.active_listings_count ||
-        seller?.listings_count ||
-        listings.length;
-
-    const joinedDate =
-        seller?.date_joined ||
-        seller?.created_at ||
-        seller?.joined_at ||
-        seller?.created;
+    const trustScore = getTrustScore(seller);
+    const verified = seller ? isVerifiedSeller(seller) : false;
+    const whatsappPhone = formatPhoneForWhatsApp(sellerPhone);
 
     return (
-        <main className="min-h-screen bg-slate-50">
+        <main className="min-h-screen bg-slate-50 text-slate-900">
             <Navbar />
 
             <section className="bg-slate-950 text-white">
                 <div className="mx-auto max-w-7xl px-6 py-12">
                     <a
                         href="/listings"
-                        className="mb-6 inline-block text-sm font-semibold text-orange-300 hover:text-orange-200"
+                        className="mb-8 inline-block text-sm font-semibold text-orange-300 hover:text-orange-200"
                     >
                         ← Back to listings
                     </a>
 
-                    <div className="grid gap-8 lg:grid-cols-[1fr_360px] lg:items-start">
-                        <div>
+                    <div className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-2xl md:p-8">
+                        <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
                             <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
-                                <div className="flex h-24 w-24 items-center justify-center rounded-3xl bg-orange-500 text-4xl font-black text-white">
-                                    {sellerName.charAt(0).toUpperCase()}
+                                <div className="flex h-28 w-28 items-center justify-center rounded-3xl bg-orange-500 text-5xl font-black text-white shadow-lg">
+                                    {seller ? getSellerInitial(seller) : "S"}
                                 </div>
 
                                 <div>
-                                    <div className="flex flex-wrap items-center gap-3">
+                                    <div className="flex flex-wrap items-center gap-2">
                                         <h1 className="text-3xl font-black md:text-5xl">
                                             {sellerName}
                                         </h1>
 
-                                        {(seller?.is_verified ||
-                                            seller?.verified ||
-                                            seller?.account_verified) && (
-                                                <span className="rounded-full bg-green-600 px-3 py-1 text-xs font-bold text-white">
-                                                    Verified Seller
-                                                </span>
-                                            )}
+                                        {verified && (
+                                            <span className="rounded-full bg-green-500 px-3 py-1 text-xs font-bold text-white">
+                                                Verified
+                                            </span>
+                                        )}
                                     </div>
 
                                     <p className="mt-3 text-slate-300">{sellerLocation}</p>
 
-                                    {joinedDate && (
-                                        <p className="mt-1 text-sm text-slate-400">
-                                            Joined {formatDate(joinedDate)}
-                                        </p>
-                                    )}
+                                    <div className="mt-4 flex flex-wrap gap-2">
+                                        <span className="rounded-full bg-white/10 px-4 py-2 text-sm font-semibold">
+                                            {listings.length.toLocaleString()} active adverts
+                                        </span>
+
+                                        <span className="rounded-full bg-white/10 px-4 py-2 text-sm font-semibold">
+                                            ⭐ {formatRating(rating)} rating
+                                        </span>
+
+                                        <span className="rounded-full bg-white/10 px-4 py-2 text-sm font-semibold">
+                                            {totalReviews.toLocaleString()} reviews
+                                        </span>
+
+                                        {trustScore > 0 && (
+                                            <span className="rounded-full bg-white/10 px-4 py-2 text-sm font-semibold">
+                                                Trust score: {trustScore}
+                                            </span>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
 
-                            {seller?.bio || seller?.description || seller?.about ? (
-                                <p className="mt-8 max-w-3xl leading-7 text-slate-300">
-                                    {seller.bio || seller.description || seller.about}
-                                </p>
-                            ) : (
-                                <p className="mt-8 max-w-3xl leading-7 text-slate-300">
-                                    View this seller’s active adverts, reviews, and trust details
-                                    on QOT.
-                                </p>
-                            )}
+                            <div className="grid gap-3 sm:min-w-56">
+                                {sellerPhone && (
+                                    <a
+                                        href={`tel:${sellerPhone}`}
+                                        className="rounded-xl bg-orange-500 px-5 py-3 text-center font-semibold text-white hover:bg-orange-600"
+                                    >
+                                        Call Seller
+                                    </a>
+                                )}
+
+                                {whatsappPhone && (
+                                    <a
+                                        href={`https://wa.me/${whatsappPhone}`}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="rounded-xl bg-green-600 px-5 py-3 text-center font-semibold text-white hover:bg-green-700"
+                                    >
+                                        WhatsApp Seller
+                                    </a>
+                                )}
+
+                                {sellerEmail && (
+                                    <a
+                                        href={`mailto:${sellerEmail}`}
+                                        className="rounded-xl border border-white/20 px-5 py-3 text-center font-semibold text-white hover:bg-white/10"
+                                    >
+                                        Email Seller
+                                    </a>
+                                )}
+                            </div>
                         </div>
 
-                        <div className="rounded-3xl bg-white p-6 text-slate-900 shadow-xl">
-                            <h2 className="text-xl font-bold">Seller Trust Summary</h2>
+                        <div className="mt-8 rounded-2xl bg-white/10 p-5">
+                            <p className="text-sm font-semibold uppercase tracking-wide text-orange-300">
+                                About Seller
+                            </p>
 
-                            <div className="mt-5 grid gap-4">
-                                <div className="rounded-2xl bg-slate-50 p-4">
-                                    <p className="text-sm font-semibold text-slate-500">
-                                        Average Rating
-                                    </p>
-                                    <p className="mt-1 text-3xl font-black">
-                                        {Number(rating).toFixed(1)} / 5
-                                    </p>
-                                </div>
-
-                                <div className="rounded-2xl bg-slate-50 p-4">
-                                    <p className="text-sm font-semibold text-slate-500">
-                                        Total Reviews
-                                    </p>
-                                    <p className="mt-1 text-3xl font-black">
-                                        {Number(totalReviews).toLocaleString()}
-                                    </p>
-                                </div>
-
-                                <div className="rounded-2xl bg-slate-50 p-4">
-                                    <p className="text-sm font-semibold text-slate-500">
-                                        Trust Score
-                                    </p>
-                                    <p className="mt-1 text-3xl font-black">
-                                        {Number(trustScore).toLocaleString()}
-                                    </p>
-                                </div>
-
-                                <div className="rounded-2xl bg-slate-50 p-4">
-                                    <p className="text-sm font-semibold text-slate-500">
-                                        Active Listings
-                                    </p>
-                                    <p className="mt-1 text-3xl font-black">
-                                        {Number(activeListingCount).toLocaleString()}
-                                    </p>
-                                </div>
-                            </div>
+                            <p className="mt-2 leading-7 text-slate-200">{sellerBio}</p>
                         </div>
                     </div>
                 </div>
             </section>
 
             <section className="mx-auto max-w-7xl px-6 py-10">
-                <div className="mb-6 flex flex-col justify-between gap-3 md:flex-row md:items-end">
+                <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
                     <div>
-                        <p className="text-sm font-semibold uppercase tracking-wide text-orange-600">
-                            Seller Adverts
-                        </p>
+                        <div className="mb-6 flex flex-col justify-between gap-3 md:flex-row md:items-end">
+                            <div>
+                                <p className="text-sm font-semibold uppercase tracking-wide text-orange-600">
+                                    Seller Listings
+                                </p>
 
-                        <h2 className="mt-2 text-2xl font-bold text-slate-900">
-                            Active listings by {sellerName}
-                        </h2>
+                                <h2 className="mt-2 text-2xl font-bold text-slate-900">
+                                    Active adverts by {sellerName}
+                                </h2>
+                            </div>
+
+                            <a
+                                href={`/sellers/${id}/listings`}
+                                className="text-sm font-semibold text-orange-600 hover:text-orange-700"
+                            >
+                                View all →
+                            </a>
+                        </div>
+
+                        {listings.length === 0 ? (
+                            <div className="rounded-2xl border bg-white p-8 text-slate-600">
+                                This seller has no active listings at the moment.
+                            </div>
+                        ) : (
+                            <div className="grid gap-6 sm:grid-cols-2">
+                                {listings.slice(0, 6).map((listing: any) => (
+                                    <ListingCard
+                                        key={listing.id || listing.slug}
+                                        listing={listing}
+                                    />
+                                ))}
+                            </div>
+                        )}
                     </div>
 
-                    <a
-                        href={`/sellers/${id}/listings`}
-                        className="text-sm font-semibold text-orange-600 hover:text-orange-700"
-                    >
-                        View all →
-                    </a>
-                </div>
-
-                {listings.length === 0 ? (
-                    <div className="rounded-2xl border bg-white p-8 text-slate-600">
-                        This seller has no active listings at the moment.
-                    </div>
-                ) : (
-                    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                        {listings.slice(0, 9).map((listing: any) => (
-                            <ListingCard key={listing.id || listing.slug} listing={listing} />
-                        ))}
-                    </div>
-                )}
-            </section>
-
-            <section className="mx-auto max-w-7xl px-6 pb-12">
-                <div className="rounded-2xl border bg-white p-6 shadow-sm">
-                    <div className="mb-5 flex flex-col justify-between gap-3 md:flex-row md:items-end">
-                        <div>
+                    <aside className="space-y-6">
+                        <div className="rounded-2xl border bg-white p-6 shadow-sm">
                             <p className="text-sm font-semibold uppercase tracking-wide text-orange-600">
-                                Reviews
+                                Seller Trust
                             </p>
 
-                            <h2 className="mt-2 text-2xl font-bold text-slate-900">
-                                What buyers say
-                            </h2>
-                        </div>
+                            <div className="mt-5 grid gap-3">
+                                <div className="rounded-xl bg-slate-50 p-4">
+                                    <p className="text-sm font-semibold text-slate-500">
+                                        Verification
+                                    </p>
 
-                        <p className="text-sm font-semibold text-slate-500">
-                            {Number(totalReviews).toLocaleString()} review
-                            {Number(totalReviews) === 1 ? "" : "s"}
-                        </p>
-                    </div>
-
-
-                    {reviews.length === 0 ? (
-                        <div className="rounded-2xl bg-slate-50 p-6 text-slate-600">
-                            No reviews yet.
-                        </div>
-                    ) : (
-                        <div className="grid gap-4">
-                            {reviews.map((review: any) => (
-                                <div
-                                    key={review.id || review.created_at}
-                                    className="rounded-2xl border p-5"
-                                >
-                                    <div className="flex flex-col justify-between gap-2 md:flex-row md:items-center">
-                                        <p className="font-bold text-slate-900">
-                                            {review.reviewer?.full_name ||
-                                                review.reviewer?.name ||
-                                                review.reviewer_name ||
-                                                "Buyer"}
-                                        </p>
-
-                                        <p className="text-sm font-semibold text-orange-600">
-                                            {Number(review.rating || 0).toFixed(1)} / 5
-                                        </p>
-                                    </div>
-
-                                    {review.comment || review.description ? (
-                                        <p className="mt-3 leading-6 text-slate-600">
-                                            {review.comment || review.description}
-                                        </p>
-                                    ) : null}
-
-                                    {review.created_at && (
-                                        <p className="mt-3 text-xs text-slate-500">
-                                            {formatDate(review.created_at)}
-                                        </p>
-                                    )}
+                                    <p
+                                        className={
+                                            verified
+                                                ? "mt-1 font-bold text-green-600"
+                                                : "mt-1 font-bold text-orange-600"
+                                        }
+                                    >
+                                        {verified ? "Verified seller" : "Not verified"}
+                                    </p>
                                 </div>
-                            ))}
+
+                                <div className="rounded-xl bg-slate-50 p-4">
+                                    <p className="text-sm font-semibold text-slate-500">
+                                        Rating
+                                    </p>
+
+                                    <p className="mt-1 font-bold text-slate-900">
+                                        ⭐ {formatRating(rating)} / 5
+                                    </p>
+                                </div>
+
+                                <div className="rounded-xl bg-slate-50 p-4">
+                                    <p className="text-sm font-semibold text-slate-500">
+                                        Reviews
+                                    </p>
+
+                                    <p className="mt-1 font-bold text-slate-900">
+                                        {totalReviews.toLocaleString()}
+                                    </p>
+                                </div>
+
+                                <div className="rounded-xl bg-slate-50 p-4">
+                                    <p className="text-sm font-semibold text-slate-500">
+                                        Active adverts
+                                    </p>
+
+                                    <p className="mt-1 font-bold text-slate-900">
+                                        {listings.length.toLocaleString()}
+                                    </p>
+                                </div>
+                            </div>
                         </div>
-                    )}
+
+                        <div className="rounded-2xl border bg-white p-6 shadow-sm">
+                            <p className="text-sm font-semibold uppercase tracking-wide text-orange-600">
+                                Buyer Safety
+                            </p>
+
+                            <ul className="mt-4 space-y-3 text-sm leading-6 text-slate-600">
+                                <li>• Meet in a safe public place.</li>
+                                <li>• Inspect the item before payment.</li>
+                                <li>• Avoid sending money before seeing the item.</li>
+                                <li>• Report suspicious listings or sellers.</li>
+                            </ul>
+                        </div>
+
+                        <div className="rounded-2xl border bg-white p-6 shadow-sm">
+                            <div className="mb-4 flex items-center justify-between">
+                                <p className="text-sm font-semibold uppercase tracking-wide text-orange-600">
+                                    Reviews
+                                </p>
+
+                                <span className="text-sm font-semibold text-slate-500">
+                                    {totalReviews.toLocaleString()}
+                                </span>
+                            </div>
+
+                            {reviews.length === 0 ? (
+                                <p className="text-sm text-slate-600">
+                                    No reviews yet for this seller.
+                                </p>
+                            ) : (
+                                <div className="space-y-4">
+                                    {reviews.slice(0, 3).map((review: any, index: number) => (
+                                        <div
+                                            key={review.id || index}
+                                            className="rounded-xl bg-slate-50 p-4"
+                                        >
+                                            <p className="font-bold text-slate-900">
+                                                ⭐ {review.rating || review.score || "5"}
+                                            </p>
+
+                                            <p className="mt-2 text-sm leading-6 text-slate-600">
+                                                {review.comment ||
+                                                    review.review ||
+                                                    review.message ||
+                                                    "Good seller."}
+                                            </p>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </aside>
                 </div>
             </section>
         </main>
