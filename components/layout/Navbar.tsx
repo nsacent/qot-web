@@ -128,6 +128,14 @@ export default function Navbar() {
                                     Messages
                                 </a>
 
+
+                                <a
+                                    href="/account/notifications"
+                                    className="block rounded-xl px-4 py-2 text-sm font-semibold hover:bg-slate-50"
+                                >
+                                    Notification Settings
+                                </a>
+
                                 <a
                                     href="/my-listings"
                                     className="rounded-xl px-3 py-3 hover:bg-slate-50"

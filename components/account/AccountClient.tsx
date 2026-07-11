@@ -125,6 +125,12 @@ export default function AccountClient() {
             href: "/recently-viewed",
             description: "Adverts opened recently",
         },
+
+        {
+            label: "Verification",
+            href: "/account/verification",
+            description: "Request account verification",
+        },
     ];
 
     if (isStaff) {

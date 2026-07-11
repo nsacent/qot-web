@@ -101,6 +101,13 @@ export default function VerifiedAccountGuard({
                     </div>
 
                     <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+
+                        <a
+                            href="/account/verification"
+                            className="rounded-xl bg-orange-500 px-5 py-3 text-center font-semibold text-white hover:bg-orange-600"
+                        >
+                            Request Verification
+                        </a>
                         <a
                             href="/account"
                             className="rounded-xl bg-orange-500 px-5 py-3 text-center font-semibold text-white hover:bg-orange-600"
