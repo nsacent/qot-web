@@ -131,6 +131,12 @@ export default function AccountClient() {
             href: "/account/verification",
             description: "Request account verification",
         },
+
+        {
+            label: "Activity History",
+            href: "/account/activity",
+            description: "View your recent QOT actions",
+        },
     ];
 
     if (isStaff) {
