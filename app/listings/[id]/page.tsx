@@ -10,6 +10,7 @@ import SellerContactActions from "@/components/listings/SellerContactActions";
 import ReviewSellerForm from "@/components/reviews/ReviewSellerForm";
 import ListingImageGallery from "@/components/listings/ListingImageGallery";
 import BuyerListingActions from "@/components/listings/BuyerListingActions";
+import BuyerSafetyCard from "@/components/listings/BuyerSafetyCard";
 
 type PageProps = {
     params: Promise<{
@@ -163,20 +164,14 @@ export default async function ListingDetailsPage({ params }: PageProps) {
                             <div className="mt-6">
                                 <BuyerListingActions listing={listing} listingId={listing.id} />
                             </div>
+                            <div className="mt-6">
+                                <BuyerSafetyCard listingId={listing.id} />
+                            </div>
                         </div>
 
                         <ShareListingButton listing={listing} />
 
-                        <div className="rounded-2xl border bg-white p-6 shadow-sm">
-                            <h2 className="text-xl font-bold">Safety Tips</h2>
 
-                            <ul className="mt-4 space-y-3 text-sm leading-6 text-slate-600">
-                                <li>• Meet the seller in a safe public place.</li>
-                                <li>• Check the item properly before paying.</li>
-                                <li>• Avoid sending money before seeing the item.</li>
-                                <li>• Report suspicious adverts to QOT support.</li>
-                            </ul>
-                        </div>
                     </aside>
                 </div>
             </section>
