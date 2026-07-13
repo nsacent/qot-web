@@ -1,5 +1,17 @@
 "use client";
 
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+    faChevronDown,
+    faGear,
+    faHeartRegular,
+    faList,
+    faRightFromBracket,
+    faShieldHalved,
+    faStore,
+    faUserRegular,
+    faEnvelope,
+} from "@/lib/faIcons";
 import { useEffect, useRef, useState } from "react";
 import { getStoredUser, getUserDisplayName } from "@/lib/auth";
 
@@ -75,13 +87,13 @@ export default function UserProfileTab() {
 
     if (!mounted) {
         return (
-            <div className="hidden h-12 w-12 rounded-2xl bg-slate-100 md:block" />
+            <div className="h-10 w-10 rounded-2xl bg-slate-100" />
         );
     }
 
     if (!user) {
         return (
-            <div className="hidden items-center gap-2 md:flex">
+            <div className="hidden items-center gap-2 sm:flex">
                 <a
                     href="/login"
                     className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-900 hover:bg-slate-50"
@@ -108,9 +120,9 @@ export default function UserProfileTab() {
             <button
                 type="button"
                 onClick={() => setOpen((current) => !current)}
-                className="flex items-center gap-2 rounded-2xl bg-slate-50 px-2 py-2 hover:bg-slate-100"
+                className="flex items-center gap-1 rounded-2xl bg-slate-50 px-1.5 py-1.5 hover:bg-slate-100 md:gap-2 md:px-2 md:py-2"
             >
-                <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-orange-100 text-sm font-black text-orange-600">
+                <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-orange-100 text-xs font-black text-orange-600 md:h-10 md:w-10 md:text-sm">
                     {avatar ? (
                         <img
                             src={avatar}
@@ -122,11 +134,7 @@ export default function UserProfileTab() {
                     )}
                 </div>
 
-                <span className="hidden max-w-[110px] truncate text-sm font-black text-slate-900 lg:block">
-                    {name}
-                </span>
-
-                <span className="text-slate-500">⌄</span>
+                <FontAwesomeIcon icon={faChevronDown} className="h-3 w-3 text-slate-500" />
             </button>
 
             {open && (
@@ -160,50 +168,57 @@ export default function UserProfileTab() {
                     <div className="grid p-2 text-sm font-bold text-slate-800">
                         <a
                             href="/account"
-                            className="rounded-2xl px-4 py-3 hover:bg-orange-50 hover:text-orange-600"
+                            className="flex items-center gap-3 rounded-2xl px-4 py-3 hover:bg-orange-50 hover:text-orange-600"
                         >
+                            <FontAwesomeIcon icon={faUserRegular} className="h-4 w-4" />
                             My Profile
                         </a>
 
                         <a
                             href="/my-listings"
-                            className="rounded-2xl px-4 py-3 hover:bg-orange-50 hover:text-orange-600"
+                            className="flex items-center gap-3 rounded-2xl px-4 py-3 hover:bg-orange-50 hover:text-orange-600"
                         >
+                            <FontAwesomeIcon icon={faList} className="h-4 w-4" />
                             My Ads
                         </a>
 
                         <a
                             href="/seller/dashboard"
-                            className="rounded-2xl px-4 py-3 hover:bg-orange-50 hover:text-orange-600"
+                            className="flex items-center gap-3 rounded-2xl px-4 py-3 hover:bg-orange-50 hover:text-orange-600"
                         >
+                            <FontAwesomeIcon icon={faStore} className="h-4 w-4" />
                             Seller Dashboard
                         </a>
 
                         <a
                             href="/saved"
-                            className="rounded-2xl px-4 py-3 hover:bg-orange-50 hover:text-orange-600"
+                            className="flex items-center gap-3 rounded-2xl px-4 py-3 hover:bg-orange-50 hover:text-orange-600"
                         >
+                            <FontAwesomeIcon icon={faHeartRegular} className="h-4 w-4" />
                             Saved Ads
                         </a>
 
                         <a
                             href="/messages"
-                            className="rounded-2xl px-4 py-3 hover:bg-orange-50 hover:text-orange-600"
+                            className="flex items-center gap-3 rounded-2xl px-4 py-3 hover:bg-orange-50 hover:text-orange-600"
                         >
+                            <FontAwesomeIcon icon={faEnvelope} className="h-4 w-4" />
                             Messages
                         </a>
 
                         <a
                             href="/account/verification"
-                            className="rounded-2xl px-4 py-3 hover:bg-orange-50 hover:text-orange-600"
+                            className="flex items-center gap-3 rounded-2xl px-4 py-3 hover:bg-orange-50 hover:text-orange-600"
                         >
+                            <FontAwesomeIcon icon={faShieldHalved} className="h-4 w-4" />
                             Verification
                         </a>
 
                         <a
                             href="/account/activity"
-                            className="rounded-2xl px-4 py-3 hover:bg-orange-50 hover:text-orange-600"
+                            className="flex items-center gap-3 rounded-2xl px-4 py-3 hover:bg-orange-50 hover:text-orange-600"
                         >
+                            <FontAwesomeIcon icon={faGear} className="h-4 w-4" />
                             Activity History
                         </a>
                     </div>
@@ -214,7 +229,10 @@ export default function UserProfileTab() {
                             onClick={logout}
                             className="w-full rounded-2xl px-4 py-3 text-left text-sm font-black text-red-600 hover:bg-red-50"
                         >
-                            Logout
+                            <span className="inline-flex items-center gap-3">
+                                <FontAwesomeIcon icon={faRightFromBracket} className="h-4 w-4" />
+                                Logout
+                            </span>
                         </button>
                     </div>
                 </div>

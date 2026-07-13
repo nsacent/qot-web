@@ -1,3 +1,10 @@
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+    faList,
+    faLocationDot,
+    faMagnifyingGlass,
+} from "@/lib/faIcons";
+
 type HomeFloatingSearchProps = {
     categories?: any[];
 };
@@ -24,8 +31,7 @@ export default function HomeFloatingSearch({
                 className="grid gap-3 rounded-3xl bg-white p-4 shadow-[0_15px_45px_rgba(15,23,42,0.12)] md:grid-cols-[1fr_220px_220px_220px]"
             >
                 <div className="flex h-14 items-center gap-3 rounded-2xl border border-slate-300 bg-white px-4">
-                    <span className="text-lg font-black text-slate-500">⌕</span>
-
+                    <FontAwesomeIcon icon={faMagnifyingGlass} className="h-4 w-4 text-slate-500" />
                     <input
                         name="q"
                         placeholder="What are you looking for?"
