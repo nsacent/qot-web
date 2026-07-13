@@ -1,5 +1,9 @@
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faLocationDot } from "@/lib/faIcons";
+import HomeAdFavoriteButton from "@/components/home/HomeAdFavoriteButton";
+
 type HomeAdCardProps = {
-    listing: any;
+    ad: any;
 };
 
 function formatPrice(value: any, currency = "UGX") {
@@ -14,35 +18,34 @@ function formatPrice(value: any, currency = "UGX") {
     return `${currency} ${numberValue.toLocaleString()}`;
 }
 
-function getListingImage(listing: any) {
+function getAdImage(ad: any) {
     return (
-        listing?.image ||
-        listing?.image_url ||
-        listing?.thumbnail ||
-        listing?.primary_image?.image ||
-        listing?.primary_image?.url ||
-        listing?.images?.[0]?.image ||
-        listing?.images?.[0]?.url ||
+        ad?.image ||
+        ad?.image_url ||
+        ad?.thumbnail ||
+        ad?.primary_image?.image ||
+        ad?.primary_image?.url ||
+        ad?.images?.[0]?.image ||
+        ad?.images?.[0]?.url ||
         ""
     );
 }
 
-function getListingId(listing: any) {
-    return listing?.id || listing?.listing_id || listing?.uuid || "";
+function getAdId(ad: any) {
+    return ad?.id || ad?.listing_id || ad?.uuid || "";
 }
 
-function getListingTitle(listing: any) {
-    return listing?.title || listing?.name || "Untitled advert";
+function getAdTitle(ad: any) {
+    return ad?.title || ad?.name || "Untitled ad";
 }
 
-function isGoodLocationValue(value: any) {
+function isGoodText(value: any) {
     if (value === null || value === undefined) return false;
 
     const text = String(value).trim();
 
     if (!text) return false;
 
-    // Do not show database IDs like 1, 2, 3
     if (/^\d+$/.test(text)) return false;
 
     return true;
@@ -62,40 +65,38 @@ function getLocationName(value: any) {
         );
     }
 
-    if (isGoodLocationValue(value)) {
-        return String(value).trim();
-    }
+    if (isGoodText(value)) return String(value).trim();
 
     return "";
 }
 
-function getLocation(listing: any) {
+function getAdLocation(ad: any) {
     const city = getLocationName(
-        listing?.city_name ||
-        listing?.city?.name ||
-        listing?.city ||
-        listing?.location?.city_name ||
-        listing?.location?.city
+        ad?.city_name ||
+        ad?.city?.name ||
+        ad?.city ||
+        ad?.location?.city_name ||
+        ad?.location?.city
     );
 
     const region = getLocationName(
-        listing?.region_name ||
-        listing?.district_name ||
-        listing?.region?.name ||
-        listing?.district?.name ||
-        listing?.region ||
-        listing?.district ||
-        listing?.location?.region_name ||
-        listing?.location?.district_name ||
-        listing?.location?.region ||
-        listing?.location?.district
+        ad?.region_name ||
+        ad?.district_name ||
+        ad?.region?.name ||
+        ad?.district?.name ||
+        ad?.region ||
+        ad?.district ||
+        ad?.location?.region_name ||
+        ad?.location?.district_name ||
+        ad?.location?.region ||
+        ad?.location?.district
     );
 
     const location = getLocationName(
-        listing?.location_name ||
-        listing?.location_text ||
-        listing?.address_text ||
-        listing?.address
+        ad?.location_name ||
+        ad?.location_text ||
+        ad?.address_text ||
+        ad?.address
     );
 
     if (city && region) return `${city}, ${region}`;
@@ -105,6 +106,7 @@ function getLocation(listing: any) {
 
     return "Uganda";
 }
+
 function formatDate(value: any) {
     if (!value) return "Recently";
 
@@ -118,70 +120,73 @@ function formatDate(value: any) {
     });
 }
 
-export default function HomeAdCard({ listing }: HomeAdCardProps) {
-    const id = getListingId(listing);
-    const image = getListingImage(listing);
-    const title = getListingTitle(listing);
-
-    const href = id ? `/listings/${id}` : "/listings";
+export default function HomeAdCard({ ad }: HomeAdCardProps) {
+    const id = getAdId(ad);
+    const image = getAdImage(ad);
+    const title = getAdTitle(ad);
 
     const date =
-        listing?.updated_at ||
-        listing?.created_at ||
-        listing?.published_at ||
-        listing?.date_posted;
+        ad?.updated_at ||
+        ad?.created_at ||
+        ad?.published_at ||
+        ad?.date_posted;
 
-    const condition = listing?.condition || listing?.status || "";
+    const isFavorited =
+        ad?.is_favorited === true ||
+        ad?.favorited === true ||
+        ad?.is_saved === true ||
+        ad?.saved === true;
 
     return (
-        <a
-            href={href}
-            className="group block overflow-hidden rounded-md border border-slate-200 bg-white shadow-sm transition hover:border-slate-300 hover:shadow-md"
-        >
-            <div className="relative aspect-[4/3] bg-slate-100">
-                {image ? (
-                    <img
-                        src={image}
-                        alt={title}
-                        className="h-full w-full object-cover"
+        <article className="group overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-[0_10px_25px_rgba(15,23,42,0.08)] transition hover:-translate-y-1 hover:shadow-[0_16px_35px_rgba(15,23,42,0.12)]">
+            <div className="relative aspect-[4/3] overflow-hidden bg-slate-100">
+                <a href={id ? `/listings/${id}` : "/listings"} className="block h-full">
+                    {image ? (
+                        <img
+                            src={image}
+                            alt={title}
+                            className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+                        />
+                    ) : (
+                        <div className="flex h-full w-full items-center justify-center text-2xl font-black text-slate-300">
+                            QOT
+                        </div>
+                    )}
+                </a>
+
+                <span className="absolute left-3 top-3 rounded-md bg-orange-500 px-2.5 py-1 text-[10px] font-black uppercase text-white">
+                    New
+                </span>
+
+                {id && (
+                    <HomeAdFavoriteButton
+                        adId={id}
+                        initiallyFavorited={isFavorited}
                     />
-                ) : (
-                    <div className="flex h-full w-full items-center justify-center bg-slate-100 text-xl font-black text-slate-300">
-                        QOT
-                    </div>
-                )}
-
-                <div className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-white text-lg font-black text-slate-800 shadow-sm">
-                    ♡
-                </div>
-
-                {condition && (
-                    <div className="absolute left-2 top-2 rounded-sm bg-white px-2 py-1 text-[11px] font-extrabold uppercase text-slate-700 shadow-sm">
-                        {String(condition).replaceAll("_", " ")}
-                    </div>
                 )}
             </div>
 
-            <div className="flex min-h-[132px] flex-col p-3">
-                <h3 className="line-clamp-2 min-h-[40px] text-[15px] font-semibold leading-5 text-slate-900 group-hover:text-orange-600">
+            <a href={id ? `/listings/${id}` : "/listings"} className="block p-4">
+                <h3 className="line-clamp-1 text-[15px] font-black text-slate-950 group-hover:text-orange-600">
                     {title}
                 </h3>
 
-                <div className="mt-2 flex items-center gap-1 text-xs font-semibold text-slate-600">
-                    <span className="text-orange-500">📍</span>
-                    <span className="line-clamp-1">{getLocation(listing)}</span>
-                </div>
-
-                <p className="mt-1 text-xs font-medium text-slate-400">
-                    Posted {formatDate(date)}
+                <p className="mt-1 text-[15px] font-black text-orange-600">
+                    {formatPrice(ad?.price, ad?.currency)}
                 </p>
 
-                <div className="mt-auto pt-3">
-                    <p className="text-lg font-black leading-6 text-slate-950">
-                        {formatPrice(listing?.price, listing?.currency)}
-                    </p>
+                <div className="mt-3 flex items-center justify-between gap-2 text-xs font-semibold text-slate-500">
+                    <span className="flex min-w-0 items-center gap-1.5">
+                        <FontAwesomeIcon
+                            icon={faLocationDot}
+                            className="h-3.5 w-3.5 shrink-0 text-orange-500"
+                        />
+                        <span className="line-clamp-1">{getAdLocation(ad)}</span>
+                    </span>
+
+                    <span className="shrink-0">{formatDate(date)}</span>
                 </div>
-            </div>
-        </a>
+            </a>
+        </article>
     );
 }
