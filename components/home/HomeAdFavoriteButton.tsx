@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faHeart, faHeartRegular } from "@/lib/faIcons";
-import { apiPost } from "@/lib/apiClient";
-import { getStoredToken } from "@/lib/auth";
+
+const API_BASE_URL =
+    process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000/api/v1";
 
 type HomeAdFavoriteButtonProps = {
     adId: string | number;
@@ -19,36 +20,68 @@ export default function HomeAdFavoriteButton({
     const [favorited, setFavorited] = useState(initiallyFavorited);
     const [loading, setLoading] = useState(false);
 
+    const inFlightRef = useRef(false);
+
     useEffect(() => {
         setMounted(true);
     }, []);
 
-    async function toggleFavorite() {
-        const token = getStoredToken();
+    useEffect(() => {
+        if (!inFlightRef.current) {
+            setFavorited(initiallyFavorited);
+        }
+    }, [initiallyFavorited, adId]);
+
+    async function toggleFavorite(event: React.MouseEvent<HTMLButtonElement>) {
+        event.preventDefault();
+        event.stopPropagation();
+
+        if (inFlightRef.current || loading) return;
+
+        const token = localStorage.getItem("qot_access_token");
 
         if (!token) {
-            window.location.href = `/login?next=/listings/${adId}`;
+            window.location.href = "/login?next=/";
             return;
         }
 
-        if (loading) return;
-
-        setLoading(true);
-
         const previous = favorited;
-        setFavorited(!previous);
+        const nextValue = !previous;
+
+        const method = previous ? "DELETE" : "POST";
+
+        inFlightRef.current = true;
+        setLoading(true);
+        setFavorited(nextValue);
 
         try {
-            const data = await apiPost(`/favorites/listings/${adId}/toggle/`, {});
+            const response = await fetch(
+                `${API_BASE_URL}/favorites/listings/${adId}/toggle/`,
+                {
+                    method,
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                        "Content-Type": "application/json",
+                    },
+                }
+            );
 
-            const nextValue =
-                data?.is_favorited ??
-                data?.favorited ??
-                data?.is_saved ??
-                data?.saved ??
-                !previous;
+            let data: any = {};
 
-            setFavorited(Boolean(nextValue));
+            try {
+                data = await response.json();
+            } catch {
+                data = {};
+            }
+
+            if (!response.ok) {
+                throw new Error(
+                    data?.detail ||
+                    data?.message ||
+                    data?.error ||
+                    "Failed to update saved ad."
+                );
+            }
 
             window.dispatchEvent(new Event("qot_favorites_updated"));
         } catch (error) {
@@ -56,6 +89,10 @@ export default function HomeAdFavoriteButton({
             alert("Failed to update saved ad.");
         } finally {
             setLoading(false);
+
+            window.setTimeout(() => {
+                inFlightRef.current = false;
+            }, 400);
         }
     }
 
@@ -69,8 +106,8 @@ export default function HomeAdFavoriteButton({
             aria-label={favorited ? "Remove from saved ads" : "Save ad"}
             className={
                 favorited
-                    ? "absolute right-3 top-3 z-20 flex h-8 w-8 items-center justify-center rounded-full bg-orange-500 text-white shadow-sm hover:bg-orange-600 disabled:opacity-60"
-                    : "absolute right-3 top-3 z-20 flex h-8 w-8 items-center justify-center rounded-full bg-white/95 text-slate-700 shadow-sm hover:text-orange-600 disabled:opacity-60"
+                    ? "absolute right-3 top-3 z-20 flex h-8 w-8 items-center justify-center rounded-full bg-orange-500 text-white shadow-sm hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-60"
+                    : "absolute right-3 top-3 z-20 flex h-8 w-8 items-center justify-center rounded-full bg-white/95 text-slate-700 shadow-sm hover:text-orange-600 disabled:cursor-not-allowed disabled:opacity-60"
             }
         >
             <FontAwesomeIcon

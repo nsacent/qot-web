@@ -4,6 +4,7 @@ import HomeAdFavoriteButton from "@/components/home/HomeAdFavoriteButton";
 
 type HomeAdCardProps = {
     ad: any;
+    favoriteIds?: Set<string>;
 };
 
 function formatPrice(value: any, currency = "UGX") {
@@ -114,13 +115,25 @@ function formatDate(value: any) {
 
     if (Number.isNaN(date.getTime())) return "Recently";
 
-    return date.toLocaleDateString(undefined, {
-        month: "short",
-        day: "numeric",
-    });
+    const months = [
+        "Jan",
+        "Feb",
+        "Mar",
+        "Apr",
+        "May",
+        "Jun",
+        "Jul",
+        "Aug",
+        "Sep",
+        "Oct",
+        "Nov",
+        "Dec",
+    ];
+
+    return `${months[date.getUTCMonth()]} ${date.getUTCDate()}`;
 }
 
-export default function HomeAdCard({ ad }: HomeAdCardProps) {
+export default function HomeAdCard({ ad, favoriteIds }: HomeAdCardProps) {
     const id = getAdId(ad);
     const image = getAdImage(ad);
     const title = getAdTitle(ad);
@@ -131,11 +144,7 @@ export default function HomeAdCard({ ad }: HomeAdCardProps) {
         ad?.published_at ||
         ad?.date_posted;
 
-    const isFavorited =
-        ad?.is_favorited === true ||
-        ad?.favorited === true ||
-        ad?.is_saved === true ||
-        ad?.saved === true;
+    const isFavorited = favoriteIds?.has(String(id)) === true;
 
     return (
         <article className="group overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-[0_10px_25px_rgba(15,23,42,0.08)] transition hover:-translate-y-1 hover:shadow-[0_16px_35px_rgba(15,23,42,0.12)]">
