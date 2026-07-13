@@ -1,3 +1,6 @@
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faCircleCheck } from "@/lib/faIcons";
+
 type HomeHeroProps = {
     latestAds?: any[];
 };
@@ -79,8 +82,8 @@ export default function HomeHero({ latestAds = [] }: HomeHeroProps) {
             <div className="relative grid min-h-[300px] gap-4 lg:grid-cols-[1fr_0.8fr]">
                 <div className="px-6 py-7 md:px-10 md:py-8">
                     <div className="inline-flex items-center gap-2 rounded-full bg-orange-50 px-4 py-2 text-[11px] font-black uppercase tracking-wide text-slate-900">
-                        <span className="rounded-full bg-orange-500 px-1.5 py-1 text-white">
-                            ✓
+                        <span className="flex h-5 w-5 items-center justify-center rounded-full bg-orange-500 text-white">
+                            <FontAwesomeIcon icon={faCircleCheck} className="h-3 w-3" />
                         </span>
                         Uganda&apos;s trusted marketplace
                     </div>

@@ -3,6 +3,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
     faChevronDown,
     faHeartRegular,
+    faEnvelope,
     faMagnifyingGlass,
     faPlus,
 } from "@/lib/faIcons";
@@ -86,9 +87,11 @@ export default function QotMarketplaceNav({
 
                 <nav className="ml-auto hidden items-center gap-5 text-sm font-black text-slate-900 md:flex">
                     <a href="/messages" className="hover:text-orange-600">
-                        Messages
+                        <span className="inline-flex items-center gap-2">
+                            <FontAwesomeIcon icon={faEnvelope} className="h-4 w-4" />
+                            Messages
+                        </span>
                     </a>
-
                     <a href="/saved" className="hover:text-orange-600">
                         <span className="inline-flex items-center gap-2">
                             <FontAwesomeIcon icon={faHeartRegular} className="h-4 w-4" />

@@ -6,6 +6,7 @@ import {
     faChevronDown,
     faCircleCheck,
     faClock,
+    faCouch,
     faEnvelope,
     faGear,
     faHeart,
@@ -15,19 +16,25 @@ import {
     faLocationDot,
     faMagnifyingGlass,
     faMobileScreen,
+    faPaw,
     faPlus,
     faRightFromBracket,
+    faShirt,
     faShieldHalved,
+    faStar,
     faStore,
     faTag,
+    faToolbox,
     faUser,
     faWrench,
 } from "@fortawesome/free-solid-svg-icons";
+
 
 import {
     faHeart as faHeartRegular,
     faUser as faUserRegular,
 } from "@fortawesome/free-regular-svg-icons";
+
 
 export {
     faBars,
@@ -37,6 +44,7 @@ export {
     faChevronDown,
     faCircleCheck,
     faClock,
+    faCouch,
     faEnvelope,
     faGear,
     faHeart,
@@ -47,12 +55,16 @@ export {
     faLocationDot,
     faMagnifyingGlass,
     faMobileScreen,
+    faPaw,
     faPlus,
     faRightFromBracket,
+    faShirt,
     faShieldHalved,
     faStore,
     faTag,
+    faToolbox,
     faUser,
     faUserRegular,
     faWrench,
+    faStar,
 };

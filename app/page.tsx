@@ -11,16 +11,16 @@ const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE_URL || "https://api.qot.ug/api/v1";
 
 const fallbackCategories = [
-  { name: "Electronics", slug: "electronics", icon: "🖥️" },
-  { name: "Vehicles", slug: "vehicles", icon: "🚗" },
-  { name: "Property", slug: "property", icon: "🏠" },
-  { name: "Fashion", slug: "fashion", icon: "🛍️" },
-  { name: "Home & Garden", slug: "home-garden", icon: "🪑" },
-  { name: "Jobs", slug: "jobs", icon: "💼" },
-  { name: "Services", slug: "services", icon: "🛠️" },
-  { name: "Mobile Phones", slug: "phones", icon: "📱" },
-  { name: "Pets", slug: "pets", icon: "🐾" },
-  { name: "More", slug: "", icon: "•••" },
+  { name: "Electronics", slug: "electronics" },
+  { name: "Vehicles", slug: "vehicles" },
+  { name: "Property", slug: "property" },
+  { name: "Fashion", slug: "fashion" },
+  { name: "Furniture", slug: "furniture" },
+  { name: "Jobs", slug: "jobs" },
+  { name: "Services", slug: "services" },
+  { name: "Mobile Phones", slug: "phones" },
+  { name: "Pets", slug: "pets" },
+  { name: "More", slug: "" },
 ];
 
 function buildApiUrl(path: string) {
@@ -85,7 +85,6 @@ export default async function HomePage() {
         <HomeLatestAds ads={latestAds} />
       </div>
       <QotMarketplaceFooter />
-
     </main>
   );
 }
