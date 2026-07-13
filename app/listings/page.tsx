@@ -1,4 +1,4 @@
-import Navbar from "@/components/layout/Navbar";
+import Navbar from "@/components/layout/QotMarketplaceNav";
 import ListingCard from "@/components/listings/ListingCard";
 import { apiGet, getArray } from "@/lib/api";
 import ListingFilters from "@/components/listings/ListingFilters";

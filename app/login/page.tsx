@@ -1,4 +1,4 @@
-import Navbar from "@/components/layout/Navbar";
+import Navbar from "@/components/layout/QotMarketplaceNav";
 import LoginForm from "@/components/auth/LoginForm";
 import LoginPageClient from "@/components/auth/LoginPageClient";
 

@@ -1,4 +1,4 @@
-import Navbar from "@/components/layout/Navbar";
+import Navbar from "@/components/layout/QotMarketplaceNav";
 import MyReviewsClient from "@/components/reviews/MyReviewsClient";
 
 export default function MyReviewsPage() {

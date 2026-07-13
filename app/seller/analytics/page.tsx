@@ -1,4 +1,4 @@
-import Navbar from "@/components/layout/Navbar";
+import Navbar from "@/components/layout/QotMarketplaceNav";
 import VerifiedAccountGuard from "@/components/auth/VerifiedAccountGuard";
 import SellerAnalyticsClient from "@/components/dashboard/SellerAnalyticsClient";
 

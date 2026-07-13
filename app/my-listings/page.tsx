@@ -1,4 +1,4 @@
-import Navbar from "@/components/layout/Navbar";
+import Navbar from "@/components/layout/QotMarketplaceNav";
 import MyListingsClient from "@/components/dashboard/MyListingsClient";
 
 export default function MyListingsPage() {

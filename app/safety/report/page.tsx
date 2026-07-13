@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import Navbar from "@/components/layout/Navbar";
+import Navbar from "@/components/layout/QotMarketplaceNav";
 import SafetyReportClient from "@/components/safety/SafetyReportClient";
 
 export const dynamic = "force-dynamic";

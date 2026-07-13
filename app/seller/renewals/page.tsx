@@ -1,4 +1,4 @@
-import Navbar from "@/components/layout/Navbar";
+import Navbar from "@/components/layout/QotMarketplaceNav";
 import SellerRenewalsClient from "@/components/dashboard/SellerRenewalsClient";
 
 export const dynamic = "force-dynamic";

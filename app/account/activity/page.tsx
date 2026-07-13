@@ -1,4 +1,4 @@
-import Navbar from "@/components/layout/Navbar";
+import Navbar from "@/components/layout/QotMarketplaceNav";
 import ActivityHistoryClient from "@/components/account/ActivityHistoryClient";
 
 export default function AccountActivityPage() {

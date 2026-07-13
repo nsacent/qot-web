@@ -1,4 +1,4 @@
-import Navbar from "@/components/layout/Navbar";
+import Navbar from "@/components/layout/QotMarketplaceNav";
 import NotificationPreferencesClient from "@/components/notifications/NotificationPreferencesClient";
 
 export default function NotificationPreferencesPage() {

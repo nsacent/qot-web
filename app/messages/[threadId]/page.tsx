@@ -1,4 +1,4 @@
-import Navbar from "@/components/layout/Navbar";
+import Navbar from "@/components/layout/QotMarketplaceNav";
 import ThreadMessagesClient from "@/components/chats/ThreadMessagesClient";
 
 type PageProps = {

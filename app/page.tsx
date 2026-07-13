@@ -1,3 +1,6 @@
+import QotMarketplaceNav from "@/components/layout/QotMarketplaceNav";
+import QotMarketplaceFooter from "@/components/layout/QotMarketplaceFooter";
+
 export const dynamic = "force-dynamic";
 
 const API_BASE =
@@ -251,88 +254,16 @@ export default async function HomePage() {
   return (
     <main className="min-h-screen bg-[#fff7f2] text-slate-950 antialiased">
       <div className="mx-auto max-w-[1500px] px-4 py-4 sm:px-6">
-        <header className="sticky top-0 z-40 mb-4 rounded-[2rem] bg-white/90 px-5 py-4 shadow-[0_10px_40px_rgba(15,23,42,0.08)] backdrop-blur">
-          <div className="flex items-center gap-4">
-            <a href="/" className="shrink-0">
-              <div className="text-4xl font-black leading-8 tracking-tight text-orange-600">
-                QOT
-              </div>
-              <div className="text-[8px] font-black tracking-tight text-slate-900">
-                Quality • Opportunities • Trust
-              </div>
-            </a>
 
-            <a
-              href="/listings"
-              className="hidden items-center gap-2 rounded-2xl bg-slate-50 px-4 py-3 text-sm font-bold text-slate-800 md:flex"
-            >
-              <span className="text-orange-600">📍</span>
-              Uganda
-              <span className="text-slate-400">⌄</span>
-            </a>
 
-            <form
-              action="/listings"
-              className="hidden h-12 flex-1 items-center overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm lg:flex"
-            >
-              <div className="flex flex-1 items-center gap-3 px-4">
-                <span className="text-slate-500">⌕</span>
-                <input
-                  name="q"
-                  placeholder="What are you looking for?"
-                  className="h-full flex-1 border-0 bg-transparent text-sm font-semibold text-slate-900 outline-none placeholder:text-slate-400"
-                />
-              </div>
-
-              <select
-                name="category"
-                className="h-full border-l border-slate-100 bg-white px-4 text-sm font-semibold text-slate-700 outline-none"
-                defaultValue=""
-              >
-                <option value="">All Categories</option>
-                {categories.map((category) => {
-                  const name = getCategoryName(category);
-                  const slug = getCategorySlug(category);
-
-                  return (
-                    <option key={slug || name} value={slug}>
-                      {name}
-                    </option>
-                  );
-                })}
-              </select>
-
-              <button
-                type="submit"
-                className="flex h-full w-14 items-center justify-center bg-orange-500 text-xl font-black text-white hover:bg-orange-600"
-              >
-                ⌕
-              </button>
-            </form>
-
-            <nav className="ml-auto hidden items-center gap-5 text-sm font-black text-slate-900 md:flex">
-              <a href="/messages" className="hover:text-orange-600">
-                💬 Messages
-              </a>
-              <a href="/saved" className="hover:text-orange-600">
-                ♡ Favorites
-              </a>
-            </nav>
-
-            <a
-              href="/post-ad"
-              className="shrink-0 rounded-2xl bg-orange-500 px-5 py-3 text-sm font-black text-white shadow-sm hover:bg-orange-600"
-            >
-              + Post Ad
-            </a>
-          </div>
-        </header>
+        <QotMarketplaceNav categories={categories} />
 
         <section className="relative overflow-hidden rounded-[2rem] bg-white shadow-[0_12px_45px_rgba(15,23,42,0.08)]">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_8%_20%,rgba(255,103,0,0.12),transparent_26%),linear-gradient(90deg,rgba(255,255,255,0.96)_0%,rgba(255,255,255,0.88)_48%,rgba(255,237,213,0.55)_100%)]" />
 
-          <div className="relative grid min-h-[390px] gap-6 lg:grid-cols-[1fr_0.9fr]">
-            <div className="px-7 py-9 md:px-12 md:py-12">
+          <div className="relative grid min-h-[300px] gap-6 lg:grid-cols-[1fr_0.9fr]">
+
+            <div className="px-6 py-7 md:px-10 md:py-8">
               <div className="inline-flex items-center gap-2 rounded-full bg-orange-50 px-4 py-2 text-[11px] font-black uppercase tracking-wide text-slate-900">
                 <span className="rounded-full bg-orange-500 px-1.5 py-1 text-white">
                   ✓
@@ -340,25 +271,24 @@ export default async function HomePage() {
                 Uganda&apos;s trusted marketplace
               </div>
 
-              <h1 className="mt-5 max-w-xl text-4xl font-black leading-[1.03] tracking-tight text-slate-950 md:text-6xl">
-                Buy. Sell. Connect. All in{" "}
+              <h1 className="mt-4 max-w-xl text-3xl font-black leading-[1.05] tracking-tight text-slate-950 md:text-5xl">                Buy. Sell. Connect. All in{" "}
                 <span className="relative inline-block text-orange-600">
                   One Place
                   <span className="absolute -bottom-2 left-2 h-1 w-32 rounded-full bg-orange-500" />
                 </span>
               </h1>
 
-              <p className="mt-5 max-w-lg text-base font-medium leading-7 text-slate-700">
+              <p className="mt-4 max-w-lg text-sm font-medium leading-6 text-slate-700">
                 Find great deals, sell what you don&apos;t need, and connect
                 with trusted buyers and sellers across Uganda.
               </p>
 
-              <div className="mt-7 flex flex-col gap-3 sm:flex-row">
+              <div className="mt-5 flex flex-col gap-3 sm:flex-row">
                 <a
                   href="/listings"
                   className="rounded-2xl bg-orange-500 px-8 py-4 text-center text-sm font-black text-white shadow-sm hover:bg-orange-600"
                 >
-                  Browse Listings →
+                  Browse Ads →
                 </a>
 
                 <a
@@ -369,7 +299,7 @@ export default async function HomePage() {
                 </a>
               </div>
 
-              <div className="mt-7 flex flex-wrap gap-5 text-sm font-black text-slate-800">
+              <div className="mt-5 flex flex-wrap gap-4 text-xs font-black text-slate-800">
                 <span>♻️ 100% Free to Use</span>
                 <span>🔷 Verified Sellers</span>
                 <span>🔒 Safe & Secure</span>
@@ -421,10 +351,6 @@ export default async function HomePage() {
                     </a>
                   );
                 })}
-              </div>
-
-              <div className="absolute bottom-8 right-36 flex h-40 w-40 items-center justify-center rounded-full bg-orange-500 text-6xl shadow-2xl">
-                🛒
               </div>
             </div>
           </div>
@@ -587,6 +513,7 @@ export default async function HomePage() {
           </div>
         </section>
       </div>
+      <QotMarketplaceFooter />
     </main>
   );
 }

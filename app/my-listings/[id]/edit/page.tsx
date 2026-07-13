@@ -1,4 +1,4 @@
-import Navbar from "@/components/layout/Navbar";
+import Navbar from "@/components/layout/QotMarketplaceNav";
 import EditListingForm from "@/components/dashboard/EditListingForm";
 import ListingImageManager from "@/components/dashboard/ListingImageManager";
 

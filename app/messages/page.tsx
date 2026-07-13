@@ -1,4 +1,4 @@
-import Navbar from "@/components/layout/Navbar";
+import Navbar from "@/components/layout/QotMarketplaceNav";
 import MessagesClient from "@/components/chats/MessagesClient";
 
 export default function MessagesPage() {

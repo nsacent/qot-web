@@ -1,4 +1,4 @@
-import Navbar from "@/components/layout/Navbar";
+import Navbar from "@/components/layout/QotMarketplaceNav";
 import { apiGet } from "@/lib/api";
 import FavoriteButton from "@/components/listings/FavoriteButton";
 import ContactSellerButton from "@/components/chats/ContactSellerButton";
