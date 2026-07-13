@@ -3,6 +3,7 @@ import QotMarketplaceFooter from "@/components/layout/QotMarketplaceFooter";
 import HomeHero from "@/components/home/HomeHero";
 import HomeFloatingSearch from "@/components/home/HomeFloatingSearch";
 import HomeCategoryScroller from "@/components/home/HomeCategoryScroller";
+import HomeLatestAds from "@/components/home/HomeLatestAds";
 
 export const dynamic = "force-dynamic";
 
@@ -267,43 +268,7 @@ export default async function HomePage() {
 
         <HomeCategoryScroller categories={categories} />
 
-        <section className="mx-auto max-w-[1390px] px-2 pb-5 pt-2">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="flex items-center gap-2 text-2xl font-black text-slate-950">
-              <span className="rounded-lg bg-orange-500 px-2 py-1 text-sm text-white">
-                ★
-              </span>
-              Featured Ads
-            </h2>
-
-            <a
-              href="/listings"
-              className="rounded-xl px-4 py-2 text-sm font-black text-orange-600 hover:bg-orange-50"
-            >
-              View all →
-            </a>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6">
-            {latestListings.length > 0 ? (
-              latestListings.map((listing) => (
-                <FeaturedListingCard
-                  key={getListingId(listing) || getListingTitle(listing)}
-                  listing={listing}
-                />
-              ))
-            ) : (
-              <div className="col-span-full rounded-3xl border border-dashed bg-white p-10 text-center">
-                <p className="text-lg font-black text-slate-950">
-                  No featured adverts yet.
-                </p>
-                <p className="mt-2 text-sm font-semibold text-slate-500">
-                  New adverts will appear here once sellers post.
-                </p>
-              </div>
-            )}
-          </div>
-        </section>
+        <HomeLatestAds ads={latestListings} />
 
         <section className="mx-auto max-w-[1390px] px-2 pb-8">
           <div className="grid gap-4 rounded-[2rem] bg-white/80 p-5 shadow-[0_10px_35px_rgba(15,23,42,0.05)] md:grid-cols-[220px_1fr_1fr_1fr_1fr]">
