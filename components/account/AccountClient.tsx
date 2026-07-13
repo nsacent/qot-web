@@ -127,6 +127,12 @@ export default function AccountClient() {
         },
 
         {
+            label: "Renewal Center",
+            href: "/seller/renewals",
+            description: "Renew expired or expiring adverts",
+        },
+
+        {
             label: "Verification",
             href: "/account/verification",
             description: "Request account verification",

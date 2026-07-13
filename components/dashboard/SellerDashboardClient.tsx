@@ -274,6 +274,13 @@ function ListingMiniCard({
                         </a>
 
                         <a
+                            href="/seller/renewals"
+                            className="rounded-xl border px-5 py-3 text-center font-semibold hover:bg-slate-50"
+                        >
+                            Renewal Center
+                        </a>
+
+                        <a
                             href={`/my-listings/${listingId}/edit`}
                             className="rounded-xl border px-4 py-2 text-center text-sm font-semibold hover:bg-slate-50"
                         >
