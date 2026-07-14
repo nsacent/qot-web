@@ -4,6 +4,7 @@ import HomeHero from "@/components/home/HomeHero";
 import HomeFloatingSearch from "@/components/home/HomeFloatingSearch";
 import HomeCategoryScroller from "@/components/home/HomeCategoryScroller";
 import HomeLatestAds from "@/components/home/HomeLatestAds";
+import MobileBottomNav from "@/components/layout/MobileBottomNav";
 
 export const dynamic = "force-dynamic";
 

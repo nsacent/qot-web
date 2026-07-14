@@ -25,7 +25,7 @@ export default function HomeFloatingSearch({
     categories = [],
 }: HomeFloatingSearchProps) {
     return (
-        <section className="relative z-10 mx-auto -mt-8 max-w-[1180px] px-4">
+        <section className="relative z-10 mx-auto -mt-8 hidden max-w-[1180px] px-4 md:block">
             <form
                 action="/listings"
                 className="grid gap-3 rounded-3xl bg-white p-4 shadow-[0_15px_45px_rgba(15,23,42,0.12)] md:grid-cols-[1fr_220px_220px_220px]"

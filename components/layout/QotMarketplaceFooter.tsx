@@ -1,6 +1,6 @@
 export default function QotMarketplaceFooter() {
     return (
-        <footer className="mx-auto max-w-[1390px] px-2 pb-8">
+        <footer className="mx-auto hidden max-w-[1390px] px-2 pb-8 md:block">
             <div className="rounded-[2rem] bg-slate-950 px-6 py-8 text-white shadow-[0_10px_35px_rgba(15,23,42,0.12)]">
                 <div className="grid gap-8 md:grid-cols-[1.2fr_1fr_1fr_1fr]">
                     <div>
