@@ -1,6 +1,7 @@
 import UserProfileTab from "@/components/layout/UserProfileTab";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
+    faBell,
     faChevronDown,
     faHeartRegular,
     faEnvelope,
@@ -101,8 +102,16 @@ export default function QotMarketplaceNav({
                 </nav>
 
                 <a
+                    href="/notifications"
+                    className="ml-auto flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-50 text-slate-900 hover:bg-orange-50 hover:text-orange-600 md:hidden"
+                    aria-label="Notifications"
+                >
+                    <FontAwesomeIcon icon={faBell} className="h-5 w-5" />
+                </a>
+
+                <a
                     href="/post-ad"
-                    className="ml-auto shrink-0 rounded-2xl bg-orange-500 px-4 py-2.5 text-xs font-black text-white shadow-sm hover:bg-orange-600 md:ml-0 md:px-5 md:py-3 md:text-sm"
+                    className="hidden shrink-0 rounded-2xl bg-orange-500 px-5 py-3 text-sm font-black text-white shadow-sm hover:bg-orange-600 md:inline-flex"
                 >
                     <span className="inline-flex items-center gap-2">
                         <FontAwesomeIcon icon={faPlus} className="h-3.5 w-3.5" />
@@ -110,7 +119,10 @@ export default function QotMarketplaceNav({
                     </span>
                 </a>
 
-                <UserProfileTab />
+                <div className="hidden md:block">
+                    <UserProfileTab />
+                </div>
+
             </div>
 
             <form
