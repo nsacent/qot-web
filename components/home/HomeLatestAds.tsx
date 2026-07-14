@@ -97,7 +97,7 @@ export default function HomeLatestAds({ ads = [] }: HomeLatestAdsProps) {
                     <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-orange-500 text-white">
                         <FontAwesomeIcon icon={faStar} className="h-4 w-4" />
                     </span>
-                    Latest Ads on QOT
+                    Latest Ads
                 </h2>
 
                 <a
@@ -108,26 +108,25 @@ export default function HomeLatestAds({ ads = [] }: HomeLatestAdsProps) {
                 </a>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
-                {ads.length > 0 ? (
-                    ads.map((ad) => (
-                        <HomeAdCard
-                            key={getAdId(ad) || getAdTitle(ad)}
-                            ad={ad}
-                            favoriteIds={favoriteIds}
-                        />
-                    ))
-                ) : (
-                    <div className="col-span-full rounded-3xl border border-dashed bg-white p-10 text-center">
-                        <p className="text-lg font-black text-slate-950">
-                            No latest ads yet.
-                        </p>
+            <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">                {ads.length > 0 ? (
+                ads.map((ad) => (
+                    <HomeAdCard
+                        key={getAdId(ad) || getAdTitle(ad)}
+                        ad={ad}
+                        favoriteIds={favoriteIds}
+                    />
+                ))
+            ) : (
+                <div className="col-span-full rounded-3xl border border-dashed bg-white p-10 text-center">
+                    <p className="text-lg font-black text-slate-950">
+                        No latest ads yet.
+                    </p>
 
-                        <p className="mt-2 text-sm font-semibold text-slate-500">
-                            New ads will appear here once sellers post.
-                        </p>
-                    </div>
-                )}
+                    <p className="mt-2 text-sm font-semibold text-slate-500">
+                        New ads will appear here once sellers post.
+                    </p>
+                </div>
+            )}
             </div>
         </section>
     );
