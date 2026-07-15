@@ -131,7 +131,7 @@ export default function BuyerListingActions({
 
             try {
                 const sellerListingsData = await apiGet(
-                    "/seller/listings/?page_size=1000",
+                    "/my-ads/?page_size=1000",
                     {
                         redirectOnUnauthorized: false,
                     }
@@ -183,7 +183,7 @@ export default function BuyerListingActions({
 
                 <div className="mt-4 grid gap-3">
                     <a
-                        href={`/my-listings/${listingId}/edit`}
+                        href={`/my-ads/${listingId}/edit`}
                         className="rounded-xl bg-orange-500 px-5 py-3 text-center font-semibold text-white hover:bg-orange-600"
                     >
                         Edit Advert
@@ -197,7 +197,7 @@ export default function BuyerListingActions({
                     </a>
 
                     <a
-                        href="/my-listings"
+                        href="/my-ads"
                         className="rounded-xl border border-orange-200 bg-white px-5 py-3 text-center font-semibold text-orange-700 hover:bg-orange-100"
                     >
                         My Listings

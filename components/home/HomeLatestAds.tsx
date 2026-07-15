@@ -37,39 +37,33 @@ export default function HomeLatestAds({ ads = [] }: HomeLatestAdsProps) {
     const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
 
     async function loadSavedAds() {
-        const token = localStorage.getItem("qot_access_token");
-
-        if (!token) {
-            setFavoriteIds(new Set());
-            return;
-        }
-
         try {
-            const response = await fetch(`${API_BASE_URL}/favorites/`, {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                },
+            const response = await fetch("/api/proxy/favorites/", {
+                credentials: "include",
                 cache: "no-store",
             });
 
-            const data = await response.json();
-
             if (!response.ok) {
-                throw new Error(
-                    data?.detail ||
-                    data?.message ||
-                    data?.error ||
-                    "Failed to load saved ads."
-                );
+                setFavoriteIds(new Set());
+                return;
             }
 
-            const savedAds = getArray(data).map(normalizeFavorite);
+            const data = await response.json();
+            const favorites = getArray(data);
 
-            const ids = savedAds.map((ad) => getAdId(ad)).filter(Boolean);
+            const ids = new Set<string>();
 
-            setFavoriteIds(new Set(ids));
-        } catch (error) {
-            console.log("Failed to load favorite ads:", error);
+            favorites.forEach((item: any) => {
+                const ad = normalizeFavorite(item);
+                const id = getAdId(ad);
+
+                if (id) {
+                    ids.add(String(id));
+                }
+            });
+
+            setFavoriteIds(ids);
+        } catch {
             setFavoriteIds(new Set());
         }
     }

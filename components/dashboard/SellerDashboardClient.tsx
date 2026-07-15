@@ -281,7 +281,7 @@ function ListingMiniCard({
                         </a>
 
                         <a
-                            href={`/my-listings/${listingId}/edit`}
+                            href={`/my-ads/${listingId}/edit`}
                             className="rounded-xl border px-4 py-2 text-center text-sm font-semibold hover:bg-slate-50"
                         >
                             Edit
@@ -328,7 +328,7 @@ export default function SellerDashboardClient() {
         try {
             const [dashboardResult, listingsResult] = await Promise.allSettled([
                 apiGet("/seller/dashboard/"),
-                apiGet("/seller/listings/"),
+                apiGet("/my-ads/"),
             ]);
 
             if (dashboardResult.status === "rejected") {

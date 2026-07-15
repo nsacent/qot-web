@@ -28,6 +28,7 @@ import {
     faUser,
     faWrench,
     faLock,
+    faTrash,
 } from "@fortawesome/free-solid-svg-icons";
 
 
@@ -69,4 +70,5 @@ export {
     faWrench,
     faStar,
     faLock,
+    faTrash,
 };

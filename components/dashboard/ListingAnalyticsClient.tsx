@@ -134,8 +134,8 @@ export default function ListingAnalyticsClient({
 
         try {
             const [listingsResult, analyticsResult] = await Promise.allSettled([
-                apiGet("/seller/listings/"),
-                apiGet(`/seller/listings/${listingId}/analytics/`),
+                apiGet("/my-ads/"),
+                apiGet(`/my-ads/${listingId}/analytics/`),
             ]);
 
             if (listingsResult.status === "rejected") {
@@ -257,7 +257,7 @@ export default function ListingAnalyticsClient({
                                     </a>
 
                                     <a
-                                        href={`/my-listings/${listingId}/edit`}
+                                        href={`/my-ads/${listingId}/edit`}
                                         className="rounded-xl bg-orange-500 px-4 py-3 text-center text-sm font-semibold text-white hover:bg-orange-600"
                                     >
                                         Edit Advert

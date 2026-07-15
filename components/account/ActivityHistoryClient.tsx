@@ -209,7 +209,7 @@ function buildSellerListingItems(listings: any[]): ActivityItem[] {
             type: "seller_listing",
             title: `Your advert: ${getListingTitle(listing)}`,
             description: `Current status: ${getStatusLabel(status)}`,
-            href: id ? `/my-listings/${id}/edit` : "/my-listings",
+            href: id ? `/my-ads/${id}/edit` : "/my-ads",
             date: safeDate(
                 listing?.updated_at ||
                 listing?.created_at ||
@@ -263,7 +263,7 @@ export default function ActivityHistoryClient() {
                 apiGet("/favorites/"),
                 apiGet("/reviews/me/"),
                 apiGet("/notifications/"),
-                apiGet("/seller/listings/"),
+                apiGet("/my-ads/"),
             ]);
 
             const [favoritesResult, reviewsResult, notificationsResult, listingsResult] =
@@ -540,7 +540,7 @@ export default function ActivityHistoryClient() {
                             </a>
 
                             <a
-                                href="/my-listings"
+                                href="/my-ads"
                                 className="rounded-xl border px-5 py-3 text-center font-semibold hover:bg-slate-50"
                             >
                                 My Listings

@@ -1,11 +1,7 @@
-import Navbar from "@/components/layout/QotMarketplaceNav";
-import VerificationRequestClient from "@/components/account/VerificationRequestClient";
+import VerificationClient from "@/app/account/verification/VerificationClient";
 
-export default function VerificationPage() {
-    return (
-        <main className="min-h-screen bg-slate-50">
-            <Navbar />
-            <VerificationRequestClient />
-        </main>
-    );
+export const dynamic = "force-dynamic";
+
+export default function AccountVerificationPage() {
+    return <VerificationClient />;
 }

@@ -84,14 +84,14 @@ export default function AuthMenu() {
             )}
 
             <a
-                href="/my-listings"
+                href="/my-ads"
                 className="hidden text-sm font-semibold text-slate-700 hover:text-orange-600 md:inline"
             >
                 {getUserDisplayName(user)}
             </a>
 
             <a
-                href="/my-listings"
+                href="/my-ads"
                 className="rounded-xl bg-orange-50 px-4 py-2 text-sm font-semibold text-orange-700 hover:bg-orange-100"
             >
                 My Ads

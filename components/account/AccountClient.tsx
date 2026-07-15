@@ -87,7 +87,7 @@ export default function AccountClient() {
 
         {
             label: "My Listings",
-            href: "/my-listings",
+            href: "/my-ads",
             description: "Manage your adverts",
         },
         {
@@ -272,7 +272,7 @@ export default function AccountClient() {
                             </a>
 
                             <a
-                                href="/my-listings"
+                                href="/my-ads"
                                 className="rounded-xl border px-5 py-3 text-center font-semibold hover:bg-slate-50"
                             >
                                 Manage Listings

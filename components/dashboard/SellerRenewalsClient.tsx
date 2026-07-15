@@ -135,7 +135,7 @@ export default function SellerRenewalsClient() {
         setError("");
 
         try {
-            const data = await apiGet("/seller/listings/");
+            const data = await apiGet("/my-ads/");
             setListings(getArray(data));
         } catch (error: any) {
             setError(error.message || "Failed to load your adverts.");
@@ -294,7 +294,7 @@ export default function SellerRenewalsClient() {
                         </p>
 
                         <a
-                            href="/my-listings"
+                            href="/my-ads"
                             className="mt-5 inline-block rounded-xl bg-orange-500 px-5 py-3 text-sm font-semibold text-white hover:bg-orange-600"
                         >
                             View My Listings
@@ -362,7 +362,7 @@ export default function SellerRenewalsClient() {
                                             </button>
 
                                             <a
-                                                href={`/my-listings/${id}/edit`}
+                                                href={`/my-ads/${id}/edit`}
                                                 className="rounded-xl border px-4 py-3 text-center text-sm font-semibold hover:bg-white"
                                             >
                                                 Edit

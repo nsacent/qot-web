@@ -1,11 +1,7 @@
-import Navbar from "@/components/layout/QotMarketplaceNav";
-import MyListingsClient from "@/components/dashboard/MyListingsClient";
+import { redirect } from "next/navigation";
 
-export default function MyListingsPage() {
-    return (
-        <main className="min-h-screen bg-slate-50">
-            <Navbar />
-            <MyListingsClient />
-        </main>
-    );
+export const dynamic = "force-dynamic";
+
+export default function OldMyListingsRedirectPage() {
+    redirect("/my-ads");
 }

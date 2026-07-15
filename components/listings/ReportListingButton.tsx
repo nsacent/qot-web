@@ -141,7 +141,7 @@ export default function ReportListingButton({
             }
 
             try {
-                const sellerListingsData = await apiGet("/seller/listings/", {
+                const sellerListingsData = await apiGet("/my-ads/", {
                     redirectOnUnauthorized: false,
                 });
 

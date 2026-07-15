@@ -144,7 +144,7 @@ export default function UserProfileTab() {
                         </a>
 
                         <a
-                            href="/seller/listings"
+                            href="/my-ads"
                             className="flex items-center gap-3 rounded-2xl px-3 py-3 text-sm font-bold text-slate-700 hover:bg-orange-50 hover:text-orange-600"
                         >
                             <FontAwesomeIcon icon={faList} className="h-4 w-4" />
@@ -176,7 +176,7 @@ export default function UserProfileTab() {
                         </a>
 
                         <a
-                            href="/verification"
+                            href="/account/verification"
                             className="flex items-center gap-3 rounded-2xl px-3 py-3 text-sm font-bold text-slate-700 hover:bg-orange-50 hover:text-orange-600"
                         >
                             <FontAwesomeIcon icon={faShieldHalved} className="h-4 w-4" />

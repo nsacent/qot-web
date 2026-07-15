@@ -103,7 +103,7 @@ export default function EditListingForm({ listingId }: EditListingFormProps) {
                 );
             }
 
-            window.location.href = "/my-listings";
+            window.location.href = "/my-ads";
         } catch (err: any) {
             setError(err.message || "Something went wrong.");
         } finally {
@@ -209,7 +209,7 @@ export default function EditListingForm({ listingId }: EditListingFormProps) {
 
 
                 <a
-                    href="/my-listings"
+                    href="/my-ads"
                     className="rounded-xl border px-6 py-3 text-center font-semibold hover:bg-slate-50"
                 >
                     Cancel

@@ -1,4 +1,4 @@
-import SavedAdsClient from "@/app/saved/SavedAdsClient";
+import MyListingsClient from "@/app/my-ads/MyListingsClient";
 import QotMarketplaceFooter from "@/components/layout/QotMarketplaceFooter";
 import QotMarketplaceNav from "@/components/layout/QotMarketplaceNav";
 
@@ -51,7 +51,7 @@ async function getCities() {
     return cities;
 }
 
-export default async function SavedPage() {
+export default async function MyListingsPage() {
     const [categoriesData, cities] = await Promise.all([
         apiGet("/categories/"),
         getCities(),
@@ -64,10 +64,10 @@ export default async function SavedPage() {
             <div className="mx-auto max-w-[1500px] px-4 py-4 sm:px-6">
                 <QotMarketplaceNav categories={categories} cities={cities} />
 
-                <SavedAdsClient />
+                <MyListingsClient />
 
+                <QotMarketplaceFooter />
             </div>
-            <QotMarketplaceFooter />
         </main>
     );
 }

@@ -114,7 +114,7 @@ export default function SellerAnalyticsClient() {
         try {
             const [dashboardResult, listingsResult] = await Promise.allSettled([
                 apiGet("/seller/analytics/"),
-                apiGet("/seller/listings/"),
+                apiGet("/my-ads/"),
             ]);
 
             if (dashboardResult.status === "fulfilled") {
@@ -188,7 +188,7 @@ export default function SellerAnalyticsClient() {
                 </div>
 
                 <a
-                    href="/my-listings"
+                    href="/my-ads"
                     className="rounded-xl border bg-white px-5 py-3 text-center font-semibold hover:bg-slate-50"
                 >
                     Back to My Listings

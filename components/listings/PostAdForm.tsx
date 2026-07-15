@@ -157,11 +157,11 @@ export default function PostAdForm() {
             const createdListingId = getCreatedListingId(data);
 
             if (createdListingId) {
-                router.push(`/my-listings/${createdListingId}/edit?images=1`);
+                router.push(`/my-ads/${createdListingId}/edit?images=1`);
                 return;
             }
 
-            router.push("/my-listings");
+            router.push("/my-ads");
         } catch (err: any) {
             setError(err.message || "Something went wrong.");
             setShowPreview(false);

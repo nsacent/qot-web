@@ -38,7 +38,7 @@ export default function BuyerSafetyCard({ listingId }: BuyerSafetyCardProps) {
             }
 
             try {
-                const data = await apiGet("/seller/listings/?page_size=1000");
+                const data = await apiGet("/my-ads/?page_size=1000");
                 const listings = getArray(data);
 
                 const isOwnListing = listings.some(

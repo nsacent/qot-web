@@ -60,7 +60,7 @@ export default function MyListingsClient() {
         try {
             const [dashboardResult, listingsResult] = await Promise.allSettled([
                 apiGet("/seller/dashboard/"),
-                apiGet("/seller/listings/"),
+                apiGet("/my-ads/"),
             ]);
 
             if (dashboardResult.status === "fulfilled") {

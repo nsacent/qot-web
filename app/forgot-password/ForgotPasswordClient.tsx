@@ -1,10 +1,10 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEnvelope, faShieldHalved } from "@/lib/faIcons";
 import QotLoader from "@/components/common/QotLoader";
-import { requestPasswordReset } from "@/lib/sessionClient";
+import { getCurrentUser, requestPasswordReset } from "@/lib/sessionClient";
 
 function ForgotPasswordForm() {
     const [email, setEmail] = useState("");
@@ -12,6 +12,25 @@ function ForgotPasswordForm() {
     const [message, setMessage] = useState("");
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
+
+    const [checkingSession, setCheckingSession] = useState(true);
+
+    useEffect(() => {
+        async function checkSession() {
+            try {
+                await getCurrentUser();
+                window.location.href = "/";
+            } catch {
+                setCheckingSession(false);
+            }
+        }
+
+        checkSession();
+    }, []);
+
+    if (checkingSession) {
+        return <QotLoader />;
+    }
 
     async function handleRequest(event: React.FormEvent<HTMLFormElement>) {
         event.preventDefault();

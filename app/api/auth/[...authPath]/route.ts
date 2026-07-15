@@ -33,6 +33,9 @@ function json(data: any, status = 200) {
     return NextResponse.json(data, { status });
 }
 
+
+
+
 async function handleAuthRequest(
     request: NextRequest,
     context: RouteContext,
@@ -41,6 +44,41 @@ async function handleAuthRequest(
     const authKey = await getAuthKey(context);
     const backendPath = `/auth/${authKey}/`;
     const bodyText = method === "GET" ? "" : await getBodyText(request);
+
+    if (authKey === "verification/confirm") {
+        let payload: any = {};
+
+        try {
+            payload = bodyText ? JSON.parse(bodyText) : {};
+        } catch {
+            payload = {};
+        }
+
+        const code = String(payload.code || payload.otp || "").trim();
+
+        const attempts = [
+            { code },
+            { otp: code },
+        ];
+
+        let result: any = null;
+
+        for (const body of attempts) {
+            result = await backendJsonWithSession("/auth/verification/confirm/", {
+                method: "POST",
+                body: JSON.stringify(body),
+            });
+
+            if (result.ok) {
+                break;
+            }
+        }
+
+        return json(
+            result?.data || { detail: "Verification failed." },
+            result?.status || 400
+        );
+    }
 
 
     if (authKey === "login") {
