@@ -4,7 +4,6 @@ import HomeHero from "@/components/home/HomeHero";
 import HomeFloatingSearch from "@/components/home/HomeFloatingSearch";
 import HomeCategoryScroller from "@/components/home/HomeCategoryScroller";
 import HomeLatestAds from "@/components/home/HomeLatestAds";
-import MobileBottomNav from "@/components/layout/MobileBottomNav";
 
 export const dynamic = "force-dynamic";
 
@@ -59,6 +58,49 @@ function getArray(data: any): any[] {
   return [];
 }
 
+async function fetchCities() {
+  try {
+    const firstResponse = await fetch(`${API_BASE}/locations/cities/?page_size=50`, {
+      cache: "no-store",
+    });
+
+    if (!firstResponse.ok) return [];
+
+    const firstData = await firstResponse.json();
+
+    let cities = Array.isArray(firstData)
+      ? firstData
+      : Array.isArray(firstData?.results)
+        ? firstData.results
+        : [];
+
+    let nextUrl = firstData?.next;
+
+    while (nextUrl) {
+      const response = await fetch(nextUrl, {
+        cache: "no-store",
+      });
+
+      if (!response.ok) break;
+
+      const data = await response.json();
+
+      const nextCities = Array.isArray(data)
+        ? data
+        : Array.isArray(data?.results)
+          ? data.results
+          : [];
+
+      cities = [...cities, ...nextCities];
+      nextUrl = data?.next;
+    }
+
+    return cities;
+  } catch {
+    return [];
+  }
+}
+
 export default async function HomePage() {
   const [categoriesData, adsData] = await Promise.all([
     safeApiGet("/categories/"),
@@ -71,6 +113,8 @@ export default async function HomePage() {
     apiCategories.length > 0 ? apiCategories.slice(0, 10) : fallbackCategories;
 
   const latestAds = getArray(adsData).slice(0, 24);
+  const cities = await fetchCities();
+
 
   return (
     <main className="min-h-screen bg-[#fff7f2] text-slate-950 antialiased">
@@ -79,8 +123,7 @@ export default async function HomePage() {
 
         <HomeHero latestAds={latestAds} />
 
-        <HomeFloatingSearch categories={categories} />
-
+        <HomeFloatingSearch categories={categories} cities={cities} />
         <HomeCategoryScroller categories={categories} />
 
         <HomeLatestAds ads={latestAds} />

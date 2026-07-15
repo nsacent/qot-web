@@ -13,6 +13,7 @@ type Category = {
     id?: string | number;
     name?: string;
     slug?: string;
+    children?: Category[];
 };
 
 type QotMarketplaceNavProps = {
@@ -25,6 +26,51 @@ function getCategoryName(category: Category) {
 
 function getCategorySlug(category: Category) {
     return category?.slug || category?.name?.toLowerCase().replaceAll(" ", "-") || "";
+}
+
+function CategoryOptions({ categories = [] }: { categories?: Category[] }) {
+    return (
+        <>
+            <option value="">All Categories</option>
+
+            {categories.map((category) => {
+                const children = Array.isArray(category.children)
+                    ? category.children
+                    : [];
+
+                if (children.length > 0) {
+                    return (
+                        <optgroup
+                            key={category.id || category.slug || category.name}
+                            label={getCategoryName(category)}
+                        >
+                            <option value={getCategorySlug(category)}>
+                                All {getCategoryName(category)}
+                            </option>
+
+                            {children.map((child) => (
+                                <option
+                                    key={child.id || child.slug || child.name}
+                                    value={getCategorySlug(child)}
+                                >
+                                    {getCategoryName(child)}
+                                </option>
+                            ))}
+                        </optgroup>
+                    );
+                }
+
+                return (
+                    <option
+                        key={category.id || category.slug || category.name}
+                        value={getCategorySlug(category)}
+                    >
+                        {getCategoryName(category)}
+                    </option>
+                );
+            })}
+        </>
+    );
 }
 
 export default function QotMarketplaceNav({
@@ -73,15 +119,7 @@ export default function QotMarketplaceNav({
                         className="ml-2 hidden max-w-[160px] bg-transparent text-sm font-black text-slate-600 outline-none lg:block"
                         defaultValue=""
                     >
-                        <option value="">All Categories</option>
-                        {categories.map((category) => (
-                            <option
-                                key={category.id || category.slug || category.name}
-                                value={getCategorySlug(category)}
-                            >
-                                {getCategoryName(category)}
-                            </option>
-                        ))}
+                        <CategoryOptions categories={categories} />
                     </select>
                 </form>
 
