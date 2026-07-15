@@ -1,35 +1,59 @@
 "use client";
 
 import { Suspense, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faEnvelope, faShieldHalved } from "@/lib/faIcons";
+import { faLock, faShieldHalved } from "@/lib/faIcons";
 import QotLoader from "@/components/common/QotLoader";
-import { requestPasswordReset } from "@/lib/sessionClient";
+import { confirmPasswordReset } from "@/lib/sessionClient";
 
-function ForgotPasswordForm() {
-    const [email, setEmail] = useState("");
+function ResetPasswordForm() {
+    const searchParams = useSearchParams();
 
-    const [message, setMessage] = useState("");
+    const uid = searchParams.get("uid") || "";
+    const token = searchParams.get("token") || "";
+
+    const [password, setPassword] = useState("");
+    const [confirmPassword, setConfirmPassword] = useState("");
+
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
 
-    async function handleRequest(event: React.FormEvent<HTMLFormElement>) {
+    async function handleReset(event: React.FormEvent<HTMLFormElement>) {
         event.preventDefault();
 
         setLoading(true);
         setError("");
-        setMessage("");
+
+        if (!uid || !token) {
+            setError("Invalid or expired password reset link.");
+            setLoading(false);
+            return;
+        }
+
+        if (password.length < 8) {
+            setError("Password must be at least 8 characters.");
+            setLoading(false);
+            return;
+        }
+
+        if (password !== confirmPassword) {
+            setError("Passwords do not match.");
+            setLoading(false);
+            return;
+        }
 
         try {
-            await requestPasswordReset({
-                email: email.trim().toLowerCase(),
+            await confirmPasswordReset({
+                uid,
+                token,
+                new_password: password,
+                new_password_confirm: confirmPassword,
             });
 
-            setMessage(
-                "If an account exists with that email, a password reset link has been sent."
-            );
+            window.location.href = "/login?reset=1";
         } catch (err: any) {
-            setError(err.message || "Failed to request password reset.");
+            setError(err.message || "Failed to reset password.");
         } finally {
             setLoading(false);
         }
@@ -55,19 +79,19 @@ function ForgotPasswordForm() {
                             </a>
 
                             <h1 className="mt-10 text-4xl font-black leading-tight">
-                                Recover your QOT account.
+                                Create a new password.
                             </h1>
 
                             <p className="mt-4 max-w-sm text-sm font-semibold leading-6 text-orange-50">
-                                Enter your email address and we shall send you a secure password reset link.
+                                Choose a strong password to secure your QOT account.
                             </p>
                         </div>
 
                         <div className="relative rounded-3xl bg-white/15 p-5 backdrop-blur">
                             <FontAwesomeIcon icon={faShieldHalved} className="h-7 w-7" />
-                            <p className="mt-4 text-sm font-black">Secure reset link</p>
+                            <p className="mt-4 text-sm font-black">Protected reset</p>
                             <p className="mt-1 text-xs font-semibold text-orange-50">
-                                Use the link in your email to create a new password.
+                                This reset link can only be used if it is valid and not expired.
                             </p>
                         </div>
                     </section>
@@ -83,11 +107,11 @@ function ForgotPasswordForm() {
                         </div>
 
                         <h2 className="text-3xl font-black text-slate-950">
-                            Forgot password
+                            Reset password
                         </h2>
 
                         <p className="mt-2 text-sm font-semibold text-slate-500">
-                            Enter your email address to receive a reset link.
+                            Enter and confirm your new password.
                         </p>
 
                         {error && (
@@ -96,29 +120,45 @@ function ForgotPasswordForm() {
                             </div>
                         )}
 
-                        {message && (
-                            <div className="mt-5 rounded-2xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-bold text-green-700">
-                                {message}
-                            </div>
-                        )}
-
-                        <form onSubmit={handleRequest} className="mt-7 space-y-4">
+                        <form onSubmit={handleReset} className="mt-7 space-y-4">
                             <label className="block">
                                 <span className="mb-2 block text-sm font-black text-slate-700">
-                                    Email address
+                                    New password
                                 </span>
 
                                 <div className="flex items-center gap-3 rounded-2xl bg-slate-50 px-4 py-3 ring-1 ring-slate-100 focus-within:bg-white focus-within:ring-orange-200">
                                     <FontAwesomeIcon
-                                        icon={faEnvelope}
+                                        icon={faLock}
                                         className="h-4 w-4 text-slate-400"
                                     />
 
                                     <input
-                                        type="email"
-                                        value={email}
-                                        onChange={(event) => setEmail(event.target.value)}
-                                        placeholder="seller@example.com"
+                                        type="password"
+                                        value={password}
+                                        onChange={(event) => setPassword(event.target.value)}
+                                        placeholder="Create new password"
+                                        required
+                                        className="w-full bg-transparent text-sm font-bold text-slate-900 outline-none placeholder:text-slate-400"
+                                    />
+                                </div>
+                            </label>
+
+                            <label className="block">
+                                <span className="mb-2 block text-sm font-black text-slate-700">
+                                    Confirm new password
+                                </span>
+
+                                <div className="flex items-center gap-3 rounded-2xl bg-slate-50 px-4 py-3 ring-1 ring-slate-100 focus-within:bg-white focus-within:ring-orange-200">
+                                    <FontAwesomeIcon
+                                        icon={faLock}
+                                        className="h-4 w-4 text-slate-400"
+                                    />
+
+                                    <input
+                                        type="password"
+                                        value={confirmPassword}
+                                        onChange={(event) => setConfirmPassword(event.target.value)}
+                                        placeholder="Repeat new password"
                                         required
                                         className="w-full bg-transparent text-sm font-bold text-slate-900 outline-none placeholder:text-slate-400"
                                     />
@@ -130,19 +170,9 @@ function ForgotPasswordForm() {
                                 disabled={loading}
                                 className="w-full rounded-2xl bg-orange-500 px-5 py-3.5 text-sm font-black text-white shadow-sm hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-60"
                             >
-                                {loading ? "Sending reset link..." : "Send reset link"}
+                                {loading ? "Resetting password..." : "Reset password"}
                             </button>
                         </form>
-
-                        <p className="mt-6 text-center text-sm font-semibold text-slate-500">
-                            Remember password?{" "}
-                            <a
-                                href="/login"
-                                className="font-black text-orange-600 hover:text-orange-700"
-                            >
-                                Login
-                            </a>
-                        </p>
                     </section>
                 </div>
             </div>
@@ -150,10 +180,10 @@ function ForgotPasswordForm() {
     );
 }
 
-export default function ForgotPasswordClient() {
+export default function ResetPasswordClient() {
     return (
         <Suspense fallback={<QotLoader />}>
-            <ForgotPasswordForm />
+            <ResetPasswordForm />
         </Suspense>
     );
 }

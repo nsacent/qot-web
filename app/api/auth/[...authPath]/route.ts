@@ -179,41 +179,23 @@ async function handleAuthRequest(
             payload = {};
         }
 
-        const email = String(payload.email || "").trim().toLowerCase();
+        const result = await backendJson("/auth/password-reset/confirm/", {
+            method: "POST",
+            body: JSON.stringify({
+                uid: payload.uid,
+                token: payload.token,
+                new_password: payload.new_password || payload.password,
+                new_password_confirm:
+                    payload.new_password_confirm ||
+                    payload.password_confirm ||
+                    payload.confirmPassword,
+            }),
+        });
 
-        const code = String(
-            payload.code || payload.otp || payload.token || ""
-        ).trim();
-
-        const password = payload.password || payload.new_password;
-
-        const attempts = [
-            { email, code, password },
-            { email, otp: code, password },
-            { email, token: code, password },
-            { email, code, new_password: password },
-            { email, otp: code, new_password: password },
-            { email, token: code, new_password: password },
-        ];
-
-        let result: any = null;
-
-        for (const resetBody of attempts) {
-            result = await backendJson("/auth/password-reset/confirm/", {
-                method: "POST",
-                body: JSON.stringify(resetBody),
-            });
-
-            if (result.ok) {
-                break;
-            }
-        }
-
-        return json(
-            result?.data || { detail: "Password reset failed." },
-            result?.status || 400
-        );
+        return json(result.data, result.status);
     }
+
+
     const publicPaths = new Set([
         "password-reset/request",
         "password-reset/confirm",

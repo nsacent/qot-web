@@ -81,9 +81,10 @@ export async function requestPasswordReset(body: {
 }
 
 export async function confirmPasswordReset(body: {
-    email: string;
-    code: string;
-    password: string;
+    uid: string;
+    token: string;
+    new_password: string;
+    new_password_confirm: string;
 }) {
     return sessionPost("/password-reset/confirm", body);
 }
