@@ -1,8 +1,10 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
     faChevronDown,
+    faEnvelope,
     faGear,
     faHeartRegular,
     faList,
@@ -10,84 +12,77 @@ import {
     faShieldHalved,
     faStore,
     faUserRegular,
-    faEnvelope,
 } from "@/lib/faIcons";
-import { useEffect, useRef, useState } from "react";
-import { getStoredUser, getUserDisplayName } from "@/lib/auth";
+import { getCurrentUser, logoutUser } from "@/lib/sessionClient";
 
-function getInitials(name: string) {
-    if (!name) return "U";
-
-    return name
-        .split(" ")
-        .filter(Boolean)
-        .slice(0, 2)
-        .map((part) => part[0])
-        .join("")
-        .toUpperCase();
-}
-
-function getAvatar(user: any) {
+function getUserDisplayName(user: any) {
     return (
-        user?.avatar ||
-        user?.photo ||
-        user?.profile_photo ||
-        user?.profile?.avatar ||
-        user?.profile?.photo ||
-        ""
+        user?.full_name ||
+        user?.name ||
+        user?.username ||
+        user?.phone ||
+        user?.email ||
+        "My Account"
     );
 }
 
-function logout() {
-    try {
-        localStorage.removeItem("qot_access_token");
-        localStorage.removeItem("qot_refresh_token");
-        localStorage.removeItem("qot_user");
-
-        localStorage.removeItem("access");
-        localStorage.removeItem("refresh");
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
-    } catch { }
-
-    window.location.href = "/login";
+function getInitial(user: any) {
+    return getUserDisplayName(user).charAt(0).toUpperCase();
 }
 
 export default function UserProfileTab() {
     const [mounted, setMounted] = useState(false);
-    const [user, setUser] = useState<any>(null);
     const [open, setOpen] = useState(false);
+    const [checking, setChecking] = useState(true);
+    const [user, setUser] = useState<any>(null);
 
-    const menuRef = useRef<HTMLDivElement | null>(null);
+    async function loadUser() {
+        try {
+            const data = await getCurrentUser();
+
+            setUser(data);
+            localStorage.setItem("qot_user", JSON.stringify(data));
+            localStorage.removeItem("qot_access_token");
+            localStorage.removeItem("qot_refresh_token");
+        } catch {
+            setUser(null);
+            localStorage.removeItem("qot_user");
+        } finally {
+            setChecking(false);
+        }
+    }
 
     useEffect(() => {
-        setUser(getStoredUser());
         setMounted(true);
+        loadUser();
 
-        function handleStorage() {
-            setUser(getStoredUser());
-        }
-
-        function handleClickOutside(event: MouseEvent) {
-            if (!menuRef.current) return;
-
-            if (!menuRef.current.contains(event.target as Node)) {
-                setOpen(false);
-            }
-        }
-
-        window.addEventListener("storage", handleStorage);
-        document.addEventListener("mousedown", handleClickOutside);
+        window.addEventListener("focus", loadUser);
+        window.addEventListener("storage", loadUser);
 
         return () => {
-            window.removeEventListener("storage", handleStorage);
-            document.removeEventListener("mousedown", handleClickOutside);
+            window.removeEventListener("focus", loadUser);
+            window.removeEventListener("storage", loadUser);
         };
     }, []);
 
-    if (!mounted) {
+    async function handleLogout() {
+        try {
+            await logoutUser();
+        } catch {
+            // continue clearing local state
+        }
+
+        localStorage.removeItem("qot_user");
+        localStorage.removeItem("qot_access_token");
+        localStorage.removeItem("qot_refresh_token");
+
+        window.dispatchEvent(new Event("storage"));
+        window.location.href = "/";
+    }
+
+    if (!mounted || checking) {
         return (
-            <div className="h-10 w-10 rounded-2xl bg-slate-100" />
+            <div className="h-10 w-10 animate-pulse rounded-2xl bg-slate-100" />
         );
     }
 
@@ -96,14 +91,14 @@ export default function UserProfileTab() {
             <div className="hidden items-center gap-2 sm:flex">
                 <a
                     href="/login"
-                    className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-900 hover:bg-slate-50"
+                    className="rounded-2xl bg-slate-50 px-4 py-2.5 text-sm font-black text-slate-800 hover:bg-orange-50 hover:text-orange-600"
                 >
                     Login
                 </a>
 
                 <a
                     href="/register"
-                    className="rounded-2xl bg-slate-950 px-4 py-3 text-sm font-black text-white hover:bg-slate-800"
+                    className="rounded-2xl bg-orange-500 px-4 py-2.5 text-sm font-black text-white hover:bg-orange-600"
                 >
                     Register
                 </a>
@@ -111,72 +106,46 @@ export default function UserProfileTab() {
         );
     }
 
-    const name = getUserDisplayName(user);
-    const avatar = getAvatar(user);
-    const initials = getInitials(name);
-
     return (
-        <div ref={menuRef} className="relative">
+        <div className="relative">
             <button
                 type="button"
-                onClick={() => setOpen((current) => !current)}
-                className="flex items-center gap-1 rounded-2xl bg-slate-50 px-1.5 py-1.5 hover:bg-slate-100 md:gap-2 md:px-2 md:py-2"
+                onClick={() => setOpen((value) => !value)}
+                className="flex items-center gap-2 rounded-2xl bg-slate-50 px-2 py-2 text-sm font-black text-slate-900 hover:bg-orange-50 hover:text-orange-600 md:px-3"
             >
-                <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-orange-100 text-xs font-black text-orange-600 md:h-10 md:w-10 md:text-sm">
-                    {avatar ? (
-                        <img
-                            src={avatar}
-                            alt={name}
-                            className="h-full w-full object-cover"
-                        />
-                    ) : (
-                        initials
-                    )}
-                </div>
+                <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-orange-500 text-sm font-black text-white md:h-10 md:w-10">
+                    {getInitial(user)}
+                </span>
 
-                <FontAwesomeIcon icon={faChevronDown} className="h-3 w-3 text-slate-500" />
+
+
+                <FontAwesomeIcon icon={faChevronDown} className="hidden h-3 w-3 md:block" />
             </button>
 
             {open && (
-                <div className="absolute right-0 top-14 z-50 w-72 overflow-hidden rounded-3xl border border-slate-100 bg-white shadow-[0_20px_50px_rgba(15,23,42,0.16)]">
-                    <div className="border-b border-slate-100 p-5">
-                        <div className="flex items-center gap-3">
-                            <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full bg-orange-100 text-sm font-black text-orange-600">
-                                {avatar ? (
-                                    <img
-                                        src={avatar}
-                                        alt={name}
-                                        className="h-full w-full object-cover"
-                                    />
-                                ) : (
-                                    initials
-                                )}
-                            </div>
+                <div className="absolute right-0 top-[calc(100%+10px)] z-50 w-72 overflow-hidden rounded-[24px] bg-white shadow-[0_24px_70px_rgba(15,23,42,0.20)] ring-1 ring-black/5">
+                    <div className="border-b border-slate-100 p-4">
+                        <p className="truncate text-sm font-black text-slate-950">
+                            {getUserDisplayName(user)}
+                        </p>
 
-                            <div className="min-w-0">
-                                <p className="truncate text-sm font-black text-slate-950">
-                                    {name}
-                                </p>
-
-                                <p className="truncate text-xs font-semibold text-slate-500">
-                                    {user?.email || user?.phone || "QOT account"}
-                                </p>
-                            </div>
-                        </div>
+                        <p className="mt-1 truncate text-xs font-semibold text-slate-500">
+                            {user?.email || user?.phone || "QOT member"}
+                        </p>
                     </div>
 
-                    <div className="grid p-2 text-sm font-bold text-slate-800">
+                    <div className="p-2">
                         <a
                             href="/account"
-                            className="flex items-center gap-3 rounded-2xl px-4 py-3 hover:bg-orange-50 hover:text-orange-600"
+                            className="flex items-center gap-3 rounded-2xl px-3 py-3 text-sm font-bold text-slate-700 hover:bg-orange-50 hover:text-orange-600"
                         >
                             <FontAwesomeIcon icon={faUserRegular} className="h-4 w-4" />
                             My Profile
                         </a>
 
                         <a
-                            href="/my-listings"
-                            className="flex items-center gap-3 rounded-2xl px-4 py-3 hover:bg-orange-50 hover:text-orange-600"
+                            href="/seller/listings"
+                            className="flex items-center gap-3 rounded-2xl px-3 py-3 text-sm font-bold text-slate-700 hover:bg-orange-50 hover:text-orange-600"
                         >
                             <FontAwesomeIcon icon={faList} className="h-4 w-4" />
                             My Ads
@@ -184,7 +153,7 @@ export default function UserProfileTab() {
 
                         <a
                             href="/seller/dashboard"
-                            className="flex items-center gap-3 rounded-2xl px-4 py-3 hover:bg-orange-50 hover:text-orange-600"
+                            className="flex items-center gap-3 rounded-2xl px-3 py-3 text-sm font-bold text-slate-700 hover:bg-orange-50 hover:text-orange-600"
                         >
                             <FontAwesomeIcon icon={faStore} className="h-4 w-4" />
                             Seller Dashboard
@@ -192,7 +161,7 @@ export default function UserProfileTab() {
 
                         <a
                             href="/saved"
-                            className="flex items-center gap-3 rounded-2xl px-4 py-3 hover:bg-orange-50 hover:text-orange-600"
+                            className="flex items-center gap-3 rounded-2xl px-3 py-3 text-sm font-bold text-slate-700 hover:bg-orange-50 hover:text-orange-600"
                         >
                             <FontAwesomeIcon icon={faHeartRegular} className="h-4 w-4" />
                             Saved Ads
@@ -200,39 +169,35 @@ export default function UserProfileTab() {
 
                         <a
                             href="/messages"
-                            className="flex items-center gap-3 rounded-2xl px-4 py-3 hover:bg-orange-50 hover:text-orange-600"
+                            className="flex items-center gap-3 rounded-2xl px-3 py-3 text-sm font-bold text-slate-700 hover:bg-orange-50 hover:text-orange-600"
                         >
                             <FontAwesomeIcon icon={faEnvelope} className="h-4 w-4" />
                             Messages
                         </a>
 
                         <a
-                            href="/account/verification"
-                            className="flex items-center gap-3 rounded-2xl px-4 py-3 hover:bg-orange-50 hover:text-orange-600"
+                            href="/verification"
+                            className="flex items-center gap-3 rounded-2xl px-3 py-3 text-sm font-bold text-slate-700 hover:bg-orange-50 hover:text-orange-600"
                         >
                             <FontAwesomeIcon icon={faShieldHalved} className="h-4 w-4" />
                             Verification
                         </a>
 
                         <a
-                            href="/account/activity"
-                            className="flex items-center gap-3 rounded-2xl px-4 py-3 hover:bg-orange-50 hover:text-orange-600"
+                            href="/account/settings"
+                            className="flex items-center gap-3 rounded-2xl px-3 py-3 text-sm font-bold text-slate-700 hover:bg-orange-50 hover:text-orange-600"
                         >
                             <FontAwesomeIcon icon={faGear} className="h-4 w-4" />
-                            Activity History
+                            Settings
                         </a>
-                    </div>
 
-                    <div className="border-t border-slate-100 p-2">
                         <button
                             type="button"
-                            onClick={logout}
-                            className="w-full rounded-2xl px-4 py-3 text-left text-sm font-black text-red-600 hover:bg-red-50"
+                            onClick={handleLogout}
+                            className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm font-bold text-red-600 hover:bg-red-50"
                         >
-                            <span className="inline-flex items-center gap-3">
-                                <FontAwesomeIcon icon={faRightFromBracket} className="h-4 w-4" />
-                                Logout
-                            </span>
+                            <FontAwesomeIcon icon={faRightFromBracket} className="h-4 w-4" />
+                            Logout
                         </button>
                     </div>
                 </div>

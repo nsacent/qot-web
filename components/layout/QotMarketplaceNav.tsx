@@ -101,11 +101,9 @@ function getUnreadCount(data: any) {
     }).length;
 }
 
-async function authGet(path: string, token: string) {
-    const response = await fetch(`${API_BASE_URL}${path}`, {
-        headers: {
-            Authorization: `Bearer ${token}`,
-        },
+async function authGet(path: string) {
+    const response = await fetch(`/api/proxy${path}`, {
+        credentials: "include",
         cache: "no-store",
     });
 
@@ -118,12 +116,12 @@ async function authGet(path: string, token: string) {
     return data;
 }
 
-async function firstWorking(paths: string[], token: string) {
+async function firstWorking(paths: string[]) {
     for (const path of paths) {
         try {
-            return await authGet(path, token);
+            return await authGet(path);
         } catch {
-            // try next
+            // try next endpoint
         }
     }
 
@@ -382,25 +380,12 @@ export default function QotMarketplaceNav({
     const regions = useMemo(() => Object.keys(citiesByRegion).sort(), [citiesByRegion]);
 
     async function loadCounts() {
-        const token = localStorage.getItem("qot_access_token");
-
-        if (!token) {
-            setCounts({
-                favorites: 0,
-                messages: 0,
-                notifications: 0,
-            });
-            return;
-        }
 
         const [favoritesData, messagesData, notificationsData] =
             await Promise.all([
-                firstWorking(["/favorites/"], token),
-                firstWorking(["/chats/", "/messages/"], token),
-                firstWorking(
-                    ["/notifications/?is_read=false", "/notifications/"],
-                    token
-                ),
+                firstWorking(["/favorites/"]),
+                firstWorking(["/chats/", "/messages/"]),
+                firstWorking(["/notifications/?is_read=false", "/notifications/"]),
             ]);
 
         setCounts({
