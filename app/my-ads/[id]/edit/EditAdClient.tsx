@@ -121,46 +121,21 @@ function EditAdForm({ id }: { id: string }) {
         setError("");
 
         try {
-            const sellerResponse = await fetch(
-                "/api/proxy/seller/listings/?page_size=1000",
-                {
-                    credentials: "include",
-                    cache: "no-store",
-                }
-            );
-
-            if (sellerResponse.status === 401) {
-                window.location.href = `/login?next=/my-ads/${id}/edit`;
-                return;
-            }
-
-            const sellerData = await sellerResponse.json().catch(() => ({}));
-
-            if (!sellerResponse.ok) {
-                throw new Error(
-                    sellerData?.detail || sellerData?.message || "Failed to verify ad ownership."
-                );
-            }
-
-            const sellerAds = getArray(sellerData);
-
-            const ownedAd = sellerAds.find((item: any) => {
-                const adId = item?.id || item?.listing_id || item?.pk;
-                return String(adId) === String(id);
-            });
-
-            if (!ownedAd) {
-                setAd(null);
-                setError("You are not allowed to edit this ad.");
-                return;
-            }
-
             const response = await fetch(`/api/proxy/seller/listings/${id}/`, {
                 credentials: "include",
                 cache: "no-store",
             });
 
+            if (response.status === 401) {
+                window.location.href = `/login?next=/my-ads/${id}/edit`;
+                return;
+            }
+
             const data = await response.json().catch(() => ({}));
+
+            if (response.status === 403 || response.status === 404) {
+                throw new Error("Access denied. This ad does not belong to your account.");
+            }
 
             if (!response.ok) {
                 throw new Error(data?.detail || data?.message || "Failed to load ad.");
