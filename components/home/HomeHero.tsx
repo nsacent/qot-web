@@ -1,5 +1,6 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCircleCheck } from "@/lib/faIcons";
+import { getPrimaryListingImage } from "@/lib/listingImages";
 
 type HomeHeroProps = {
     latestAds?: any[];
@@ -17,19 +18,6 @@ function formatPrice(value: any, currency = "UGX") {
     return `${currency} ${numberValue.toLocaleString()}`;
 }
 
-function getAdImage(ad: any) {
-    return (
-        ad?.image ||
-        ad?.image_url ||
-        ad?.thumbnail ||
-        ad?.primary_image?.image ||
-        ad?.primary_image?.url ||
-        ad?.images?.[0]?.image ||
-        ad?.images?.[0]?.url ||
-        ""
-    );
-}
-
 function getAdId(ad: any) {
     return ad?.id || ad?.listing_id || ad?.uuid || "";
 }
@@ -40,7 +28,7 @@ function getAdTitle(ad: any) {
 
 function LatestAdMiniCard({ ad }: { ad: any }) {
     const id = getAdId(ad);
-    const image = getAdImage(ad);
+    const image = getPrimaryListingImage(ad);
 
     return (
         <a

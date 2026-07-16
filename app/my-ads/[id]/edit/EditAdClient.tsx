@@ -31,6 +31,29 @@ function getImageId(value: any) {
     return value?.id || value?.pk || value?.image_id || "";
 }
 
+function getListingPrimaryUrl(ad: any) {
+    const image =
+        ad?.primary_image?.image ||
+        ad?.primary_image?.url ||
+        ad?.cover_image ||
+        ad?.thumbnail ||
+        ad?.main_image ||
+        ad?.featured_image;
+
+    return getImageUrl(image);
+}
+
+function getImageIsPrimary(item: any) {
+    const value =
+        item?.is_primary ??
+        item?.primary ??
+        item?.is_main ??
+        item?.is_cover ??
+        item?.is_featured;
+
+    return value === true || value === "true" || value === 1 || value === "1";
+}
+
 function normalizeListing(data: any) {
     return data?.listing || data?.data || data;
 }
@@ -71,15 +94,53 @@ function EditAdForm({ id }: { id: string }) {
 
         if (!Array.isArray(images)) return [];
 
-        return images
-            .map((item: any) => ({
-                id: getImageId(item),
-                url: getImageUrl(item),
-            }))
+        const primaryUrl = getListingPrimaryUrl(ad);
+        const primaryId =
+            ad?.primary_image?.id ||
+            ad?.primary_image_id ||
+            ad?.cover_image_id ||
+            ad?.main_image_id ||
+            "";
+
+        const mappedImages = images
+            .map((item: any, index: number) => {
+                const id = String(getImageId(item) || "");
+                const url = getImageUrl(item);
+
+                return {
+                    id,
+                    url,
+                    index,
+                    backendSaysPrimary: getImageIsPrimary(item),
+                    matchesPrimaryId: Boolean(primaryId && id && String(primaryId) === id),
+                    matchesPrimaryUrl: Boolean(primaryUrl && url && primaryUrl === url),
+                };
+            })
             .filter((item: any) => item.url)
             .filter((item: any) => !deletedImageIds.includes(String(item.id)));
-    }, [ad, deletedImageIds]);
 
+        if (!mappedImages.length) return [];
+
+        let primaryIndex = mappedImages.findIndex((item: any) => item.matchesPrimaryId);
+
+        if (primaryIndex < 0) {
+            primaryIndex = mappedImages.findIndex((item: any) => item.backendSaysPrimary);
+        }
+
+        if (primaryIndex < 0) {
+            primaryIndex = mappedImages.findIndex((item: any) => item.matchesPrimaryUrl);
+        }
+
+        if (primaryIndex < 0) {
+            primaryIndex = 0;
+        }
+
+        return mappedImages.map((item: any, index: number) => ({
+            id: item.id,
+            url: item.url,
+            isPrimary: index === primaryIndex,
+        }));
+    }, [ad, deletedImageIds]);
     const newImagePreviews = useMemo(() => {
         return newImages.map((file) => ({
             name: file.name,
@@ -202,6 +263,89 @@ function EditAdForm({ id }: { id: string }) {
         });
     }
 
+    async function uploadNewImages() {
+        for (const file of newImages) {
+            const formData = new FormData();
+            formData.append("image", file);
+
+            const response = await fetch(`/api/proxy/listings/${id}/images/`, {
+                method: "POST",
+                credentials: "include",
+                body: formData,
+            });
+
+            const data = await response.json().catch(() => ({}));
+
+            if (!response.ok) {
+                throw new Error(
+                    data?.detail || data?.message || `Failed to upload ${file.name}.`
+                );
+            }
+        }
+    }
+
+    async function deleteRemovedImages() {
+        for (const imageId of deletedImageIds) {
+            const response = await fetch(`/api/proxy/listings/${id}/images/${imageId}/`, {
+                method: "DELETE",
+                credentials: "include",
+            });
+
+            if (!response.ok && response.status !== 204) {
+                const data = await response.json().catch(() => ({}));
+                throw new Error(
+                    data?.detail || data?.message || "Failed to remove image."
+                );
+            }
+        }
+    }
+
+    async function setPrimaryImage(imageId: string) {
+        setSaving(true);
+        setError("");
+        setMessage("");
+
+        try {
+            const response = await fetch(
+                `/api/proxy/listings/${id}/images/${imageId}/set-primary/`,
+                {
+                    method: "POST",
+                    credentials: "include",
+                }
+            );
+
+            const text = await response.text();
+            let data: any = {};
+
+            try {
+                data = text ? JSON.parse(text) : {};
+            } catch {
+                data = { detail: text };
+            }
+
+            if (response.status === 401) {
+                window.location.href = `/login?next=/my-ads/${id}/edit`;
+                return;
+            }
+
+            if (!response.ok) {
+                throw new Error(
+                    data?.detail ||
+                    data?.message ||
+                    data?.error ||
+                    `Failed to set primary image. Status: ${response.status}`
+                );
+            }
+
+            await loadAd();
+            setMessage("Primary image updated successfully.");
+        } catch (err: any) {
+            setError(err.message || "Failed to set primary image.");
+        } finally {
+            setSaving(false);
+        }
+    }
+
     async function handleSave(event: React.FormEvent<HTMLFormElement>) {
         event.preventDefault();
 
@@ -210,68 +354,34 @@ function EditAdForm({ id }: { id: string }) {
         setMessage("");
 
         try {
-            const hasImageChanges = newImages.length > 0 || deletedImageIds.length > 0;
-
-            let response: Response;
-
-            if (hasImageChanges) {
-                const formData = new FormData();
-
-                formData.append("title", title.trim());
-                formData.append("price", price);
-                formData.append("description", description.trim());
-                formData.append("condition", condition);
-                formData.append("category", category);
-                formData.append("city", city);
-                formData.append("contact_phone", phone.trim());
-                formData.append("location_details", locationDetails.trim());
-                formData.append("is_negotiable", String(isNegotiable));
-
-                if (status) {
-                    formData.append("status", status);
-                }
-
-                newImages.forEach((file) => {
-                    formData.append("images", file);
-                });
-
-                deletedImageIds.forEach((imageId) => {
-                    formData.append("remove_image_ids", imageId);
-                    formData.append("deleted_images", imageId);
-                });
-
-                response = await fetch(`/api/proxy/seller/listings/${id}/`, {
-                    method: "PATCH",
-                    credentials: "include",
-                    body: formData,
-                });
-            } else {
-                response = await fetch(`/api/proxy/seller/listings/${id}/`, {
-                    method: "PATCH",
-                    credentials: "include",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({
-                        title: title.trim(),
-                        price,
-                        description: description.trim(),
-                        condition,
-                        category,
-                        city,
-                        contact_phone: phone.trim(),
-                        location_details: locationDetails.trim(),
-                        is_negotiable: isNegotiable,
-                        ...(status ? { status } : {}),
-                    }),
-                });
-            }
+            const response = await fetch(`/api/proxy/listings/${id}/`, {
+                method: "PATCH",
+                credentials: "include",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    title: title.trim(),
+                    price,
+                    description: description.trim(),
+                    condition,
+                    category,
+                    city,
+                    contact_phone: phone.trim(),
+                    location_details: locationDetails.trim(),
+                    is_negotiable: isNegotiable,
+                    ...(status ? { status } : {}),
+                }),
+            });
 
             const data = await response.json().catch(() => ({}));
 
             if (!response.ok) {
-                throw new Error(data?.detail || data?.message || "Failed to save ad.");
+                throw new Error(data?.detail || data?.message || "Failed to save ad details.");
             }
+
+            await deleteRemovedImages();
+            await uploadNewImages();
 
             setNewImages([]);
             setDeletedImageIds([]);
@@ -555,13 +665,31 @@ function EditAdForm({ id }: { id: string }) {
                                         />
 
                                         {image.id && (
-                                            <button
-                                                type="button"
-                                                onClick={() => removeExistingImage(String(image.id))}
-                                                className="absolute right-2 top-2 rounded-full bg-red-500 px-3 py-1 text-[11px] font-black text-white"
-                                            >
-                                                Remove
-                                            </button>
+                                            <div className="absolute inset-x-2 top-2 flex items-center justify-between gap-2">
+                                                {image.isPrimary ? (
+                                                    <span className="rounded-full bg-green-500 px-3 py-1 text-[11px] font-black text-white shadow">
+                                                        Main Image
+                                                    </span>
+                                                ) : (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setPrimaryImage(String(image.id))}
+                                                        disabled={saving}
+                                                        className="rounded-full bg-white/90 px-3 py-1 text-[11px] font-black text-orange-600 shadow hover:bg-orange-50 disabled:cursor-not-allowed disabled:opacity-50"
+                                                    >
+                                                        Set Main
+                                                    </button>
+                                                )}
+
+                                                <button
+                                                    type="button"
+                                                    onClick={() => removeExistingImage(String(image.id))}
+                                                    disabled={saving}
+                                                    className="rounded-full bg-red-500 px-3 py-1 text-[11px] font-black text-white shadow disabled:cursor-not-allowed disabled:opacity-50"
+                                                >
+                                                    Remove
+                                                </button>
+                                            </div>
                                         )}
                                     </div>
                                 ))}

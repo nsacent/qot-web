@@ -1,12 +1,21 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { apiGet, apiPost } from "@/lib/apiClient";
-import { getStoredToken, getStoredUser } from "@/lib/auth";
+import { useEffect, useState, type FormEvent } from "react";
+import { createPortal } from "react-dom";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+    faCheck,
+    faFlag,
+    faPaperPlane,
+    faShieldHalved,
+    faTriangleExclamation,
+    faXmark,
+} from "@fortawesome/free-solid-svg-icons";
 
 type ReportListingButtonProps = {
     listingId: string | number;
     listing?: any;
+    compact?: boolean;
 };
 
 const reportReasons = [
@@ -19,99 +28,48 @@ const reportReasons = [
     { value: "other", label: "Other issue" },
 ];
 
-function getArray(data: any): any[] {
-    if (Array.isArray(data)) return data;
-    if (Array.isArray(data?.results)) return data.results;
-    if (Array.isArray(data?.data)) return data.data;
-    if (Array.isArray(data?.listings)) return data.listings;
-    if (Array.isArray(data?.data?.results)) return data.data.results;
-    if (Array.isArray(data?.data?.listings)) return data.data.listings;
+async function checkIfOwner(listingId: string | number) {
+    try {
+        const response = await fetch(`/api/proxy/seller/listings/${listingId}/`, {
+            credentials: "include",
+            cache: "no-store",
+        });
 
-    return [];
+        return response.ok;
+    } catch {
+        return false;
+    }
 }
 
-function getListingId(item: any) {
-    return (
-        item?.id ||
-        item?.listing?.id ||
-        item?.listing_id ||
-        item?.advert_id ||
-        item?.listing?.listing_id ||
-        ""
-    );
-}
+async function readApiError(response: Response) {
+    const text = await response.text();
 
-function cleanValue(value: any) {
-    if (value === undefined || value === null || value === "") return "";
-    return String(value).trim().toLowerCase();
-}
+    if (!text) return "Something went wrong. Please try again.";
 
-function uniqueValues(values: any[]) {
-    return Array.from(new Set(values.map(cleanValue).filter(Boolean)));
-}
+    try {
+        const data = JSON.parse(text);
 
-function getCurrentUserIdentifiers(user: any) {
-    return uniqueValues([
-        user?.id,
-        user?.user_id,
-        user?.pk,
-        user?.sub,
-        user?.profile?.id,
-        user?.profile?.user_id,
-        user?.account?.id,
-        user?.phone,
-        user?.phone_number,
-        user?.mobile,
-        user?.email,
-        user?.username,
-        user?.identifier,
-    ]);
-}
+        if (data?.detail) return data.detail;
+        if (data?.message) return data.message;
+        if (data?.error) return data.error;
 
-function getListingOwnerIdentifiers(listing: any) {
-    return uniqueValues([
-        listing?.seller?.id,
-        listing?.seller?.user?.id,
-        listing?.seller?.user_id,
-        listing?.seller_id,
+        const firstKey = Object.keys(data || {})[0];
+        const firstValue = firstKey ? data[firstKey] : "";
 
-        listing?.user?.id,
-        listing?.user_id,
+        if (Array.isArray(firstValue)) return firstValue[0];
+        if (typeof firstValue === "string") return firstValue;
 
-        listing?.owner?.id,
-        listing?.owner?.user?.id,
-        listing?.owner_id,
-
-        listing?.created_by?.id,
-        listing?.created_by_id,
-
-        listing?.seller?.phone,
-        listing?.seller?.phone_number,
-        listing?.seller?.mobile,
-        listing?.seller?.email,
-        listing?.seller?.username,
-
-        listing?.user?.phone,
-        listing?.user?.email,
-        listing?.user?.username,
-
-        listing?.owner?.phone,
-        listing?.owner?.email,
-        listing?.owner?.username,
-    ]);
-}
-
-function userOwnsListingByIdentifiers(user: any, listing: any) {
-    const userIdentifiers = getCurrentUserIdentifiers(user);
-    const ownerIdentifiers = getListingOwnerIdentifiers(listing);
-
-    return userIdentifiers.some((value) => ownerIdentifiers.includes(value));
+        return "Something went wrong. Please try again.";
+    } catch {
+        return text;
+    }
 }
 
 export default function ReportListingButton({
     listingId,
-    listing,
+    compact = false,
 }: ReportListingButtonProps) {
+    const [mounted, setMounted] = useState(false);
     const [checkingOwner, setCheckingOwner] = useState(true);
     const [isOwner, setIsOwner] = useState(false);
     const [open, setOpen] = useState(false);
@@ -122,68 +80,61 @@ export default function ReportListingButton({
     const [error, setError] = useState("");
 
     useEffect(() => {
-        async function checkOwnership() {
+        setMounted(true);
+    }, []);
+
+    useEffect(() => {
+        let mountedCheck = true;
+
+        async function runCheck() {
             setCheckingOwner(true);
 
-            const token = getStoredToken();
-            const user = getStoredUser();
+            const ownsListing = await checkIfOwner(listingId);
 
-            if (!token) {
-                setIsOwner(false);
-                setCheckingOwner(false);
-                return;
-            }
+            if (!mountedCheck) return;
 
-            if (user && listing && userOwnsListingByIdentifiers(user, listing)) {
-                setIsOwner(true);
-                setCheckingOwner(false);
-                return;
-            }
+            setIsOwner(ownsListing);
+            setCheckingOwner(false);
+        }
 
-            try {
-                const sellerListingsData = await apiGet("/my-ads/", {
-                    redirectOnUnauthorized: false,
-                });
+        runCheck();
 
-                const sellerListings = getArray(sellerListingsData);
+        return () => {
+            mountedCheck = false;
+        };
+    }, [listingId]);
 
-                const found = sellerListings.some(
-                    (item) => String(getListingId(item)) === String(listingId)
-                );
+    useEffect(() => {
+        if (!open) return;
 
-                setIsOwner(found);
-
-                console.log("Report button seller listing ownership check:", {
-                    currentListingId: String(listingId),
-                    sellerListingIds: sellerListings.map((item) =>
-                        String(getListingId(item))
-                    ),
-                    owns: found,
-                });
-            } catch (error) {
-                setIsOwner(false);
-
-                console.log("Report button ownership check failed:", error);
-            } finally {
-                setCheckingOwner(false);
+        function closeOnEscape(event: KeyboardEvent) {
+            if (event.key === "Escape") {
+                setOpen(false);
             }
         }
 
-        checkOwnership();
-    }, [listingId, listing]);
+        document.addEventListener("keydown", closeOnEscape);
+        document.body.style.overflow = "hidden";
 
-    async function submitReport(event: React.FormEvent<HTMLFormElement>) {
+        return () => {
+            document.removeEventListener("keydown", closeOnEscape);
+            document.body.style.overflow = "";
+        };
+    }, [open]);
+
+    function closeModal() {
+        if (loading) return;
+
+        setOpen(false);
+        setError("");
+        setSuccess("");
+    }
+
+    async function submitReport(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
 
         setError("");
         setSuccess("");
-
-        const token = getStoredToken();
-
-        if (!token) {
-            window.location.href = `/login?next=/listings/${listingId}`;
-            return;
-        }
 
         if (!description.trim()) {
             setError("Please describe the problem with this advert.");
@@ -193,112 +144,206 @@ export default function ReportListingButton({
         setLoading(true);
 
         try {
-            await apiPost(`/listings/${listingId}/report/`, {
-                reason,
-                description,
+            const response = await fetch(`/api/proxy/listings/${listingId}/report/`, {
+                method: "POST",
+                credentials: "include",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    reason,
+                    description: description.trim(),
+                }),
             });
+
+            if (response.status === 401) {
+                window.location.href = `/login?next=/listings/${listingId}`;
+                return;
+            }
+
+            if (!response.ok) {
+                throw new Error(await readApiError(response));
+            }
 
             setSuccess("Report submitted successfully. QOT will review this advert.");
             setDescription("");
             setReason("scam");
         } catch (error: any) {
-            setError(error.message || "Failed to submit report.");
+            setError(error?.message || "Failed to submit report.");
         } finally {
             setLoading(false);
         }
     }
 
-    if (checkingOwner) return null;
+    if (checkingOwner || isOwner) return null;
 
-    if (isOwner) return null;
+    const buttonClass = compact
+        ? "inline-flex h-11 w-full items-center justify-center gap-2 rounded-[18px] bg-red-50 px-4 text-sm font-black text-red-600 transition hover:bg-red-100"
+        : "inline-flex h-11 w-full items-center justify-center gap-2 rounded-[18px] bg-red-50 px-4 text-sm font-black text-red-600 ring-1 ring-red-100 transition hover:bg-red-100";
 
     return (
-        <div className="rounded-xl border border-red-200 bg-red-50 p-4">
-            {!open ? (
-                <button
-                    type="button"
-                    onClick={() => setOpen(true)}
-                    className="w-full rounded-xl bg-red-600 px-5 py-3 text-center font-semibold text-white hover:bg-red-700"
-                >
-                    Report this advert
-                </button>
-            ) : (
-                <form onSubmit={submitReport} className="space-y-4">
-                    <div>
-                        <p className="font-bold text-red-700">Report this advert</p>
+        <>
+            <button
+                type="button"
+                onClick={() => setOpen(true)}
+                className={buttonClass}
+            >
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white text-red-600 ring-1 ring-red-100">
+                    <FontAwesomeIcon icon={faFlag} className="h-3.5 w-3.5" />
+                </span>
 
-                        <p className="mt-1 text-sm text-red-600">
-                            Tell us what looks suspicious or misleading.
-                        </p>
-                    </div>
-
-                    {error && (
-                        <div className="rounded-xl border border-red-200 bg-white p-3 text-sm text-red-700">
-                            {error}
-                        </div>
-                    )}
-
-                    {success && (
-                        <div className="rounded-xl border border-green-200 bg-green-50 p-3 text-sm text-green-700">
-                            {success}
-                        </div>
-                    )}
-
-                    <div>
-                        <label className="mb-2 block text-sm font-semibold text-slate-700">
-                            Reason
-                        </label>
-
-                        <select
-                            value={reason}
-                            onChange={(event) => setReason(event.target.value)}
-                            className="w-full rounded-xl border bg-white px-4 py-3 text-sm outline-none focus:border-red-500"
-                        >
-                            {reportReasons.map((item) => (
-                                <option key={item.value} value={item.value}>
-                                    {item.label}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-
-                    <div>
-                        <label className="mb-2 block text-sm font-semibold text-slate-700">
-                            Description
-                        </label>
-
-                        <textarea
-                            value={description}
-                            onChange={(event) => setDescription(event.target.value)}
-                            rows={4}
-                            placeholder="Explain the issue..."
-                            className="w-full rounded-xl border bg-white px-4 py-3 text-sm outline-none focus:border-red-500"
+                Report Ad
+            </button>
+            {mounted && open
+                ? createPortal(
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/55 px-4 py-6 backdrop-blur-sm">
+                        <div
+                            className="absolute inset-0"
+                            onClick={closeModal}
+                            aria-hidden="true"
                         />
-                    </div>
 
-                    <div className="grid gap-2">
-                        <button
-                            type="submit"
-                            disabled={loading}
-                            className="rounded-xl bg-red-600 px-5 py-3 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-60"
-                        >
-                            {loading ? "Submitting..." : "Submit Report"}
-                        </button>
+                        <div className="relative w-full max-w-lg overflow-hidden rounded-[34px] bg-white shadow-[0_30px_90px_rgba(15,23,42,0.35)] ring-1 ring-black/5">
+                            <div className="flex items-start justify-between gap-4 border-b border-slate-100 p-6">
+                                <div className="flex gap-4">
+                                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-red-50 text-red-600">
+                                        <FontAwesomeIcon icon={faFlag} className="h-5 w-5" />
+                                    </div>
 
-                        <button
-                            type="button"
-                            onClick={() => {
-                                setOpen(false);
-                                setError("");
-                                setSuccess("");
-                            }}
-                            className="rounded-xl border bg-white px-5 py-3 text-sm font-semibold hover:bg-slate-50"
-                        >
-                            Cancel
-                        </button>
-                    </div>
-                </form>
-            )}
-        </div>
+                                    <div>
+                                        <h2 className="text-xl font-black text-slate-950">
+                                            Report this ad
+                                        </h2>
+                                        <p className="mt-1 text-sm font-semibold leading-6 text-slate-500">
+                                            Tell QOT what looks suspicious, fake, or misleading.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <button
+                                    type="button"
+                                    onClick={closeModal}
+                                    disabled={loading}
+                                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-50 text-slate-500 hover:bg-slate-100 disabled:opacity-60"
+                                >
+                                    <FontAwesomeIcon icon={faXmark} className="h-4 w-4" />
+                                </button>
+                            </div>
+
+                            {success ? (
+                                <div className="p-6">
+                                    <div className="rounded-[26px] bg-green-50 p-5 text-center ring-1 ring-green-100">
+                                        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-green-600 text-white">
+                                            <FontAwesomeIcon icon={faCheck} className="h-5 w-5" />
+                                        </div>
+
+                                        <p className="mt-4 text-lg font-black text-slate-950">
+                                            Report received
+                                        </p>
+
+                                        <p className="mt-2 text-sm font-bold leading-6 text-green-700">
+                                            {success}
+                                        </p>
+                                    </div>
+
+                                    <button
+                                        type="button"
+                                        onClick={closeModal}
+                                        className="mt-5 inline-flex h-11 w-full items-center justify-center rounded-[18px] bg-slate-950 px-4 text-sm font-black text-white hover:bg-slate-800"
+                                    >
+                                        Done
+                                    </button>
+                                </div>
+                            ) : (
+                                <form onSubmit={submitReport} className="p-6">
+                                    <div className="rounded-[24px] bg-red-50 p-4 ring-1 ring-red-100">
+                                        <div className="flex gap-3">
+                                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white text-red-600">
+                                                <FontAwesomeIcon
+                                                    icon={faTriangleExclamation}
+                                                    className="h-4 w-4"
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <p className="font-black text-slate-950">
+                                                    Help keep QOT safe
+                                                </p>
+                                                <p className="mt-1 text-sm font-bold leading-6 text-red-700">
+                                                    Do not report an ad just because the price is high.
+                                                    Report only suspicious or misleading adverts.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {error && (
+                                        <div className="mt-4 rounded-[18px] bg-red-50 px-4 py-3 text-sm font-bold text-red-700 ring-1 ring-red-100">
+                                            {error}
+                                        </div>
+                                    )}
+
+                                    <div className="mt-5">
+                                        <label className="mb-2 block text-sm font-black text-slate-800">
+                                            Reason
+                                        </label>
+
+                                        <select
+                                            value={reason}
+                                            onChange={(event) => setReason(event.target.value)}
+                                            className="h-12 w-full rounded-[18px] border-0 bg-slate-50 px-4 text-sm font-bold text-slate-800 outline-none ring-1 ring-slate-100 focus:ring-2 focus:ring-red-200"
+                                        >
+                                            {reportReasons.map((item) => (
+                                                <option key={item.value} value={item.value}>
+                                                    {item.label}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    <div className="mt-5">
+                                        <label className="mb-2 block text-sm font-black text-slate-800">
+                                            Description
+                                        </label>
+
+                                        <textarea
+                                            value={description}
+                                            onChange={(event) => setDescription(event.target.value)}
+                                            rows={5}
+                                            placeholder="Explain the issue clearly..."
+                                            className="w-full resize-none rounded-[18px] border-0 bg-slate-50 px-4 py-3 text-sm font-bold leading-6 text-slate-800 outline-none ring-1 ring-slate-100 placeholder:text-slate-400 focus:ring-2 focus:ring-red-200"
+                                        />
+                                    </div>
+
+                                    <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                                        <button
+                                            type="button"
+                                            onClick={closeModal}
+                                            disabled={loading}
+                                            className="inline-flex h-11 items-center justify-center rounded-[18px] bg-slate-50 px-4 text-sm font-black text-slate-700 hover:bg-slate-100 disabled:opacity-60"
+                                        >
+                                            Cancel
+                                        </button>
+
+                                        <button
+                                            type="submit"
+                                            disabled={loading}
+                                            className="inline-flex h-11 items-center justify-center gap-2 rounded-[18px] bg-red-600 px-4 text-sm font-black text-white hover:bg-red-700 disabled:opacity-60"
+                                        >
+                                            <FontAwesomeIcon
+                                                icon={loading ? faShieldHalved : faPaperPlane}
+                                                className="h-4 w-4"
+                                            />
+                                            {loading ? "Submitting..." : "Submit Report"}
+                                        </button>
+                                    </div>
+                                </form>
+                            )}
+                        </div>
+                    </div>,
+                    document.body
+                )
+                : null}
+        </>
     );
 }

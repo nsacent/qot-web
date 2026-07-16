@@ -3,51 +3,128 @@
 import { Suspense, useEffect, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
-    faGear,
     faLocationDot,
     faTag,
-    faTrash,
 } from "@/lib/faIcons";
 import QotLoader from "@/components/common/QotLoader";
 import { getCurrentUser } from "@/lib/sessionClient";
+import ListingImageCarousel from "@/components/listings/ListingImageCarousel";
+import ListingShareActions from "@/components/listings/ListingShareActions";
 
 const API_BASE_URL =
     process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000/api/v1";
 
 const API_ORIGIN = API_BASE_URL.replace(/\/api\/v1\/?$/, "");
 
-function getAdImage(ad: any) {
-    const image =
-        ad?.cover_image ||
-        ad?.thumbnail ||
-        ad?.image ||
-        ad?.main_image ||
-        ad?.featured_image ||
-        ad?.images?.[0]?.image ||
-        ad?.images?.[0]?.url ||
-        ad?.photos?.[0]?.image ||
-        ad?.photos?.[0]?.url;
+function getImageUrl(value: any) {
+    const image = value?.image || value?.url || value;
 
     if (!image) return "";
-    if (String(image).startsWith("http")) return image;
+
+    if (String(image).startsWith("http")) return String(image);
     if (String(image).startsWith("/")) return `${API_ORIGIN}${image}`;
 
-    return image;
+    return String(image);
 }
 
-function getImages(ad: any) {
+function getImageId(value: any) {
+    return value?.id || value?.pk || value?.image_id || "";
+}
+
+function getListingPrimaryUrl(ad: any) {
+    const image =
+        ad?.primary_image?.image ||
+        ad?.primary_image?.url ||
+        ad?.cover_image ||
+        ad?.thumbnail ||
+        ad?.main_image ||
+        ad?.featured_image;
+
+    return getImageUrl(image);
+}
+
+function getImageIsPrimary(item: any) {
+    const value =
+        item?.is_primary ??
+        item?.primary ??
+        item?.is_main ??
+        item?.is_cover ??
+        item?.is_featured;
+
+    return value === true || value === "true" || value === 1 || value === "1";
+}
+
+function getOrderedAdImages(ad: any) {
     const rawImages = ad?.images || ad?.photos || [];
 
-    if (!Array.isArray(rawImages)) return [];
+    const primaryUrl = getListingPrimaryUrl(ad);
+    const primaryId =
+        ad?.primary_image?.id ||
+        ad?.primary_image_id ||
+        ad?.cover_image_id ||
+        ad?.main_image_id ||
+        "";
 
-    return rawImages
-        .map((item: any) => item?.image || item?.url || item)
-        .filter(Boolean)
-        .map((image: string) => {
-            if (String(image).startsWith("http")) return image;
-            if (String(image).startsWith("/")) return `${API_ORIGIN}${image}`;
-            return image;
+    let images: any[] = [];
+
+    if (Array.isArray(rawImages)) {
+        images = rawImages
+            .map((item: any, index: number) => {
+                const id = String(getImageId(item) || "");
+                const url = getImageUrl(item);
+
+                return {
+                    id,
+                    url,
+                    index,
+                    backendSaysPrimary: getImageIsPrimary(item),
+                    matchesPrimaryId: Boolean(primaryId && id && String(primaryId) === id),
+                    matchesPrimaryUrl: Boolean(primaryUrl && url && primaryUrl === url),
+                };
+            })
+            .filter((item: any) => item.url);
+    }
+
+    if (primaryUrl && !images.some((item) => item.url === primaryUrl)) {
+        images.unshift({
+            id: String(primaryId || ""),
+            url: primaryUrl,
+            index: -1,
+            backendSaysPrimary: false,
+            matchesPrimaryId: true,
+            matchesPrimaryUrl: true,
         });
+    }
+
+    if (!images.length) return [];
+
+    let primaryIndex = images.findIndex((item) => item.matchesPrimaryId);
+
+    if (primaryIndex < 0) {
+        primaryIndex = images.findIndex((item) => item.backendSaysPrimary);
+    }
+
+    if (primaryIndex < 0) {
+        primaryIndex = images.findIndex((item) => item.matchesPrimaryUrl);
+    }
+
+    if (primaryIndex < 0) {
+        primaryIndex = 0;
+    }
+
+    const primaryImage = images[primaryIndex];
+    const otherImages = images.filter((_, index) => index !== primaryIndex);
+
+    return [
+        {
+            ...primaryImage,
+            isPrimary: true,
+        },
+        ...otherImages.map((item) => ({
+            ...item,
+            isPrimary: false,
+        })),
+    ];
 }
 
 function getArray(data: any) {
@@ -72,12 +149,15 @@ function formatPrice(value: any) {
     return `UGX ${new Intl.NumberFormat("en-UG").format(number)}`;
 }
 
+
+
 function MyAdViewContent({ id }: { id: string }) {
     const [checkingSession, setCheckingSession] = useState(true);
     const [loading, setLoading] = useState(true);
 
     const [ad, setAd] = useState<any>(null);
     const [error, setError] = useState("");
+    const [actionLoading, setActionLoading] = useState("");
 
     async function checkSession() {
         try {
@@ -134,6 +214,178 @@ function MyAdViewContent({ id }: { id: string }) {
         }
     }, [checkingSession]);
 
+    function getAdStatus(ad: any) {
+        return String(
+            ad?.status ||
+            ad?.approval_status ||
+            ad?.availability_status ||
+            ""
+        ).toLowerCase();
+    }
+
+    function getStatusInfo(status: string) {
+        if (["active", "approved", "available", "published"].includes(status)) {
+            return {
+                label: "Active",
+                badge: "bg-green-50 text-green-700 ring-green-100",
+                title: "This ad is live",
+                description: "Buyers can see this ad, contact you, and save it.",
+            };
+        }
+
+        if (["sold"].includes(status)) {
+            return {
+                label: "Sold",
+                badge: "bg-blue-50 text-blue-700 ring-blue-100",
+                title: "This ad is marked as sold",
+                description: "Buyers understand that this item is no longer available.",
+            };
+        }
+
+        if (["unavailable", "inactive", "paused", "draft"].includes(status)) {
+            return {
+                label: "Unavailable",
+                badge: "bg-yellow-50 text-yellow-700 ring-yellow-100",
+                title: "This ad is paused",
+                description: "The ad is not currently available to buyers.",
+            };
+        }
+
+        if (["expired"].includes(status)) {
+            return {
+                label: "Expired",
+                badge: "bg-orange-50 text-orange-700 ring-orange-100",
+                title: "This ad has expired",
+                description: "Renew or relist it so buyers can see it again.",
+            };
+        }
+
+        if (["pending", "pending_approval", "under_review", "review"].includes(status)) {
+            return {
+                label: "Pending Approval",
+                badge: "bg-purple-50 text-purple-700 ring-purple-100",
+                title: "Waiting for approval",
+                description: "This ad is being reviewed before it becomes public.",
+            };
+        }
+
+        if (["rejected", "declined"].includes(status)) {
+            return {
+                label: "Rejected",
+                badge: "bg-red-50 text-red-700 ring-red-100",
+                title: "This ad was rejected",
+                description: "Edit the ad details and submit again if allowed.",
+            };
+        }
+
+        return {
+            label: status ? status.replaceAll("_", " ") : "Unknown",
+            badge: "bg-slate-50 text-slate-700 ring-slate-100",
+            title: "Ad status unclear",
+            description: "The current state of this ad could not be clearly identified.",
+        };
+    }
+
+    function getStatusActions(status: string) {
+        if (["active", "approved", "available", "published"].includes(status)) {
+            return [
+                {
+                    action: "mark-sold",
+                    label: "Mark as Sold",
+                    motive: "Use this after the item has been bought.",
+                    className: "bg-green-50 text-green-700 hover:bg-green-100",
+                },
+                {
+                    action: "mark-unavailable",
+                    label: "Pause Ad",
+                    motive: "Use this when you want to hide the ad temporarily.",
+                    className: "bg-yellow-50 text-yellow-700 hover:bg-yellow-100",
+                },
+                {
+                    action: "renew",
+                    label: "Renew Ad",
+                    motive: "Use this to extend the life of the ad.",
+                    className: "bg-orange-50 text-orange-700 hover:bg-orange-100",
+                },
+            ];
+        }
+
+        if (["sold"].includes(status)) {
+            return [
+                {
+                    action: "mark-available",
+                    label: "Mark Available Again",
+                    motive: "Use this if the sale failed or the item is available again.",
+                    className: "bg-blue-50 text-blue-700 hover:bg-blue-100",
+                },
+                {
+                    action: "relist",
+                    label: "Relist Ad",
+                    motive: "Use this to publish the item again as available.",
+                    className: "bg-orange-50 text-orange-700 hover:bg-orange-100",
+                },
+            ];
+        }
+
+        if (["unavailable", "inactive", "paused", "draft"].includes(status)) {
+            return [
+                {
+                    action: "mark-available",
+                    label: "Make Available",
+                    motive: "Use this when you want buyers to see and contact you again.",
+                    className: "bg-blue-50 text-blue-700 hover:bg-blue-100",
+                },
+            ];
+        }
+
+        if (["expired"].includes(status)) {
+            return [
+                {
+                    action: "renew",
+                    label: "Renew Ad",
+                    motive: "Use this to extend the ad duration.",
+                    className: "bg-orange-50 text-orange-700 hover:bg-orange-100",
+                },
+                {
+                    action: "relist",
+                    label: "Relist Ad",
+                    motive: "Use this to publish the ad again.",
+                    className: "bg-purple-50 text-purple-700 hover:bg-purple-100",
+                },
+            ];
+        }
+
+        return [];
+    }
+
+    async function handleListingAction(action: string) {
+        setActionLoading(action);
+
+        try {
+            const response = await fetch(`/api/proxy/listings/${id}/${action}/`, {
+                method: "POST",
+                credentials: "include",
+            });
+
+            const data = await response.json().catch(() => ({}));
+
+            if (response.status === 401) {
+                window.location.href = `/login?next=/my-ads/${id}`;
+                return;
+            }
+
+            if (!response.ok) {
+                throw new Error(data?.detail || data?.message || "Action failed.");
+            }
+
+            await loadAd();
+        } catch (err: any) {
+            alert(err.message || "Action failed.");
+        } finally {
+            setActionLoading("");
+        }
+    }
+
     async function handleDelete() {
         const confirmed = window.confirm(
             "Are you sure you want to delete this ad? This action cannot be undone."
@@ -183,9 +435,7 @@ function MyAdViewContent({ id }: { id: string }) {
         );
     }
 
-    const mainImage = getAdImage(ad);
-    const images = getImages(ad);
-    const allImages = mainImage ? [mainImage, ...images.filter((img) => img !== mainImage)] : images;
+
 
     return (
         <section className="py-6 text-slate-950">
@@ -198,32 +448,14 @@ function MyAdViewContent({ id }: { id: string }) {
                         ← Back to My Ads
                     </a>
 
-                    <div className="mt-6 overflow-hidden rounded-[28px] bg-slate-100">
-                        {mainImage ? (
-                            <img
-                                src={mainImage}
-                                alt={ad?.title || "Ad image"}
-                                className="aspect-[16/10] w-full object-cover"
-                            />
-                        ) : (
-                            <div className="flex aspect-[16/10] items-center justify-center text-sm font-black text-slate-400">
-                                No image uploaded
-                            </div>
-                        )}
+                    <div className="mt-6">
+                        <ListingImageCarousel
+                            listing={ad}
+                            title={ad?.title || "Ad image"}
+                        />
                     </div>
 
-                    {allImages.length > 1 && (
-                        <div className="mt-4 grid grid-cols-4 gap-3 sm:grid-cols-6">
-                            {allImages.slice(0, 12).map((image, index) => (
-                                <img
-                                    key={`${image}-${index}`}
-                                    src={image}
-                                    alt=""
-                                    className="aspect-square rounded-2xl object-cover ring-1 ring-black/5"
-                                />
-                            ))}
-                        </div>
-                    )}
+
 
                     <h1 className="mt-7 text-3xl font-black text-slate-950">
                         {ad?.title || "Untitled Ad"}
@@ -262,37 +494,110 @@ function MyAdViewContent({ id }: { id: string }) {
                 </div>
 
                 <aside className="h-fit rounded-[34px] bg-white p-5 shadow-[0_18px_60px_rgba(15,23,42,0.10)] ring-1 ring-black/5 sm:p-6">
-                    <h2 className="text-xl font-black text-slate-950">Ad actions</h2>
+                    {(() => {
+                        const status = getAdStatus(ad);
+                        const statusInfo = getStatusInfo(status);
+                        const actions = getStatusActions(status);
 
-                    <p className="mt-2 text-sm font-semibold text-slate-500">
-                        Manage this ad from here.
-                    </p>
+                        return (
+                            <>
+                                <div className="flex items-start justify-between gap-3">
+                                    <div>
+                                        <h2 className="text-xl font-black text-slate-950">
+                                            Ad status
+                                        </h2>
 
-                    <div className="mt-6 grid gap-3">
-                        <a
-                            href={`/my-ads/${id}/edit`}
-                            className="inline-flex items-center justify-center gap-2 rounded-2xl bg-orange-500 px-5 py-3 text-sm font-black text-white hover:bg-orange-600"
-                        >
-                            <FontAwesomeIcon icon={faGear} className="h-4 w-4" />
-                            Edit Ad
-                        </a>
+                                        <p className="mt-2 text-sm font-semibold text-slate-500">
+                                            See what is happening with this ad and choose the right action.
+                                        </p>
+                                    </div>
 
-                        <a
-                            href={`/listings/${id}`}
-                            className="rounded-2xl bg-slate-50 px-5 py-3 text-center text-sm font-black text-slate-700 hover:bg-orange-50 hover:text-orange-600"
-                        >
-                            View Public Page
-                        </a>
+                                    <span
+                                        className={`rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-wide ring-1 ${statusInfo.badge}`}
+                                    >
+                                        {statusInfo.label}
+                                    </span>
+                                </div>
 
-                        <button
-                            type="button"
-                            onClick={handleDelete}
-                            className="inline-flex items-center justify-center gap-2 rounded-2xl bg-red-50 px-5 py-3 text-sm font-black text-red-600 hover:bg-red-100"
-                        >
-                            <FontAwesomeIcon icon={faTrash} className="h-4 w-4" />
-                            Delete Ad
-                        </button>
-                    </div>
+                                <div className="mt-5 rounded-[24px] bg-slate-50 p-4">
+                                    <h3 className="text-sm font-black text-slate-900">
+                                        {statusInfo.title}
+                                    </h3>
+
+                                    <p className="mt-2 text-sm font-semibold leading-6 text-slate-500">
+                                        {statusInfo.description}
+                                    </p>
+                                </div>
+
+                                <div className="mt-6 grid gap-3">
+                                    <a
+                                        href={`/my-ads/${id}/edit`}
+                                        className="rounded-2xl bg-orange-500 px-5 py-3 text-center text-sm font-black text-white hover:bg-orange-600"
+                                    >
+                                        Edit Ad Details
+                                    </a>
+
+                                    <a
+                                        href={`/listings/${id}`}
+                                        className="rounded-2xl bg-slate-50 px-5 py-3 text-center text-sm font-black text-slate-700 hover:bg-orange-50 hover:text-orange-600"
+                                    >
+                                        View Public Page
+                                    </a>
+
+                                    <ListingShareActions
+                                        listing={ad}
+                                        listingId={id}
+                                        title={ad?.title}
+                                        className="mt-3"
+                                    />
+
+                                    {actions.length > 0 && (
+                                        <div className="mt-2 border-t border-slate-100 pt-4">
+                                            <p className="mb-3 text-xs font-black uppercase tracking-wide text-slate-400">
+                                                Recommended actions
+                                            </p>
+
+                                            <div className="grid gap-3">
+                                                {actions.map((item) => (
+                                                    <button
+                                                        key={item.action}
+                                                        type="button"
+                                                        onClick={() => handleListingAction(item.action)}
+                                                        disabled={Boolean(actionLoading)}
+                                                        className={`rounded-2xl px-5 py-3 text-left text-sm font-black disabled:cursor-not-allowed disabled:opacity-60 ${item.className}`}
+                                                    >
+                                                        <span className="block">
+                                                            {actionLoading === item.action
+                                                                ? "Please wait..."
+                                                                : item.label}
+                                                        </span>
+
+                                                        <span className="mt-1 block text-xs font-semibold opacity-75">
+                                                            {item.motive}
+                                                        </span>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    <div className="mt-2 border-t border-slate-100 pt-4">
+                                        <button
+                                            type="button"
+                                            onClick={handleDelete}
+                                            className="w-full rounded-2xl bg-red-50 px-5 py-3 text-sm font-black text-red-600 hover:bg-red-100"
+                                        >
+                                            Delete Ad
+                                        </button>
+
+                                        <p className="mt-2 text-xs font-semibold leading-5 text-slate-400">
+                                            Delete only when you no longer want this ad in your account.
+                                        </p>
+                                    </div>
+                                </div>
+                            </>
+                        );
+                    })()}
                 </aside>
             </div>
         </section>

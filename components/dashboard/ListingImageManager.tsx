@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiDelete, apiGet, apiPost } from "@/lib/apiClient";
+import { getOrderedListingImages } from "@/lib/listingImages";
 
 const API_BASE_URL =
     process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000/api/v1";
@@ -54,42 +55,13 @@ function getListingId(listing: any) {
 }
 
 function getImages(listing: any) {
-    const item = listing?.listing || listing || {};
-
-    const rawImages =
-        item?.images ||
-        item?.listing_images ||
-        item?.photos ||
-        item?.media ||
-        listing?.images ||
-        listing?.listing_images ||
-        listing?.photos ||
-        listing?.media ||
-        [];
-
-    if (!Array.isArray(rawImages)) return [];
-
-    return rawImages.map((image: any) => {
-        const imageId = image?.id || image?.image_id || image?.pk || "";
-
-        const imageUrl =
-            image?.image ||
-            image?.url ||
-            image?.image_url ||
-            image?.file ||
-            image?.path ||
-            "";
-
-        return {
-            ...image,
-            id: imageId,
-            url: normalizeImageUrl(String(imageUrl || "")),
-            is_primary:
-                image?.is_primary === true ||
-                image?.primary === true ||
-                image?.is_cover === true,
-        };
-    });
+    return getOrderedListingImages(listing).map((image: any, index: number) => ({
+        id: image.id || `${image.url}-${index}`,
+        image: image.url,
+        url: image.url,
+        is_primary: image.isPrimary || index === 0,
+        isPrimary: image.isPrimary || index === 0,
+    }));
 }
 
 function findListingById(listings: any[], listingId: string | number) {

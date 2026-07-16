@@ -1,6 +1,7 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faLocationDot } from "@/lib/faIcons";
 import HomeAdFavoriteButton from "@/components/home/HomeAdFavoriteButton";
+import ListingCardImage from "@/components/listings/ListingCardImage";
 
 type HomeAdCardProps = {
     ad: any;
@@ -17,19 +18,6 @@ function formatPrice(value: any, currency = "UGX") {
     }
 
     return `${currency} ${numberValue.toLocaleString()}`;
-}
-
-function getAdImage(ad: any) {
-    return (
-        ad?.image ||
-        ad?.image_url ||
-        ad?.thumbnail ||
-        ad?.primary_image?.image ||
-        ad?.primary_image?.url ||
-        ad?.images?.[0]?.image ||
-        ad?.images?.[0]?.url ||
-        ""
-    );
 }
 
 function getAdId(ad: any) {
@@ -135,7 +123,6 @@ function formatDate(value: any) {
 
 export default function HomeAdCard({ ad, favoriteIds }: HomeAdCardProps) {
     const id = getAdId(ad);
-    const image = getAdImage(ad);
     const title = getAdTitle(ad);
 
     const date =
@@ -148,24 +135,13 @@ export default function HomeAdCard({ ad, favoriteIds }: HomeAdCardProps) {
 
     return (
         <article className="group overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-[0_10px_25px_rgba(15,23,42,0.08)] transition hover:-translate-y-1 hover:shadow-[0_16px_35px_rgba(15,23,42,0.12)]">
-            <div className="relative aspect-[4/3] overflow-hidden bg-slate-100">
-                <a href={id ? `/listings/${id}` : "/listings"} className="block h-full">
-                    {image ? (
-                        <img
-                            src={image}
-                            alt={title}
-                            className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
-                        />
-                    ) : (
-                        <div className="flex h-full w-full items-center justify-center text-2xl font-black text-slate-300">
-                            QOT
-                        </div>
-                    )}
-                </a>
-
-                <span className="absolute left-3 top-3 rounded-md bg-orange-500 px-2.5 py-1 text-[10px] font-black uppercase text-white">
-                    New
-                </span>
+            <div className="relative">
+                <ListingCardImage
+                    listing={ad}
+                    title={title}
+                    href={id ? `/listings/${id}` : "/listings"}
+                    showNewBadge
+                />
 
                 {id && (
                     <HomeAdFavoriteButton
@@ -174,7 +150,6 @@ export default function HomeAdCard({ ad, favoriteIds }: HomeAdCardProps) {
                     />
                 )}
             </div>
-
             <a href={id ? `/listings/${id}` : "/listings"} className="block p-4">
                 <h3 className="line-clamp-1 text-[15px] font-black text-slate-950 group-hover:text-orange-600">
                     {title}

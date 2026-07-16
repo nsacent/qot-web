@@ -29,6 +29,14 @@ import {
     faWrench,
     faLock,
     faTrash,
+    faCamera,
+    faCheck,
+    faLink,
+    faShareNodes,
+    faArrowLeft,
+    faBullhorn,
+    faCrown,
+    faPenToSquare,
 } from "@fortawesome/free-solid-svg-icons";
 
 
@@ -71,4 +79,12 @@ export {
     faStar,
     faLock,
     faTrash,
+    faCamera,
+    faCheck,
+    faLink,
+    faShareNodes,
+    faArrowLeft,
+    faBullhorn,
+    faCrown,
+    faPenToSquare,
 };

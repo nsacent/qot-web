@@ -5,6 +5,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faList, faPlus, faStore } from "@/lib/faIcons";
 import QotLoader from "@/components/common/QotLoader";
 import { getCurrentUser } from "@/lib/sessionClient";
+import ListingCardImage from "@/components/listings/ListingCardImage";
 
 const API_BASE_URL =
     process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000/api/v1";
@@ -26,27 +27,6 @@ function getAdId(ad: any) {
 function getAdTitle(ad: any) {
     return ad?.title || ad?.name || "Untitled Ad";
 }
-
-function getAdImage(ad: any) {
-    const image =
-        ad?.cover_image ||
-        ad?.thumbnail ||
-        ad?.image ||
-        ad?.main_image ||
-        ad?.featured_image ||
-        ad?.images?.[0]?.image ||
-        ad?.images?.[0]?.url ||
-        ad?.photos?.[0]?.image ||
-        ad?.photos?.[0]?.url;
-
-    if (!image) return "";
-
-    if (String(image).startsWith("http")) return image;
-    if (String(image).startsWith("/")) return `${API_ORIGIN}${image}`;
-
-    return image;
-}
-
 function formatPrice(value: any) {
     if (value === null || value === undefined || value === "") {
         return "Price on request";
@@ -91,28 +71,18 @@ function getStatus(ad: any) {
 
 function SellerAdCard({ ad }: { ad: any }) {
     const id = getAdId(ad);
-    const image = getAdImage(ad);
+    const title = getAdTitle(ad);
     const status = String(getStatus(ad)).replaceAll("_", " ");
 
     return (
         <article className="overflow-hidden rounded-[26px] bg-white shadow-sm ring-1 ring-black/5">
             <a href={`/listings/${id}`} className="block">
-                <div className="relative aspect-[4/3] bg-slate-100">
-                    {image ? (
-                        <img
-                            src={image}
-                            alt={getAdTitle(ad)}
-                            className="h-full w-full object-cover"
-                        />
-                    ) : (
-                        <div className="flex h-full w-full items-center justify-center text-slate-300">
-                            <FontAwesomeIcon icon={faStore} className="h-10 w-10" />
-                        </div>
-                    )}
-
-                    <span className="absolute left-3 top-3 rounded-full bg-white/95 px-3 py-1 text-[11px] font-black capitalize text-slate-700 shadow-sm">
-                        {status}
-                    </span>
+                <div className="relative aspect-[4/3] overflow-hidden bg-slate-100">
+                    <ListingCardImage
+                        listing={ad}
+                        title={title}
+                        href={`/my-ads/${id}`}
+                    />
                 </div>
 
                 <div className="p-4">
