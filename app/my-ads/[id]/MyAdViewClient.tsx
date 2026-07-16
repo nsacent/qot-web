@@ -50,6 +50,14 @@ function getImages(ad: any) {
         });
 }
 
+function getArray(data: any) {
+    if (Array.isArray(data)) return data;
+    if (Array.isArray(data?.results)) return data.results;
+    if (Array.isArray(data?.data)) return data.data;
+    if (Array.isArray(data?.listings)) return data.listings;
+    return [];
+}
+
 function formatPrice(value: any) {
     if (value === null || value === undefined || value === "") {
         return "Price on request";
@@ -85,15 +93,44 @@ function MyAdViewContent({ id }: { id: string }) {
         setError("");
 
         try {
-            const response = await fetch(`/api/proxy/listings/${id}/`, {
-                credentials: "include",
-                cache: "no-store",
-            });
+            const sellerResponse = await fetch(
+                "/api/proxy/seller/listings/?page_size=1000",
+                {
+                    credentials: "include",
+                    cache: "no-store",
+                }
+            );
 
-            if (response.status === 401) {
+            if (sellerResponse.status === 401) {
                 window.location.href = `/login?next=/my-ads/${id}`;
                 return;
             }
+
+            const sellerData = await sellerResponse.json().catch(() => ({}));
+
+            if (!sellerResponse.ok) {
+                throw new Error(
+                    sellerData?.detail || sellerData?.message || "Failed to verify ad ownership."
+                );
+            }
+
+            const sellerAds = getArray(sellerData);
+
+            const ownedAd = sellerAds.find((item: any) => {
+                const adId = item?.id || item?.listing_id || item?.pk;
+                return String(adId) === String(id);
+            });
+
+            if (!ownedAd) {
+                setAd(null);
+                setError("You are not allowed to manage this ad.");
+                return;
+            }
+
+            const response = await fetch(`/api/proxy/seller/listings/${id}/`, {
+                credentials: "include",
+                cache: "no-store",
+            });
 
             const data = await response.json().catch(() => ({}));
 
@@ -128,7 +165,7 @@ function MyAdViewContent({ id }: { id: string }) {
         if (!confirmed) return;
 
         try {
-            const response = await fetch(`/api/proxy/listings/${id}/`, {
+            const response = await fetch(`/api/proxy/seller/listings/${id}/`, {
                 method: "DELETE",
                 credentials: "include",
             });
@@ -153,7 +190,7 @@ function MyAdViewContent({ id }: { id: string }) {
             <section className="py-6">
                 <div className="rounded-[34px] bg-white p-8 text-center shadow-[0_18px_60px_rgba(15,23,42,0.10)] ring-1 ring-black/5">
                     <h1 className="text-2xl font-black text-slate-950">
-                        Could not load ad
+                        Access denied
                     </h1>
 
                     <p className="mt-2 text-sm font-bold text-red-600">{error}</p>

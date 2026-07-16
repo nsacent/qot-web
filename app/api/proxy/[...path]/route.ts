@@ -2,13 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { backendJsonWithSession } from "@/lib/authCookies";
 
 type RouteContext = {
-    params:
-    | Promise<{
-        path?: string[];
-    }>
-    | {
-        path?: string[];
-    };
+    params: Promise<{ path?: string[] }> | { path?: string[] };
 };
 
 async function getProxyPath(context: RouteContext, request: NextRequest) {
@@ -21,8 +15,28 @@ async function getProxyPath(context: RouteContext, request: NextRequest) {
     return `${backendPath}${search}`;
 }
 
-async function getBodyText(request: NextRequest) {
-    return await request.text().catch(() => "");
+async function getRequestBodyAndHeaders(request: NextRequest, method: string) {
+    const headers = new Headers();
+
+    const contentType = request.headers.get("content-type");
+    const accept = request.headers.get("accept");
+
+    if (contentType) headers.set("Content-Type", contentType);
+    if (accept) headers.set("Accept", accept);
+
+    if (method === "GET" || method === "HEAD") {
+        return {
+            body: undefined,
+            headers,
+        };
+    }
+
+    const bodyBuffer = await request.arrayBuffer();
+
+    return {
+        body: bodyBuffer.byteLength > 0 ? bodyBuffer : undefined,
+        headers,
+    };
 }
 
 function json(data: any, status = 200) {
@@ -35,11 +49,12 @@ async function handleProxy(
     method: string
 ) {
     const backendPath = await getProxyPath(context, request);
-    const bodyText = method === "GET" ? "" : await getBodyText(request);
+    const { body, headers } = await getRequestBodyAndHeaders(request, method);
 
     const result = await backendJsonWithSession(backendPath, {
         method,
-        body: bodyText || undefined,
+        body,
+        headers,
     });
 
     return json(result.data, result.status);

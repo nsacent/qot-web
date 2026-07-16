@@ -67,8 +67,6 @@ export default async function AccountPage() {
                 <div className="py-6">
                     <AccountClient />
                 </div>
-
-                <QotMarketplaceFooter />
             </div>
         </main>
     );

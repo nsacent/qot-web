@@ -1,57 +1,164 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import QotLoader from "@/components/common/QotLoader";
 import { getCurrentUser } from "@/lib/sessionClient";
 
-export default function EditAdClientWrapper({ id }: { id: string }) {
-    return (
-        <Suspense fallback={<QotLoader />}>
-            <EditAdClient id={id} />
-        </Suspense>
-    );
+const API_BASE_URL =
+    process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000/api/v1";
+
+const API_ORIGIN = API_BASE_URL.replace(/\/api\/v1\/?$/, "");
+
+function getArray(data: any) {
+    if (Array.isArray(data)) return data;
+    if (Array.isArray(data?.results)) return data.results;
+    if (Array.isArray(data?.data)) return data.data;
+    return [];
 }
 
+function getImageUrl(value: any) {
+    const image = value?.image || value?.url || value;
 
+    if (!image) return "";
 
-function EditAdClient({ id }: { id: string }) {
+    if (String(image).startsWith("http")) return String(image);
+    if (String(image).startsWith("/")) return `${API_ORIGIN}${image}`;
+
+    return String(image);
+}
+
+function getImageId(value: any) {
+    return value?.id || value?.pk || value?.image_id || "";
+}
+
+function normalizeListing(data: any) {
+    return data?.listing || data?.data || data;
+}
+
+function getValue(value: any) {
+    if (value === null || value === undefined) return "";
+    return String(value);
+}
+
+function EditAdForm({ id }: { id: string }) {
     const [checkingSession, setCheckingSession] = useState(true);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
-    const [deleting, setDeleting] = useState(false);
 
     const [ad, setAd] = useState<any>(null);
+    const [categories, setCategories] = useState<any[]>([]);
+    const [cities, setCities] = useState<any[]>([]);
 
     const [title, setTitle] = useState("");
     const [price, setPrice] = useState("");
+    const [condition, setCondition] = useState("");
+    const [category, setCategory] = useState("");
+    const [city, setCity] = useState("");
+    const [phone, setPhone] = useState("");
+    const [locationDetails, setLocationDetails] = useState("");
     const [description, setDescription] = useState("");
+    const [isNegotiable, setIsNegotiable] = useState(false);
+    const [status, setStatus] = useState("");
+
+    const [newImages, setNewImages] = useState<File[]>([]);
+    const [deletedImageIds, setDeletedImageIds] = useState<string[]>([]);
 
     const [message, setMessage] = useState("");
     const [error, setError] = useState("");
+
+    const existingImages = useMemo(() => {
+        const images = ad?.images || ad?.photos || [];
+
+        if (!Array.isArray(images)) return [];
+
+        return images
+            .map((item: any) => ({
+                id: getImageId(item),
+                url: getImageUrl(item),
+            }))
+            .filter((item: any) => item.url)
+            .filter((item: any) => !deletedImageIds.includes(String(item.id)));
+    }, [ad, deletedImageIds]);
+
+    const newImagePreviews = useMemo(() => {
+        return newImages.map((file) => ({
+            name: file.name,
+            url: URL.createObjectURL(file),
+        }));
+    }, [newImages]);
 
     async function checkSession() {
         try {
             await getCurrentUser();
             setCheckingSession(false);
         } catch {
-            window.location.href = `/login?next=/my-ads/${id}`;
+            window.location.href = `/login?next=/my-ads/${id}/edit`;
         }
     }
+
+    async function loadCategoriesAndCities() {
+        const [categoriesResponse, citiesResponse] = await Promise.all([
+            fetch("/api/proxy/categories/", {
+                credentials: "include",
+                cache: "no-store",
+            }),
+            fetch("/api/proxy/locations/cities/?page_size=1000", {
+                credentials: "include",
+                cache: "no-store",
+            }),
+        ]);
+
+        const categoriesData = await categoriesResponse.json().catch(() => ({}));
+        const citiesData = await citiesResponse.json().catch(() => ({}));
+
+        setCategories(getArray(categoriesData));
+        setCities(getArray(citiesData));
+    }
+
 
     async function loadAd() {
         setLoading(true);
         setError("");
 
         try {
-            const response = await fetch(`/api/proxy/listings/${id}/`, {
+            const sellerResponse = await fetch(
+                "/api/proxy/seller/listings/?page_size=1000",
+                {
+                    credentials: "include",
+                    cache: "no-store",
+                }
+            );
+
+            if (sellerResponse.status === 401) {
+                window.location.href = `/login?next=/my-ads/${id}/edit`;
+                return;
+            }
+
+            const sellerData = await sellerResponse.json().catch(() => ({}));
+
+            if (!sellerResponse.ok) {
+                throw new Error(
+                    sellerData?.detail || sellerData?.message || "Failed to verify ad ownership."
+                );
+            }
+
+            const sellerAds = getArray(sellerData);
+
+            const ownedAd = sellerAds.find((item: any) => {
+                const adId = item?.id || item?.listing_id || item?.pk;
+                return String(adId) === String(id);
+            });
+
+            if (!ownedAd) {
+                setAd(null);
+                setError("You are not allowed to edit this ad.");
+                return;
+            }
+
+            const response = await fetch(`/api/proxy/seller/listings/${id}/`, {
                 credentials: "include",
                 cache: "no-store",
             });
-
-            if (response.status === 401) {
-                window.location.href = `/login?next=/my-ads/${id}`;
-                return;
-            }
 
             const data = await response.json().catch(() => ({}));
 
@@ -59,18 +166,33 @@ function EditAdClient({ id }: { id: string }) {
                 throw new Error(data?.detail || data?.message || "Failed to load ad.");
             }
 
-            const listing = data?.listing || data?.data || data;
+            const listing = normalizeListing(data);
 
             setAd(listing);
-            setTitle(listing?.title || "");
-            setPrice(String(listing?.price || ""));
-            setDescription(listing?.description || "");
+
+            setTitle(getValue(listing?.title));
+            setPrice(getValue(listing?.price || listing?.amount || listing?.selling_price));
+            setCondition(getValue(listing?.condition));
+            setCategory(
+                getValue(listing?.category?.id || listing?.category_id || listing?.category)
+            );
+            setCity(getValue(listing?.city?.id || listing?.city_id || listing?.city));
+            setPhone(getValue(listing?.contact_phone || listing?.phone));
+            setLocationDetails(
+                getValue(listing?.location_details || listing?.address || listing?.location)
+            );
+            setDescription(getValue(listing?.description));
+            setIsNegotiable(Boolean(listing?.is_negotiable || listing?.negotiable));
+            setStatus(getValue(listing?.status || listing?.approval_status));
         } catch (err: any) {
             setError(err.message || "Failed to load ad.");
+            setAd(null);
         } finally {
             setLoading(false);
         }
     }
+
+
 
     useEffect(() => {
         checkSession();
@@ -78,9 +200,32 @@ function EditAdClient({ id }: { id: string }) {
 
     useEffect(() => {
         if (!checkingSession) {
+            loadCategoriesAndCities();
             loadAd();
         }
     }, [checkingSession]);
+
+    function handleAddImages(event: React.ChangeEvent<HTMLInputElement>) {
+        const files = Array.from(event.target.files || []);
+
+        if (!files.length) return;
+
+        setNewImages((current) => [...current, ...files]);
+        event.target.value = "";
+    }
+
+    function removeNewImage(index: number) {
+        setNewImages((current) => current.filter((_, itemIndex) => itemIndex !== index));
+    }
+
+    function removeExistingImage(imageId: string) {
+        if (!imageId) return;
+
+        setDeletedImageIds((current) => {
+            if (current.includes(String(imageId))) return current;
+            return [...current, String(imageId)];
+        });
+    }
 
     async function handleSave(event: React.FormEvent<HTMLFormElement>) {
         event.preventDefault();
@@ -90,65 +235,79 @@ function EditAdClient({ id }: { id: string }) {
         setMessage("");
 
         try {
-            const response = await fetch(`/api/proxy/listings/${id}/`, {
-                method: "PATCH",
-                credentials: "include",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    title: title.trim(),
-                    price,
-                    description: description.trim(),
-                }),
-            });
+            const hasImageChanges = newImages.length > 0 || deletedImageIds.length > 0;
+
+            let response: Response;
+
+            if (hasImageChanges) {
+                const formData = new FormData();
+
+                formData.append("title", title.trim());
+                formData.append("price", price);
+                formData.append("description", description.trim());
+                formData.append("condition", condition);
+                formData.append("category", category);
+                formData.append("city", city);
+                formData.append("contact_phone", phone.trim());
+                formData.append("location_details", locationDetails.trim());
+                formData.append("is_negotiable", String(isNegotiable));
+
+                if (status) {
+                    formData.append("status", status);
+                }
+
+                newImages.forEach((file) => {
+                    formData.append("images", file);
+                });
+
+                deletedImageIds.forEach((imageId) => {
+                    formData.append("remove_image_ids", imageId);
+                    formData.append("deleted_images", imageId);
+                });
+
+                response = await fetch(`/api/proxy/seller/listings/${id}/`, {
+                    method: "PATCH",
+                    credentials: "include",
+                    body: formData,
+                });
+            } else {
+                response = await fetch(`/api/proxy/seller/listings/${id}/`, {
+                    method: "PATCH",
+                    credentials: "include",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        title: title.trim(),
+                        price,
+                        description: description.trim(),
+                        condition,
+                        category,
+                        city,
+                        contact_phone: phone.trim(),
+                        location_details: locationDetails.trim(),
+                        is_negotiable: isNegotiable,
+                        ...(status ? { status } : {}),
+                    }),
+                });
+            }
 
             const data = await response.json().catch(() => ({}));
 
             if (!response.ok) {
-                throw new Error(data?.detail || data?.message || "Failed to update ad.");
+                throw new Error(data?.detail || data?.message || "Failed to save ad.");
             }
+
+            setNewImages([]);
+            setDeletedImageIds([]);
 
             await loadAd();
+
             setMessage("Ad updated successfully.");
         } catch (err: any) {
-            setError(err.message || "Failed to update ad.");
+            setError(err.message || "Failed to save ad.");
         } finally {
             setSaving(false);
-        }
-    }
-
-    async function handleDelete() {
-        const confirmed = window.confirm(
-            "Are you sure you want to delete this ad? This action cannot be undone."
-        );
-
-        if (!confirmed) return;
-
-        setDeleting(true);
-        setError("");
-        setMessage("");
-
-        try {
-            const response = await fetch(`/api/proxy/listings/${id}/`, {
-                method: "DELETE",
-                credentials: "include",
-            });
-
-            if (!response.ok && response.status !== 204) {
-                const data = await response.json().catch(async () => {
-                    const text = await response.text().catch(() => "");
-                    return { detail: text ? "This ad endpoint was not found." : "Failed to load ad." };
-                });
-
-                throw new Error(data?.detail || data?.message || "Failed to delete ad.");
-            }
-
-            window.location.href = "/my-ads";
-        } catch (err: any) {
-            setError(err.message || "Failed to delete ad.");
-        } finally {
-            setDeleting(false);
         }
     }
 
@@ -161,7 +320,7 @@ function EditAdClient({ id }: { id: string }) {
             <section className="py-6">
                 <div className="rounded-[34px] bg-white p-8 text-center shadow-[0_18px_60px_rgba(15,23,42,0.10)] ring-1 ring-black/5">
                     <h1 className="text-2xl font-black text-slate-950">
-                        Could not load ad
+                        Access denied
                     </h1>
 
                     <p className="mt-2 text-sm font-bold text-red-600">{error}</p>
@@ -179,126 +338,292 @@ function EditAdClient({ id }: { id: string }) {
 
     return (
         <section className="py-6 text-slate-950">
-            <div className="grid gap-6 lg:grid-cols-[0.8fr_1.2fr]">
-                <aside className="rounded-[34px] bg-white p-6 shadow-[0_18px_60px_rgba(15,23,42,0.10)] ring-1 ring-black/5">
+            <form
+                onSubmit={handleSave}
+                className="grid gap-6 lg:grid-cols-[0.75fr_1.25fr]"
+            >
+                <aside className="h-fit rounded-[34px] bg-white p-5 shadow-[0_18px_60px_rgba(15,23,42,0.10)] ring-1 ring-black/5 sm:p-6">
                     <a
-                        href="/my-ads"
+                        href={`/my-ads/${id}`}
                         className="text-sm font-black text-orange-600 hover:text-orange-700"
                     >
-                        ← Back to My Ads
+                        ← Back to Ad
                     </a>
 
-                    <div className="mt-6 rounded-[28px] bg-slate-50 p-4">
-                        <p className="text-xs font-black uppercase tracking-wide text-slate-400">
-                            Current ad
-                        </p>
+                    <h1 className="mt-6 text-2xl font-black text-slate-950">
+                        Edit Ad
+                    </h1>
 
-                        <h1 className="mt-2 text-2xl font-black text-slate-950">
-                            {ad?.title || "Untitled Ad"}
-                        </h1>
-
-                        <p className="mt-2 text-sm font-bold text-slate-500">
-                            Status:{" "}
-                            <span className="capitalize text-slate-800">
-                                {String(ad?.status || ad?.approval_status || "active").replaceAll(
-                                    "_",
-                                    " "
-                                )}
-                            </span>
-                        </p>
-                    </div>
-
-                    <div className="mt-5 grid gap-3">
-                        <a
-                            href={`/listings/${id}`}
-                            className="rounded-2xl bg-slate-50 px-4 py-3 text-center text-sm font-black text-slate-700 hover:bg-orange-50 hover:text-orange-600"
-                        >
-                            View Public Ad
-                        </a>
-
-                        <button
-                            type="button"
-                            onClick={handleDelete}
-                            disabled={deleting}
-                            className="rounded-2xl bg-red-50 px-4 py-3 text-sm font-black text-red-600 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
-                        >
-                            {deleting ? "Deleting..." : "Delete Ad"}
-                        </button>
-                    </div>
-                </aside>
-
-                <div className="rounded-[34px] bg-white p-6 shadow-[0_18px_60px_rgba(15,23,42,0.10)] ring-1 ring-black/5 sm:p-8">
-                    <h2 className="text-3xl font-black text-slate-950">Manage Ad</h2>
-
-                    <p className="mt-2 text-sm font-semibold text-slate-500">
-                        Update your ad title, price, and description.
+                    <p className="mt-2 text-sm font-semibold leading-6 text-slate-500">
+                        Update your ad details, category, location, pricing, and images.
                     </p>
 
                     {error && (
-                        <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
+                        <div className="mt-5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
                             {error}
                         </div>
                     )}
 
                     {message && (
-                        <div className="mt-6 rounded-2xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-bold text-green-700">
+                        <div className="mt-5 rounded-2xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-bold text-green-700">
                             {message}
                         </div>
                     )}
 
-                    <form onSubmit={handleSave} className="mt-7 space-y-4">
-                        <label className="block">
-                            <span className="mb-2 block text-sm font-black text-slate-700">
-                                Ad title
-                            </span>
-
-                            <input
-                                type="text"
-                                value={title}
-                                onChange={(event) => setTitle(event.target.value)}
-                                required
-                                className="w-full rounded-2xl bg-slate-50 px-4 py-3 text-sm font-bold text-slate-900 outline-none ring-1 ring-slate-100 focus:bg-white focus:ring-orange-200"
-                            />
-                        </label>
-
-                        <label className="block">
-                            <span className="mb-2 block text-sm font-black text-slate-700">
-                                Price
-                            </span>
-
-                            <input
-                                type="text"
-                                value={price}
-                                onChange={(event) => setPrice(event.target.value)}
-                                placeholder="Example: 450000"
-                                className="w-full rounded-2xl bg-slate-50 px-4 py-3 text-sm font-bold text-slate-900 outline-none ring-1 ring-slate-100 focus:bg-white focus:ring-orange-200"
-                            />
-                        </label>
-
-                        <label className="block">
-                            <span className="mb-2 block text-sm font-black text-slate-700">
-                                Description
-                            </span>
-
-                            <textarea
-                                value={description}
-                                onChange={(event) => setDescription(event.target.value)}
-                                rows={8}
-                                className="w-full resize-none rounded-2xl bg-slate-50 px-4 py-3 text-sm font-bold text-slate-900 outline-none ring-1 ring-slate-100 focus:bg-white focus:ring-orange-200"
-                            />
-                        </label>
-
+                    <div className="mt-6 grid gap-3">
                         <button
                             type="submit"
                             disabled={saving}
-                            className="rounded-2xl bg-orange-500 px-6 py-3.5 text-sm font-black text-white hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-60"
+                            className="rounded-2xl bg-orange-500 px-5 py-3.5 text-sm font-black text-white hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-60"
                         >
                             {saving ? "Saving..." : "Save Changes"}
                         </button>
-                    </form>
+
+                        <a
+                            href={`/listings/${id}`}
+                            className="rounded-2xl bg-slate-50 px-5 py-3 text-center text-sm font-black text-slate-700 hover:bg-orange-50 hover:text-orange-600"
+                        >
+                            View Public Page
+                        </a>
+                    </div>
+                </aside>
+
+                <div className="space-y-6">
+                    <div className="rounded-[34px] bg-white p-5 shadow-[0_18px_60px_rgba(15,23,42,0.10)] ring-1 ring-black/5 sm:p-7">
+                        <h2 className="text-xl font-black text-slate-950">
+                            Basic details
+                        </h2>
+
+                        <div className="mt-5 grid gap-4">
+                            <label className="block">
+                                <span className="mb-2 block text-sm font-black text-slate-700">
+                                    Ad title
+                                </span>
+
+                                <input
+                                    value={title}
+                                    onChange={(event) => setTitle(event.target.value)}
+                                    required
+                                    className="w-full rounded-2xl bg-slate-50 px-4 py-3 text-sm font-bold text-slate-900 outline-none ring-1 ring-slate-100 focus:bg-white focus:ring-orange-200"
+                                />
+                            </label>
+
+                            <div className="grid gap-4 md:grid-cols-2">
+                                <label className="block">
+                                    <span className="mb-2 block text-sm font-black text-slate-700">
+                                        Category
+                                    </span>
+
+                                    <select
+                                        value={category}
+                                        onChange={(event) => setCategory(event.target.value)}
+                                        className="w-full rounded-2xl bg-slate-50 px-4 py-3 text-sm font-bold text-slate-900 outline-none ring-1 ring-slate-100 focus:bg-white focus:ring-orange-200"
+                                    >
+                                        <option value="">Select category</option>
+                                        {categories.map((item: any) => (
+                                            <option key={item.id || item.slug} value={item.id || item.slug}>
+                                                {item.name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </label>
+
+                                <label className="block">
+                                    <span className="mb-2 block text-sm font-black text-slate-700">
+                                        Condition
+                                    </span>
+
+                                    <select
+                                        value={condition}
+                                        onChange={(event) => setCondition(event.target.value)}
+                                        className="w-full rounded-2xl bg-slate-50 px-4 py-3 text-sm font-bold text-slate-900 outline-none ring-1 ring-slate-100 focus:bg-white focus:ring-orange-200"
+                                    >
+                                        <option value="">Select condition</option>
+                                        <option value="new">New</option>
+                                        <option value="used">Used</option>
+                                        <option value="refurbished">Refurbished</option>
+                                    </select>
+                                </label>
+                            </div>
+
+                            <label className="block">
+                                <span className="mb-2 block text-sm font-black text-slate-700">
+                                    Description
+                                </span>
+
+                                <textarea
+                                    value={description}
+                                    onChange={(event) => setDescription(event.target.value)}
+                                    rows={8}
+                                    className="w-full resize-none rounded-2xl bg-slate-50 px-4 py-3 text-sm font-bold text-slate-900 outline-none ring-1 ring-slate-100 focus:bg-white focus:ring-orange-200"
+                                />
+                            </label>
+                        </div>
+                    </div>
+
+                    <div className="rounded-[34px] bg-white p-5 shadow-[0_18px_60px_rgba(15,23,42,0.10)] ring-1 ring-black/5 sm:p-7">
+                        <h2 className="text-xl font-black text-slate-950">
+                            Price and location
+                        </h2>
+
+                        <div className="mt-5 grid gap-4 md:grid-cols-2">
+                            <label className="block">
+                                <span className="mb-2 block text-sm font-black text-slate-700">
+                                    Price
+                                </span>
+
+                                <input
+                                    value={price}
+                                    onChange={(event) => setPrice(event.target.value)}
+                                    placeholder="Example: 450000"
+                                    className="w-full rounded-2xl bg-slate-50 px-4 py-3 text-sm font-bold text-slate-900 outline-none ring-1 ring-slate-100 focus:bg-white focus:ring-orange-200"
+                                />
+                            </label>
+
+                            <label className="block">
+                                <span className="mb-2 block text-sm font-black text-slate-700">
+                                    City
+                                </span>
+
+                                <select
+                                    value={city}
+                                    onChange={(event) => setCity(event.target.value)}
+                                    className="w-full rounded-2xl bg-slate-50 px-4 py-3 text-sm font-bold text-slate-900 outline-none ring-1 ring-slate-100 focus:bg-white focus:ring-orange-200"
+                                >
+                                    <option value="">Select city</option>
+                                    {cities.map((item: any) => (
+                                        <option key={item.id || item.slug} value={item.id || item.slug}>
+                                            {item.name}
+                                            {item.region_name ? `, ${item.region_name}` : ""}
+                                        </option>
+                                    ))}
+                                </select>
+                            </label>
+
+                            <label className="block">
+                                <span className="mb-2 block text-sm font-black text-slate-700">
+                                    Contact phone
+                                </span>
+
+                                <input
+                                    value={phone}
+                                    onChange={(event) => setPhone(event.target.value)}
+                                    placeholder="+256700000001"
+                                    className="w-full rounded-2xl bg-slate-50 px-4 py-3 text-sm font-bold text-slate-900 outline-none ring-1 ring-slate-100 focus:bg-white focus:ring-orange-200"
+                                />
+                            </label>
+
+                            <label className="block">
+                                <span className="mb-2 block text-sm font-black text-slate-700">
+                                    Specific location
+                                </span>
+
+                                <input
+                                    value={locationDetails}
+                                    onChange={(event) => setLocationDetails(event.target.value)}
+                                    placeholder="Example: Banda, near the mosque"
+                                    className="w-full rounded-2xl bg-slate-50 px-4 py-3 text-sm font-bold text-slate-900 outline-none ring-1 ring-slate-100 focus:bg-white focus:ring-orange-200"
+                                />
+                            </label>
+                        </div>
+
+                        <label className="mt-5 flex items-center gap-3 rounded-2xl bg-slate-50 px-4 py-3">
+                            <input
+                                type="checkbox"
+                                checked={isNegotiable}
+                                onChange={(event) => setIsNegotiable(event.target.checked)}
+                                className="h-4 w-4 rounded border-slate-300 text-orange-500"
+                            />
+
+                            <span className="text-sm font-black text-slate-700">
+                                Price is negotiable
+                            </span>
+                        </label>
+                    </div>
+
+                    <div className="rounded-[34px] bg-white p-5 shadow-[0_18px_60px_rgba(15,23,42,0.10)] ring-1 ring-black/5 sm:p-7">
+                        <h2 className="text-xl font-black text-slate-950">Images</h2>
+
+                        <p className="mt-2 text-sm font-semibold text-slate-500">
+                            Add new images or remove existing images from this ad.
+                        </p>
+
+                        <label className="mt-5 flex cursor-pointer flex-col items-center justify-center rounded-[28px] border-2 border-dashed border-orange-200 bg-orange-50 px-6 py-10 text-center hover:bg-orange-100">
+                            <span className="text-sm font-black text-orange-600">
+                                Click to upload images
+                            </span>
+
+                            <span className="mt-1 text-xs font-semibold text-orange-700/70">
+                                JPG, PNG, or WEBP
+                            </span>
+
+                            <input
+                                type="file"
+                                multiple
+                                accept="image/*"
+                                onChange={handleAddImages}
+                                className="hidden"
+                            />
+                        </label>
+
+                        {(existingImages.length > 0 || newImagePreviews.length > 0) && (
+                            <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+                                {existingImages.map((image: any) => (
+                                    <div
+                                        key={image.id || image.url}
+                                        className="relative overflow-hidden rounded-2xl bg-slate-100"
+                                    >
+                                        <img
+                                            src={image.url}
+                                            alt=""
+                                            className="aspect-square w-full object-cover"
+                                        />
+
+                                        {image.id && (
+                                            <button
+                                                type="button"
+                                                onClick={() => removeExistingImage(String(image.id))}
+                                                className="absolute right-2 top-2 rounded-full bg-red-500 px-3 py-1 text-[11px] font-black text-white"
+                                            >
+                                                Remove
+                                            </button>
+                                        )}
+                                    </div>
+                                ))}
+
+                                {newImagePreviews.map((image, index) => (
+                                    <div
+                                        key={`${image.name}-${index}`}
+                                        className="relative overflow-hidden rounded-2xl bg-slate-100"
+                                    >
+                                        <img
+                                            src={image.url}
+                                            alt=""
+                                            className="aspect-square w-full object-cover"
+                                        />
+
+                                        <button
+                                            type="button"
+                                            onClick={() => removeNewImage(index)}
+                                            className="absolute right-2 top-2 rounded-full bg-red-500 px-3 py-1 text-[11px] font-black text-white"
+                                        >
+                                            Remove
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
                 </div>
-            </div>
+            </form>
         </section>
     );
 }
 
+export default function EditAdClient({ id }: { id: string }) {
+    return (
+        <Suspense fallback={<QotLoader />}>
+            <EditAdForm id={id} />
+        </Suspense>
+    );
+}
