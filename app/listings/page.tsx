@@ -1,9 +1,20 @@
 import Navbar from "@/components/layout/QotMarketplaceNav";
-import ListingCard from "@/components/listings/ListingCard";
+import QotMarketplaceFooter from "@/components/layout/QotMarketplaceFooter";
 import { apiGet, getArray } from "@/lib/api";
 import ListingFilters from "@/components/listings/ListingFilters";
 import Pagination from "@/components/listings/Pagination";
 import SaveSearchButton from "@/components/listings/SaveSearchButton";
+import ListingsGridClient from "@/components/listings/ListingsGridClient";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+    faBookmark,
+    faFilter,
+    faMagnifyingGlass,
+    faRotateLeft,
+    faStore,
+} from "@fortawesome/free-solid-svg-icons";
+
+export const dynamic = "force-dynamic";
 
 type ListingsPageProps = {
     searchParams: Promise<{
@@ -23,21 +34,16 @@ type ListingsPageProps = {
     }>;
 };
 
-export default async function ListingsPage({ searchParams }: ListingsPageProps) {
-    const params = await searchParams;
+function hasValue(value: any) {
+    return value !== undefined && value !== null && String(value).trim() !== "";
+}
 
-    let listings: any[] = [];
-    let totalCount: number | undefined = undefined;
-    let hasNext = false;
-    let hasPrevious = false;
-
-    let categories: any[] = [];
-    let regions: any[] = [];
-    let cities: any[] = [];
-
+function buildListingsQuery(params: any) {
     const query = new URLSearchParams();
 
     const searchTerm = params.q || params.search || "";
+
+    query.set("page_size", "16");
 
     if (searchTerm) query.set("q", searchTerm);
     if (params.category) query.set("category", params.category);
@@ -55,15 +61,93 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
         query.set("page", params.page);
     }
 
+    return query;
+}
+
+async function getCities() {
+    let path = "/locations/cities/?page_size=100";
+    const cities: any[] = [];
+
+    for (let i = 0; i < 6 && path; i++) {
+        const data = await apiGet(path).catch(() => null);
+
+        cities.push(...getArray(data));
+
+        if (!data?.next) break;
+
+        if (String(data.next).startsWith("http")) {
+            const url = new URL(data.next);
+            path = `${url.pathname}${url.search}`.replace("/api/v1", "");
+        } else {
+            path = data.next;
+        }
+    }
+
+    return cities;
+}
+
+async function getRegions() {
+    let path = "/locations/regions/?page_size=100";
+    const regions: any[] = [];
+
+    for (let i = 0; i < 6 && path; i++) {
+        const data = await apiGet(path).catch(() => null);
+
+        regions.push(...getArray(data));
+
+        if (!data?.next) break;
+
+        if (String(data.next).startsWith("http")) {
+            const url = new URL(data.next);
+            path = `${url.pathname}${url.search}`.replace("/api/v1", "");
+        } else {
+            path = data.next;
+        }
+    }
+
+    return regions;
+}
+
+export default async function ListingsPage({ searchParams }: ListingsPageProps) {
+    const params = await searchParams;
+
+    let listings: any[] = [];
+    let totalCount: number | undefined = undefined;
+    let hasNext = false;
+    let hasPrevious = false;
+
+    let categories: any[] = [];
+    let regions: any[] = [];
+    let cities: any[] = [];
+
+    const searchTerm = params.q || params.search || "";
+    const query = buildListingsQuery(params);
+
     const endpoint = query.toString()
         ? `/listings/?${query.toString()}`
-        : "/listings/";
+        : "/listings/?page_size=16";
+
+    const filterValues = [
+        searchTerm,
+        params.category,
+        params.city,
+        params.region,
+        params.min_price,
+        params.max_price,
+        params.condition,
+        params.sort,
+        params.brand,
+        params.ram,
+        params.bedrooms,
+    ];
+
+    const hasFilters = filterValues.some(hasValue);
 
     try {
         const [categoriesData, regionsData, citiesData] = await Promise.allSettled([
             apiGet("/categories/"),
-            apiGet("/locations/regions/"),
-            apiGet("/locations/cities/"),
+            getRegions(),
+            getCities(),
         ]);
 
         if (categoriesData.status === "fulfilled") {
@@ -71,11 +155,11 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
         }
 
         if (regionsData.status === "fulfilled") {
-            regions = getArray(regionsData.value);
+            regions = regionsData.value;
         }
 
         if (citiesData.status === "fulfilled") {
-            cities = getArray(citiesData.value);
+            cities = citiesData.value;
         }
     } catch (error) {
         console.error("Filters API error:", error);
@@ -85,7 +169,6 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
         const data = await apiGet(endpoint);
 
         listings = getArray(data);
-
         totalCount = typeof data?.count === "number" ? data.count : undefined;
         hasNext = Boolean(data?.next);
         hasPrevious = Boolean(data?.previous);
@@ -98,122 +181,160 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
         hasPrevious = Number(params.page || 1) > 1;
     }
 
-    const hasFilters =
-        searchTerm ||
-        params.category ||
-        params.city ||
-        params.region ||
-        params.min_price ||
-        params.max_price ||
-        params.condition ||
-        params.sort ||
-        params.brand ||
-        params.ram ||
-        params.bedrooms;
+    const resultCount =
+        typeof totalCount === "number" ? totalCount : listings.length;
 
     return (
-        <main className="min-h-screen bg-slate-50 text-slate-900">
-            <Navbar />
+        <main className="min-h-screen bg-[#fff7f2] text-slate-950 antialiased">
+            <div className="mx-auto max-w-[1500px] px-4 py-4 sm:px-6">
+                <Navbar categories={categories} cities={cities} />
 
-            <section className="border-b bg-white">
-                <div className="mx-auto max-w-7xl px-6 py-10">
-                    <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
-                        <div>
-                            <p className="text-sm font-semibold uppercase tracking-wide text-orange-600">
-                                Browse Listings
-                            </p>
+                <section className="pt-6">
+                    <div className="overflow-hidden rounded-[38px] bg-white shadow-[0_18px_60px_rgba(15,23,42,0.10)] ring-1 ring-black/5">
+                        <div className="relative bg-gradient-to-br from-slate-950 via-slate-900 to-orange-950 p-6 text-white sm:p-8 lg:p-10">
+                            <div className="absolute -right-16 -top-16 h-52 w-52 rounded-full bg-orange-500/20 blur-xl" />
+                            <div className="absolute -bottom-20 left-16 h-48 w-48 rounded-full bg-white/10 blur-xl" />
 
-                            <h1 className="mt-2 text-3xl font-bold md:text-5xl">
-                                {searchTerm
-                                    ? `Search results for "${searchTerm}"`
-                                    : "Browse Listings"}
-                            </h1>
+                            <div className="relative flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
+                                <div>
+                                    <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-xs font-black uppercase tracking-wide text-orange-100 ring-1 ring-white/10">
+                                        <FontAwesomeIcon
+                                            icon={faMagnifyingGlass}
+                                            className="h-3.5 w-3.5"
+                                        />
+                                        Browse Ads
+                                    </span>
 
-                            <p className="mt-3 max-w-2xl text-slate-600">
-                                {searchTerm
-                                    ? "Showing adverts that match your search."
-                                    : "Discover trusted ads from sellers around Uganda."}
-                            </p>
+                                    <h1 className="mt-5 max-w-4xl text-3xl font-black tracking-tight md:text-5xl">
+                                        {searchTerm
+                                            ? `Search results for “${searchTerm}”`
+                                            : "Find trusted ads around Uganda"}
+                                    </h1>
+
+                                    <p className="mt-4 max-w-2xl text-sm font-semibold leading-7 text-white/70 md:text-base">
+                                        {searchTerm
+                                            ? "Showing adverts that match your search and selected filters."
+                                            : "Browse cars, electronics, property, jobs, services, and more from QOT sellers."}
+                                    </p>
+                                </div>
+
+                                <div className="grid gap-3 sm:grid-cols-2">
+                                    <SaveSearchButton />
+
+                                    <a
+                                        href="/saved-searches"
+                                        className="inline-flex h-11 items-center justify-center gap-2 rounded-[18px] bg-white/10 px-5 text-sm font-black text-white ring-1 ring-white/10 hover:bg-white/15"
+                                    >
+                                        <FontAwesomeIcon icon={faBookmark} className="h-4 w-4" />
+                                        Saved Searches
+                                    </a>
+                                </div>
+                            </div>
                         </div>
 
-                        <div className="flex flex-col gap-3 sm:flex-row">
-                            <SaveSearchButton />
+                        <div className="border-b border-slate-100 bg-white p-5 sm:p-7">
+                            <div className="mb-4 flex items-center gap-3">
+                                <div className="flex h-11 w-11 items-center justify-center rounded-full bg-orange-50 text-orange-600">
+                                    <FontAwesomeIcon icon={faFilter} className="h-4 w-4" />
+                                </div>
+
+                                <div>
+                                    <h2 className="text-base font-black text-slate-950">
+                                        Filter ads
+                                    </h2>
+                                    <p className="text-sm font-semibold text-slate-500">
+                                        Narrow results by category, location, price, and condition.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <ListingFilters
+                                categories={categories}
+                                regions={regions}
+                                cities={cities}
+                            />
+
+                            {hasFilters && (
+                                <a
+                                    href="/listings"
+                                    className="mt-5 inline-flex h-10 items-center justify-center gap-2 rounded-[16px] bg-orange-50 px-4 text-sm font-black text-orange-600 hover:bg-orange-100"
+                                >
+                                    <FontAwesomeIcon icon={faRotateLeft} className="h-4 w-4" />
+                                    Clear all filters
+                                </a>
+                            )}
+                        </div>
+                    </div>
+                </section>
+
+                <section className="py-8">
+                    <div className="mb-6 flex flex-col justify-between gap-3 md:flex-row md:items-center">
+                        <div>
+                            <p className="text-sm font-black uppercase tracking-wide text-orange-600">
+                                Marketplace Results
+                            </p>
+
+                            <h2 className="mt-1 text-2xl font-black text-slate-950">
+                                {resultCount.toLocaleString()} ad{resultCount === 1 ? "" : "s"} found
+                            </h2>
+                        </div>
+
+                        {hasFilters && (
+                            <span className="inline-flex w-fit items-center gap-2 rounded-full bg-white px-4 py-2 text-xs font-black uppercase tracking-wide text-slate-600 shadow-sm ring-1 ring-black/5">
+                                <FontAwesomeIcon icon={faFilter} className="h-3.5 w-3.5" />
+                                Filters applied
+                            </span>
+                        )}
+                    </div>
+
+                    {listings.length > 0 ? (
+                        <ListingsGridClient listings={listings} />
+                    ) : (
+                        <div className="rounded-[34px] bg-white p-8 text-center shadow-[0_18px_55px_rgba(15,23,42,0.08)] ring-1 ring-black/5">
+                            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-orange-50 text-orange-600">
+                                <FontAwesomeIcon icon={faStore} className="h-7 w-7" />
+                            </div>
+
+                            <h2 className="mt-5 text-2xl font-black text-slate-950">
+                                No ads found
+                            </h2>
+
+                            <p className="mx-auto mt-2 max-w-xl text-sm font-semibold leading-6 text-slate-500">
+                                Try changing your search words, removing some filters, or
+                                browsing all adverts again.
+                            </p>
 
                             <a
-                                href="/saved-searches"
-                                className="rounded-xl border bg-white px-5 py-3 text-center text-sm font-semibold hover:bg-slate-50"
+                                href="/listings"
+                                className="mt-6 inline-flex h-11 items-center justify-center rounded-[18px] bg-orange-500 px-5 text-sm font-black text-white hover:bg-orange-600"
                             >
-                                Saved Searches
+                                Browse all ads
                             </a>
                         </div>
-                    </div>
-
-                    <div className="mt-8">
-                        <ListingFilters
-                            categories={categories}
-                            regions={regions}
-                            cities={cities}
-                        />
-                    </div>
-
-                    {hasFilters && (
-                        <a
-                            href="/listings"
-                            className="mt-4 inline-block text-sm font-semibold text-orange-600 hover:text-orange-700"
-                        >
-                            Clear all filters
-                        </a>
                     )}
-                </div>
-            </section>
 
-            <section className="mx-auto max-w-7xl px-6 py-10">
-                <div className="mb-6 flex flex-col justify-between gap-3 md:flex-row md:items-center">
-                    <p className="text-sm font-semibold text-slate-600">
-                        {typeof totalCount === "number"
-                            ? `${totalCount.toLocaleString()} listing${totalCount === 1 ? "" : "s"
-                            } found`
-                            : `${listings.length.toLocaleString()} listing${listings.length === 1 ? "" : "s"
-                            } found`}
-                    </p>
+                    <Pagination
+                        currentPage={Number(params.page || 1)}
+                        hasNext={hasNext}
+                        hasPrevious={hasPrevious}
+                        totalCount={totalCount}
+                        searchParams={{
+                            q: searchTerm,
+                            category: params.category,
+                            city: params.city,
+                            region: params.region,
+                            min_price: params.min_price,
+                            max_price: params.max_price,
+                            condition: params.condition,
+                            sort: params.sort,
+                            brand: params.brand,
+                            ram: params.ram,
+                            bedrooms: params.bedrooms,
+                        }}
+                    />
+                </section>
 
-                    {hasFilters && (
-                        <p className="text-sm text-slate-500">Filters applied</p>
-                    )}
-                </div>
-
-                {listings.length > 0 ? (
-                    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                        {listings.map((listing: any) => (
-                            <ListingCard key={listing.id || listing.slug} listing={listing} />
-                        ))}
-                    </div>
-                ) : (
-                    <div className="rounded-2xl border bg-white p-8 text-slate-600">
-                        No listings found. Try changing your filters.
-                    </div>
-                )}
-
-                <Pagination
-                    currentPage={Number(params.page || 1)}
-                    hasNext={hasNext}
-                    hasPrevious={hasPrevious}
-                    totalCount={totalCount}
-                    searchParams={{
-                        q: searchTerm,
-                        category: params.category,
-                        city: params.city,
-                        region: params.region,
-                        min_price: params.min_price,
-                        max_price: params.max_price,
-                        condition: params.condition,
-                        sort: params.sort,
-                        brand: params.brand,
-                        ram: params.ram,
-                        bedrooms: params.bedrooms,
-                    }}
-                />
-            </section>
+            </div>
         </main>
     );
 }
