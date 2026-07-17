@@ -22,7 +22,7 @@ export default function ListingCardImage({
         <div
             className={`relative aspect-[4/3] overflow-hidden bg-slate-100 ${className}`}
         >
-            <a href={href} className="block h-full">
+            <div className="block h-full">
                 {image ? (
                     <img
                         src={image}
@@ -34,7 +34,7 @@ export default function ListingCardImage({
                         QOT
                     </div>
                 )}
-            </a>
+            </div>
 
             {showNewBadge && (
                 <span className="absolute left-3 top-3 rounded-md bg-orange-500 px-2.5 py-1 text-[10px] font-black uppercase text-white">
