@@ -16,94 +16,8 @@ import {
 
 export const dynamic = "force-dynamic";
 
-const dynamicFilterKeys = [
-    "brand",
-    "model",
-    "processor",
-    "ram",
-    "storage",
-    "storage_type",
-    "screen_size",
-    "graphics",
-    "operating_system",
-    "touch_screen",
-    "network",
-    "sim",
-    "battery_health",
-    "display_type",
-    "resolution",
-    "smart_tv",
-    "connectivity",
-
-    "make",
-    "year",
-    "mileage",
-    "fuel",
-    "transmission",
-    "engine_size",
-    "body_type",
-    "drive",
-    "color",
-
-    "property_type",
-    "purpose",
-    "bedrooms",
-    "bathrooms",
-    "furnished",
-    "parking",
-    "compound",
-    "security",
-    "water_available",
-    "electricity_available",
-    "land_size",
-    "land_unit",
-    "title_status",
-    "land_use",
-    "road_access",
-    "fenced",
-    "room_type",
-    "self_contained",
-    "bathroom_type",
-    "floor_area",
-    "location_type",
-
-    "appliance_type",
-    "capacity",
-    "power_source",
-    "furniture_type",
-    "material",
-    "room",
-
-    "gender",
-    "item_type",
-    "size",
-
-    "job_type",
-    "work_mode",
-    "experience_level",
-    "education_level",
-    "salary_type",
-    "company",
-
-    "service_type",
-    "availability",
-    "experience",
-    "service_location",
-
-    "breed",
-    "age",
-    "quantity",
-    "vaccinated",
-
-    "subject",
-    "author",
-    "level",
-];
-
-
 type ListingsPageProps = {
     searchParams: Promise<{
-        [key: string]: string | undefined;
         q?: string;
         search?: string;
         category?: string;
@@ -113,11 +27,10 @@ type ListingsPageProps = {
         max_price?: string;
         condition?: string;
         sort?: string;
+        brand?: string;
+        ram?: string;
+        bedrooms?: string;
         page?: string;
-        status?: string;
-        seller?: string;
-        is_negotiable?: string;
-        negotiable?: string;
     }>;
 };
 
@@ -140,12 +53,6 @@ function buildListingsQuery(params: any) {
     if (params.max_price) query.set("max_price", params.max_price);
     if (params.condition) query.set("condition", params.condition);
     if (params.sort) query.set("sort", params.sort);
-    if (params.is_negotiable) {
-        query.set("is_negotiable", params.is_negotiable);
-    }
-    if (params.negotiable) {
-        query.set("is_negotiable", params.negotiable);
-    }
     if (params.brand) query.set("brand", params.brand);
     if (params.ram) query.set("ram", params.ram);
     if (params.bedrooms) query.set("bedrooms", params.bedrooms);
@@ -153,25 +60,6 @@ function buildListingsQuery(params: any) {
     if (params.page && params.page !== "1") {
         query.set("page", params.page);
     }
-
-    if (params.status) query.set("status", params.status);
-    if (params.seller) query.set("seller", params.seller);
-
-    if (params.is_negotiable) {
-        query.set("is_negotiable", params.is_negotiable);
-    }
-
-    if (params.negotiable) {
-        query.set("is_negotiable", params.negotiable);
-    }
-
-    dynamicFilterKeys.forEach((key) => {
-        const value = params[key];
-
-        if (value !== undefined && value !== null && String(value).trim() !== "") {
-            query.set(key, String(value).trim());
-        }
-    });
 
     return query;
 }
@@ -248,10 +136,9 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
         params.max_price,
         params.condition,
         params.sort,
-        params.status,
-        params.seller,
-        params.is_negotiable || params.negotiable,
-        ...dynamicFilterKeys.map((key) => params[key]),
+        params.brand,
+        params.ram,
+        params.bedrooms,
     ];
 
     const hasFilters = filterValues.some(hasValue);
@@ -384,14 +271,9 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
                                     max_price: params.max_price,
                                     condition: params.condition,
                                     sort: params.sort,
-                                    status: params.status,
-                                    seller: params.seller,
-                                    is_negotiable: params.is_negotiable || params.negotiable,
-                                    ...Object.fromEntries(
-                                        dynamicFilterKeys
-                                            .filter((key) => params[key])
-                                            .map((key) => [key, params[key]])
-                                    ),
+                                    brand: params.brand,
+                                    ram: params.ram,
+                                    bedrooms: params.bedrooms,
                                 }}
                             />
                         </div>

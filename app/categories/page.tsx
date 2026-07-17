@@ -2,8 +2,6 @@ import Navbar from "@/components/layout/QotMarketplaceNav";
 import CategoryCard from "@/components/categories/CategoryCard";
 import { apiGet, getArray } from "@/lib/api";
 
-export const dynamic = "force-dynamic";
-
 export default async function CategoriesPage() {
     let categories: any[] = [];
 

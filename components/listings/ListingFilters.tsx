@@ -3,12 +3,13 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useRouter, useSearchParams } from "next/navigation";
-import { apiGet } from "@/lib/api";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
+    faBed,
     faChevronDown,
     faCheck,
     faFilter,
+    faLaptop,
     faLayerGroup,
     faLocationDot,
     faMagnifyingGlass,
@@ -23,14 +24,6 @@ type ListingFiltersProps = {
     categories?: any[];
     regions?: any[];
     cities?: any[];
-};
-
-type CategoryFilterField = {
-    key: string;
-    label: string;
-    type: string;
-    placeholder: string;
-    options: any[];
 };
 
 type FieldProps = {
@@ -52,60 +45,16 @@ function getInitialValue(searchParams: URLSearchParams, key: string) {
     return searchParams.get(key) || "";
 }
 
-async function clientApiGet(path: string) {
-    const response = await fetch(`/api/proxy${path}`, {
-        credentials: "include",
-        cache: "no-store",
-    });
 
-    const text = await response.text();
 
-    let data: any = null;
 
-    try {
-        data = text ? JSON.parse(text) : null;
-    } catch {
-        data = text;
-    }
-
-    if (!response.ok) {
-        throw new Error(
-            data?.detail ||
-            data?.message ||
-            data?.error ||
-            "Failed to load data"
-        );
-    }
-
-    return data;
-}
 
 function getOptionValue(item: any) {
-    if (["string", "number", "boolean"].includes(typeof item)) return String(item);
-
     return String(item?.slug || item?.id || item?.value || "");
 }
 
 function getOptionLabel(item: any) {
-    if (["string", "number", "boolean"].includes(typeof item)) return String(item);
-
     return item?.name || item?.title || item?.label || "Unnamed";
-}
-
-const RESERVED_CATEGORY_FILTER_KEYS = new Set([
-    "category",
-    "region",
-    "city",
-    "condition",
-    "is_negotiable",
-    "negotiable",
-    "min_price",
-    "max_price",
-    "price",
-]);
-
-function isCategorySpecificFilter(field: CategoryFilterField) {
-    return !RESERVED_CATEGORY_FILTER_KEYS.has(field.key);
 }
 
 function getCategoryChildren(item: any) {
@@ -145,103 +94,6 @@ function buildCategoryGroups(categories: any[], search: string) {
         .filter(Boolean);
 }
 
-function flattenCategories(categories: any[]): any[] {
-    return categories.flatMap((category) => [
-        category,
-        ...flattenCategories(getCategoryChildren(category)),
-    ]);
-}
-
-function getParentCategoryValue(categories: any[], selectedCategory: string) {
-    if (!selectedCategory) return "";
-
-    const parent = categories.find((category) => {
-        if (getOptionValue(category) === String(selectedCategory)) return true;
-
-        return flattenCategories(getCategoryChildren(category)).some(
-            (child) => getOptionValue(child) === String(selectedCategory)
-        );
-    });
-
-    return parent ? getOptionValue(parent) : "";
-}
-
-function getCategoryFilterItems(payload: any): any[] {
-    if (Array.isArray(payload)) return payload;
-
-    const candidates = [
-        payload?.filters,
-        payload?.fields,
-        payload?.filter_fields,
-        payload?.results,
-        payload?.data,
-        payload?.data?.filters,
-        payload?.data?.fields,
-        payload?.data?.filter_fields,
-        payload?.data?.results,
-    ];
-
-    return candidates.find(Array.isArray) || [];
-}
-
-function getFilterOptions(field: any): any[] {
-    const options =
-        field?.options ||
-        field?.choices ||
-        field?.values ||
-        field?.allowed_values ||
-        [];
-
-    if (Array.isArray(options)) return options;
-
-    if (typeof options === "string") {
-        return options
-            .split("|")
-            .map((option) => option.trim())
-            .filter(Boolean);
-    }
-
-    if (options && typeof options === "object") {
-        return Object.entries(options).map(([value, label]) => ({ value, label }));
-    }
-
-    return [];
-}
-
-function normalizeCategoryFilter(field: any, index: number): CategoryFilterField | null {
-    if (field?.active === false || field?.is_active === false || field?.filterable === false) {
-        return null;
-    }
-
-    const key = String(
-        field?.slug ||
-        field?.key ||
-        field?.field_slug ||
-        field?.parameter ||
-        field?.name ||
-        field?.code ||
-        ""
-    ).trim();
-
-    if (!key) return null;
-
-    return {
-        key,
-        label: String(
-            field?.label ||
-            field?.display_name ||
-            field?.title ||
-            field?.name ||
-            `Filter ${index + 1}`
-        ),
-        type: String(
-            field?.input_type || field?.field_type || field?.type || "text"
-        ).toLowerCase(),
-        placeholder: String(field?.placeholder || ""),
-        options: getFilterOptions(field),
-    };
-}
-
 function cleanCompareValue(value: any) {
     if (value === undefined || value === null || value === "") return "";
 
@@ -252,10 +104,10 @@ function uniqueCleanValues(values: any[]) {
     return Array.from(new Set(values.map(cleanCompareValue).filter(Boolean)));
 }
 
-function getRegionCompareValues(regionItems: any[], selectedRegion: string) {
+function getRegionCompareValues(regionItem: any, selectedRegion: string) {
     if (!selectedRegion) return [];
 
-    const matchedRegion = regionItems.find((item: any) => {
+    const matchedRegion = regionItem.find((item: any) => {
         const values = uniqueCleanValues([
             item?.id,
             item?.slug,
@@ -431,12 +283,6 @@ export default function ListingFilters({
     const [category, setCategory] = useState(
         getInitialValue(searchParams, "category")
     );
-    const [categoryParent, setCategoryParent] = useState(() =>
-        getParentCategoryValue(
-            categories,
-            getInitialValue(searchParams, "category")
-        )
-    );
     const [region, setRegion] = useState(getInitialValue(searchParams, "region"));
     const [city, setCity] = useState(getInitialValue(searchParams, "city"));
     const [minPrice, setMinPrice] = useState(
@@ -448,24 +294,12 @@ export default function ListingFilters({
     const [condition, setCondition] = useState(
         getInitialValue(searchParams, "condition")
     );
-    const initialSort = getInitialValue(searchParams, "sort");
-    const [dateSort, setDateSort] = useState(
-        initialSort === "newest" ? initialSort : ""
+    const [sort, setSort] = useState(getInitialValue(searchParams, "sort"));
+    const [brand, setBrand] = useState(getInitialValue(searchParams, "brand"));
+    const [ram, setRam] = useState(getInitialValue(searchParams, "ram"));
+    const [bedrooms, setBedrooms] = useState(
+        getInitialValue(searchParams, "bedrooms")
     );
-    const [priceSort, setPriceSort] = useState(
-        initialSort === "price_low" || initialSort === "price_high"
-            ? initialSort
-            : ""
-    );
-    const [isNegotiable, setIsNegotiable] = useState(
-        getInitialValue(searchParams, "is_negotiable") === "true"
-    );
-    const [categoryFilters, setCategoryFilters] = useState<CategoryFilterField[]>([]);
-    const [categoryFilterValues, setCategoryFilterValues] = useState<
-        Record<string, string>
-    >({});
-    const [categoryFiltersLoading, setCategoryFiltersLoading] = useState(false);
-    const [categoryFiltersError, setCategoryFiltersError] = useState("");
 
     useEffect(() => {
         setQ(getInitialValue(searchParams, "q"));
@@ -475,87 +309,19 @@ export default function ListingFilters({
         setMinPrice(getInitialValue(searchParams, "min_price"));
         setMaxPrice(getInitialValue(searchParams, "max_price"));
         setCondition(getInitialValue(searchParams, "condition"));
-        const nextSort = getInitialValue(searchParams, "sort");
-        setDateSort(nextSort === "newest" ? nextSort : "");
-        setPriceSort(
-            nextSort === "price_low" || nextSort === "price_high" ? nextSort : ""
-        );
-        setIsNegotiable(
-            getInitialValue(searchParams, "is_negotiable") === "true"
-        );
+        setSort(getInitialValue(searchParams, "sort"));
+        setBrand(getInitialValue(searchParams, "brand"));
+        setRam(getInitialValue(searchParams, "ram"));
+        setBedrooms(getInitialValue(searchParams, "bedrooms"));
     }, [searchParams]);
 
-    useEffect(() => {
-        setCategoryParent(getParentCategoryValue(categories, category));
-    }, [categories, category]);
-
-    useEffect(() => {
-        if (!category) {
-            setCategoryFilters([]);
-            setCategoryFilterValues({});
-            setCategoryFiltersLoading(false);
-            setCategoryFiltersError("");
-            return;
-        }
-
-        let isActive = true;
-
-        setCategoryFilters([]);
-        setCategoryFiltersLoading(true);
-        setCategoryFiltersError("");
-
-        async function loadCategoryFilters() {
-            try {
-                const payload = await clientApiGet(
-                    `/categories/${encodeURIComponent(category)}/filters/`
-                );
-
-                if (!isActive) return;
-
-                const normalized = getCategoryFilterItems(payload)
-                    .map(normalizeCategoryFilter)
-                    .filter((field): field is CategoryFilterField => Boolean(field));
-                const restoreUrlValues =
-                    getInitialValue(searchParams, "category") === category;
-
-                setCategoryFilters(normalized);
-                setCategoryFilterValues(
-                    Object.fromEntries(
-                        normalized.map((field) => [
-                            field.key,
-                            restoreUrlValues
-                                ? getInitialValue(searchParams, field.key)
-                                : "",
-                        ])
-                    )
-                );
-            } catch (error) {
-                if (isActive) {
-                    setCategoryFiltersError(
-                        error instanceof Error ? error.message : "Unable to load filters"
-                    );
-                }
-            } finally {
-                if (isActive) setCategoryFiltersLoading(false);
-            }
-        }
-
-        loadCategoryFilters();
-
-        return () => {
-            isActive = false;
-        };
-    }, [category, searchParams]);
-
-    const allCategories = useMemo(() => flattenCategories(categories), [categories]);
-
     const selectedCategoryLabel = useMemo(() => {
-        const found = allCategories.find(
+        const found = categories.find(
             (item) => getOptionValue(item) === String(category)
         );
 
         return found ? getOptionLabel(found) : "All categories";
-    }, [allCategories, category]);
+    }, [categories, category]);
 
     const selectedRegionLabel = useMemo(() => {
         const found = regions.find((item) => getOptionValue(item) === String(region));
@@ -569,21 +335,19 @@ export default function ListingFilters({
         return found ? getOptionLabel(found) : "All cities";
     }, [cities, city]);
 
+    const filteredCategories = useMemo(() => {
+        const search = categorySearch.trim().toLowerCase();
+
+        if (!search) return categories;
+
+        return categories.filter((item) =>
+            getOptionLabel(item).toLowerCase().includes(search)
+        );
+    }, [categories, categorySearch]);
+
     const categoryGroups = useMemo(() => {
         return buildCategoryGroups(categories, categorySearch);
     }, [categories, categorySearch]);
-
-    const activeCategoryGroup = useMemo(() => {
-        const selectedGroup = categoryGroups.find(
-            (group: any) =>
-                getOptionValue(group.parent) === String(categoryParent)
-        );
-
-        if (selectedGroup) return selectedGroup;
-        if (categorySearch.trim()) return categoryGroups[0] || null;
-
-        return null;
-    }, [categoryGroups, categoryParent, categorySearch]);
 
     const filteredCities = useMemo(() => {
         const results = cities.filter((item) => itemMatchesRegion(item, region, regions));
@@ -613,11 +377,10 @@ export default function ListingFilters({
         minPrice,
         maxPrice,
         condition,
-        dateSort || priceSort,
-        isNegotiable ? "true" : "",
-        ...categoryFilters
-            .filter(isCategorySpecificFilter)
-            .map((field) => categoryFilterValues[field.key]),
+        sort,
+        brand,
+        ram,
+        bedrooms,
     ].filter((value) => String(value || "").trim()).length;
 
     function buildParams() {
@@ -630,15 +393,10 @@ export default function ListingFilters({
         if (minPrice) params.set("min_price", minPrice);
         if (maxPrice) params.set("max_price", maxPrice);
         if (condition) params.set("condition", condition);
-        if (dateSort || priceSort) params.set("sort", priceSort || dateSort);
-        if (isNegotiable) params.set("is_negotiable", "true");
-
-        categoryFilters.filter(isCategorySpecificFilter).forEach((field) => {
-            const value = categoryFilterValues[field.key];
-            if (value !== undefined && String(value).trim()) {
-                params.set(field.key, String(value).trim());
-            }
-        });
+        if (sort) params.set("sort", sort);
+        if (brand.trim()) params.set("brand", brand.trim());
+        if (ram.trim()) params.set("ram", ram.trim());
+        if (bedrooms) params.set("bedrooms", bedrooms);
 
         return params;
     }
@@ -660,40 +418,37 @@ export default function ListingFilters({
         setMinPrice("");
         setMaxPrice("");
         setCondition("");
-        setDateSort("");
-        setPriceSort("");
-        setIsNegotiable(false);
-        setCategoryFilterValues({});
+        setSort("");
+        setBrand("");
+        setRam("");
+        setBedrooms("");
 
         router.push("/listings");
     }
 
     function selectCategory(value: string) {
-        if (value !== category) setCategoryFilterValues({});
         setCategory(value);
-        setCategoryParent(getParentCategoryValue(categories, value));
         setCategoryModalOpen(false);
-    }
-
-    function selectParentCategory(value: string) {
-        if (value !== category) setCategoryFilterValues({});
-        setCategory(value);
-        setCategoryParent(value);
     }
 
     function selectRegion(value: string) {
         setRegion(value);
-        setCity("");
-        setLocationSearch("");
+
+        if (city) {
+            const availableCities = cities.filter((item) =>
+                itemMatchesRegion(item, value, regions)
+            );
+
+            const stillValid =
+                availableCities.length === 0 ||
+                availableCities.some((item) => getOptionValue(item) === city);
+            if (!stillValid) setCity("");
+        }
     }
 
     function selectCity(value: string) {
         setCity(value);
         setLocationModalOpen(false);
-    }
-
-    function updateCategoryFilter(key: string, value: string) {
-        setCategoryFilterValues((current) => ({ ...current, [key]: value }));
     }
 
     return (
@@ -770,40 +525,21 @@ export default function ListingFilters({
                         </button>
                     </Field>
 
-                    <div className="grid grid-cols-2 gap-3">
-                        <Field label="Date" icon={faSliders}>
-                            <SelectWrap>
-                                <select
-                                    value={dateSort}
-                                    onChange={(event) => {
-                                        setDateSort(event.target.value);
-                                        if (event.target.value) setPriceSort("");
-                                    }}
-                                    className={selectClass}
-                                >
-                                    <option value="">Default</option>
-                                    <option value="newest">Newest</option>
-                                </select>
-                            </SelectWrap>
-                        </Field>
-
-                        <Field label="Price" icon={faMoneyBillWave}>
-                            <SelectWrap>
-                                <select
-                                    value={priceSort}
-                                    onChange={(event) => {
-                                        setPriceSort(event.target.value);
-                                        if (event.target.value) setDateSort("");
-                                    }}
-                                    className={selectClass}
-                                >
-                                    <option value="">Default</option>
-                                    <option value="price_low">Low to High</option>
-                                    <option value="price_high">High to Low</option>
-                                </select>
-                            </SelectWrap>
-                        </Field>
-                    </div>
+                    <Field label="Sort" icon={faSliders}>
+                        <SelectWrap>
+                            <select
+                                value={sort}
+                                onChange={(event) => setSort(event.target.value)}
+                                className={selectClass}
+                            >
+                                <option value="">Default</option>
+                                <option value="newest">Newest</option>
+                                <option value="price_low">Price: Low to High</option>
+                                <option value="price_high">Price: High to Low</option>
+                                <option value="popular">Popular</option>
+                            </select>
+                        </SelectWrap>
+                    </Field>
 
                     <div className="grid grid-cols-2 gap-3">
                         <Field label="Min Price" icon={faMoneyBillWave}>
@@ -827,158 +563,61 @@ export default function ListingFilters({
                         </Field>
                     </div>
 
-                    <Field label="Condition" icon={faTag}>
-                        <SelectWrap>
-                            <select
-                                value={condition}
-                                onChange={(event) => setCondition(event.target.value)}
-                                className={selectClass}
-                            >
-                                <option value="">Any condition</option>
-                                <option value="new">New</option>
-                                <option value="used">Used</option>
-                            </select>
-                        </SelectWrap>
-                    </Field>
-
-                    <label className="flex cursor-pointer items-center justify-between gap-4 rounded-[18px] bg-slate-50 px-4 py-3 ring-1 ring-slate-100">
-                        <span>
-                            <span className="block text-sm font-black text-slate-800">
-                                Negotiable price
+                    <details className="rounded-[22px] bg-slate-50 ring-1 ring-slate-100">
+                        <summary className="flex h-11 cursor-pointer list-none items-center justify-between px-4 text-sm font-black text-slate-700 hover:text-orange-600 [&::-webkit-details-marker]:hidden">
+                            <span className="inline-flex items-center gap-2">
+                                <FontAwesomeIcon icon={faSliders} className="h-4 w-4" />
+                                More filters
                             </span>
-                            <span className="mt-0.5 block text-xs font-semibold text-slate-500">
-                                Show ads where the seller accepts offers.
-                            </span>
-                        </span>
 
-                        <input
-                            type="checkbox"
-                            checked={isNegotiable}
-                            onChange={(event) => setIsNegotiable(event.target.checked)}
-                            className="h-5 w-5 shrink-0 accent-orange-500"
-                        />
-                    </label>
+                            <FontAwesomeIcon icon={faChevronDown} className="h-4 w-4" />
+                        </summary>
 
-                    {category && (
-                        <details className="rounded-[22px] bg-slate-50 ring-1 ring-slate-100">
-                            <summary className="flex h-11 cursor-pointer list-none items-center justify-between px-4 text-sm font-black text-slate-700 hover:text-orange-600 [&::-webkit-details-marker]:hidden">
-                                <span className="inline-flex items-center gap-2">
-                                    <FontAwesomeIcon icon={faSliders} className="h-4 w-4" />
-                                    More filters
-                                </span>
+                        <div className="space-y-4 border-t border-white p-4">
+                            <Field label="Condition" icon={faTag}>
+                                <SelectWrap>
+                                    <select
+                                        value={condition}
+                                        onChange={(event) => setCondition(event.target.value)}
+                                        className={selectClass}
+                                    >
+                                        <option value="">Any condition</option>
+                                        <option value="new">New</option>
+                                        <option value="used">Used</option>
+                                        <option value="refurbished">Refurbished</option>
+                                    </select>
+                                </SelectWrap>
+                            </Field>
 
-                                <FontAwesomeIcon icon={faChevronDown} className="h-4 w-4" />
-                            </summary>
+                            <Field label="Brand" icon={faTag}>
+                                <input
+                                    value={brand}
+                                    onChange={(event) => setBrand(event.target.value)}
+                                    placeholder="Toyota, Apple, HP..."
+                                    className={inputClass}
+                                />
+                            </Field>
 
-                            <div className="space-y-4 border-t border-white p-4">
-                                {categoryFiltersLoading && (
-                                    <div className="rounded-[18px] bg-white px-4 py-3 text-sm font-bold text-slate-500 ring-1 ring-slate-100">
-                                        Loading category filters...
-                                    </div>
-                                )}
+                            <Field label="RAM" icon={faLaptop}>
+                                <input
+                                    value={ram}
+                                    onChange={(event) => setRam(event.target.value)}
+                                    placeholder="16GB"
+                                    className={inputClass}
+                                />
+                            </Field>
 
-                                {categoryFiltersError && (
-                                    <div className="rounded-[18px] bg-red-50 px-4 py-3 text-sm font-bold text-red-600 ring-1 ring-red-100">
-                                        {categoryFiltersError}
-                                    </div>
-                                )}
-
-                                {!categoryFiltersLoading &&
-                                    !categoryFiltersError &&
-                                    categoryFilters
-                                        .filter(isCategorySpecificFilter)
-                                        .map((field) => {
-                                            const value = categoryFilterValues[field.key] || "";
-                                            const isBoolean = [
-                                                "boolean",
-                                                "bool",
-                                                "checkbox",
-                                                "toggle",
-                                            ].includes(field.type);
-                                            const isNumber = [
-                                                "number",
-                                                "integer",
-                                                "decimal",
-                                                "float",
-                                            ].includes(field.type);
-                                            const hasOptions = field.options.length > 0;
-
-                                            if (isBoolean) {
-                                                return (
-                                                    <label
-                                                        key={field.key}
-                                                        className="flex cursor-pointer items-center justify-between gap-4 rounded-[18px] bg-white px-4 py-3 ring-1 ring-slate-100"
-                                                    >
-                                                        <span className="text-sm font-black text-slate-800">
-                                                            {field.label}
-                                                        </span>
-
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={value === "true"}
-                                                            onChange={(event) =>
-                                                                updateCategoryFilter(
-                                                                    field.key,
-                                                                    event.target.checked ? "true" : ""
-                                                                )
-                                                            }
-                                                            className="h-5 w-5 shrink-0 accent-orange-500"
-                                                        />
-                                                    </label>
-                                                );
-                                            }
-
-                                            return (
-                                                <Field key={field.key} label={field.label} icon={faTag}>
-                                                    {hasOptions ? (
-                                                        <SelectWrap>
-                                                            <select
-                                                                value={value}
-                                                                onChange={(event) =>
-                                                                    updateCategoryFilter(
-                                                                        field.key,
-                                                                        event.target.value
-                                                                    )
-                                                                }
-                                                                className={selectClass}
-                                                            >
-                                                                <option value="">Any {field.label.toLowerCase()}</option>
-                                                                {field.options.map((option, optionIndex) => (
-                                                                    <option
-                                                                        key={getOptionValue(option) || optionIndex}
-                                                                        value={
-                                                                            typeof option === "string"
-                                                                                ? option
-                                                                                : getOptionValue(option)
-                                                                        }
-                                                                    >
-                                                                        {typeof option === "string"
-                                                                            ? option
-                                                                            : getOptionLabel(option)}
-                                                                    </option>
-                                                                ))}
-                                                            </select>
-                                                        </SelectWrap>
-                                                    ) : (
-                                                        <input
-                                                            type={isNumber ? "number" : "text"}
-                                                            value={value}
-                                                            onChange={(event) =>
-                                                                updateCategoryFilter(
-                                                                    field.key,
-                                                                    event.target.value
-                                                                )
-                                                            }
-                                                            placeholder={field.placeholder || field.label}
-                                                            className={inputClass}
-                                                        />
-                                                    )}
-                                                </Field>
-                                            );
-                                        })}
-                            </div>
-                        </details>
-                    )}
+                            <Field label="Bedrooms" icon={faBed}>
+                                <input
+                                    type="number"
+                                    value={bedrooms}
+                                    onChange={(event) => setBedrooms(event.target.value)}
+                                    placeholder="2"
+                                    className={inputClass}
+                                />
+                            </Field>
+                        </div>
+                    </details>
 
                     <div className="grid gap-3">
                         <button
@@ -1007,21 +646,11 @@ export default function ListingFilters({
                 icon={faLayerGroup}
                 onClose={() => setCategoryModalOpen(false)}
             >
-                <div className="mb-5 rounded-[24px] bg-slate-50 p-4 ring-1 ring-slate-100">
-                    <p className="text-xs font-black uppercase tracking-wide text-slate-500">
-                        Current selection
-                    </p>
-
-                    <p className="mt-2 text-sm font-black text-slate-950">
-                        {selectedCategoryLabel}
-                    </p>
-                </div>
-
                 <div className="mb-5">
                     <div className="relative">
                         <FontAwesomeIcon
                             icon={faMagnifyingGlass}
-                            className="pointer-events-none absolute left-5 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-slate-500"
+                            className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
                         />
 
                         <input
@@ -1033,149 +662,79 @@ export default function ListingFilters({
                     </div>
                 </div>
 
-                <div className="grid gap-5 lg:grid-cols-[0.8fr_1.2fr]">
-                    <div>
-                        <p className="mb-3 text-xs font-black uppercase tracking-wide text-slate-500">
-                            Category
-                        </p>
 
-                        <div className="max-h-[360px] space-y-2 overflow-y-auto pr-1">
-                            <button
-                                type="button"
-                                onClick={() => selectCategory("")}
-                                className={`flex h-11 w-full items-center justify-between rounded-[16px] px-4 text-left text-sm font-black transition ${!category
-                                    ? "bg-orange-500 text-white"
-                                    : "bg-slate-50 text-slate-700 hover:bg-orange-50 hover:text-orange-600"
-                                    }`}
+                <div className="space-y-4">
+                    <button
+                        type="button"
+                        onClick={() => selectCategory("")}
+                        className={`flex h-12 w-full items-center justify-between rounded-[18px] px-4 text-left text-sm font-black transition ${!category
+                            ? "bg-orange-500 text-white"
+                            : "bg-slate-50 text-slate-700 hover:bg-orange-50 hover:text-orange-600"
+                            }`}
+                    >
+                        All categories
+                        {!category && <FontAwesomeIcon icon={faCheck} className="h-4 w-4" />}
+                    </button>
+
+                    {categoryGroups.map((group: any, groupIndex: number) => {
+                        const parent = group.parent;
+                        const children = group.children || [];
+                        const parentValue = getOptionValue(parent);
+                        const parentActive = String(category) === String(parentValue);
+
+                        return (
+                            <div
+                                key={parentValue || groupIndex}
+                                className="rounded-[24px] bg-slate-50 p-3 ring-1 ring-slate-100"
                             >
-                                All categories
-                                {!category && (
-                                    <FontAwesomeIcon icon={faCheck} className="h-4 w-4" />
-                                )}
-                            </button>
+                                <button
+                                    type="button"
+                                    onClick={() => selectCategory(parentValue)}
+                                    className={`flex h-12 w-full items-center justify-between rounded-[18px] px-4 text-left text-sm font-black transition ${parentActive
+                                        ? "bg-orange-500 text-white"
+                                        : "bg-white text-slate-800 hover:bg-orange-50 hover:text-orange-600"
+                                        }`}
+                                >
+                                    <span className="truncate">{getOptionLabel(parent)}</span>
 
-                            {categoryGroups.map((group: any, groupIndex: number) => {
-                                const parent = group.parent;
-                                const parentValue = getOptionValue(parent);
-                                const active =
-                                    String(categoryParent) === String(parentValue);
+                                    {parentActive ? (
+                                        <FontAwesomeIcon icon={faCheck} className="h-4 w-4" />
+                                    ) : (
+                                        <span className="text-slate-300">+</span>
+                                    )}
+                                </button>
 
-                                return (
-                                    <button
-                                        key={parentValue || groupIndex}
-                                        type="button"
-                                        onClick={() => selectParentCategory(parentValue)}
-                                        className={`flex h-11 w-full items-center justify-between rounded-[16px] px-4 text-left text-sm font-black transition ${active
-                                            ? "bg-orange-500 text-white"
-                                            : "bg-slate-50 text-slate-700 hover:bg-orange-50 hover:text-orange-600"
-                                            }`}
-                                    >
-                                        <span className="truncate">
-                                            {getOptionLabel(parent)}
-                                        </span>
-
-                                        {active && (
-                                            <FontAwesomeIcon
-                                                icon={faCheck}
-                                                className="h-4 w-4"
-                                            />
-                                        )}
-                                    </button>
-                                );
-                            })}
-                        </div>
-                    </div>
-
-                    <div>
-                        <p className="mb-3 text-xs font-black uppercase tracking-wide text-slate-500">
-                            Subcategory
-                        </p>
-
-                        <div className="max-h-[360px] space-y-2 overflow-y-auto pr-1">
-                            {activeCategoryGroup ? (
-                                <>
-                                    {(() => {
-                                        const parent = activeCategoryGroup.parent;
-                                        const parentValue = getOptionValue(parent);
-                                        const parentActive =
-                                            String(category) === String(parentValue);
-
-                                        return (
-                                            <button
-                                                type="button"
-                                                onClick={() => selectCategory(parentValue)}
-                                                className={`flex h-11 w-full items-center justify-between rounded-[16px] px-4 text-left text-sm font-black transition ${parentActive
-                                                    ? "bg-orange-50 text-orange-600 ring-1 ring-orange-100"
-                                                    : "bg-slate-50 text-slate-700 hover:bg-orange-50 hover:text-orange-600"
-                                                    }`}
-                                            >
-                                                <span className="truncate">
-                                                    All in {getOptionLabel(parent)}
-                                                </span>
-
-                                                {parentActive && (
-                                                    <FontAwesomeIcon
-                                                        icon={faCheck}
-                                                        className="h-4 w-4"
-                                                    />
-                                                )}
-                                            </button>
-                                        );
-                                    })()}
-
-                                    {(activeCategoryGroup.children || []).map(
-                                        (child: any, childIndex: number) => {
+                                {children.length > 0 && (
+                                    <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                                        {children.map((child: any, childIndex: number) => {
                                             const childValue = getOptionValue(child);
-                                            const active =
-                                                String(category) === String(childValue);
+                                            const childActive = String(category) === String(childValue);
 
                                             return (
                                                 <button
                                                     key={childValue || childIndex}
                                                     type="button"
                                                     onClick={() => selectCategory(childValue)}
-                                                    className={`flex h-11 w-full items-center justify-between rounded-[16px] px-4 text-left text-sm font-black transition ${active
+                                                    className={`flex h-10 items-center justify-between rounded-[16px] px-3 text-left text-xs font-black transition ${childActive
                                                         ? "bg-orange-500 text-white"
-                                                        : "bg-slate-50 text-slate-700 hover:bg-orange-50 hover:text-orange-600"
+                                                        : "bg-white text-slate-600 hover:bg-orange-50 hover:text-orange-600"
                                                         }`}
                                                 >
-                                                    <span className="truncate">
-                                                        {getOptionLabel(child)}
-                                                    </span>
+                                                    <span className="truncate">{getOptionLabel(child)}</span>
 
-                                                    {active && (
-                                                        <FontAwesomeIcon
-                                                            icon={faCheck}
-                                                            className="h-4 w-4"
-                                                        />
+                                                    {childActive && (
+                                                        <FontAwesomeIcon icon={faCheck} className="h-3.5 w-3.5" />
                                                     )}
                                                 </button>
                                             );
-                                        }
-                                    )}
-
-                                    {(activeCategoryGroup.children || []).length === 0 && (
-                                        <div className="rounded-[18px] bg-slate-50 px-4 py-5 text-center text-sm font-bold text-slate-500 ring-1 ring-slate-100">
-                                            This category has no subcategories.
-                                        </div>
-                                    )}
-                                </>
-                            ) : (
-                                <div className="rounded-[18px] bg-slate-50 px-4 py-8 text-center text-sm font-bold text-slate-500 ring-1 ring-slate-100">
-                                    Select a category to view its subcategories.
-                                </div>
-                            )}
-                        </div>
-                    </div>
+                                        })}
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })}
                 </div>
 
-                <button
-                    type="button"
-                    onClick={() => setCategoryModalOpen(false)}
-                    className="mt-6 inline-flex h-11 w-full items-center justify-center rounded-[18px] bg-orange-500 px-5 text-sm font-black text-white hover:bg-orange-600"
-                >
-                    Done
-                </button>
             </PickerModal>
 
             <PickerModal
@@ -1272,7 +831,7 @@ export default function ListingFilters({
                                     : "bg-slate-50 text-slate-700 hover:bg-orange-50 hover:text-orange-600"
                                     }`}
                             >
-                                <span>All cities in selected region</span>
+                                All cities
                                 {!city && <FontAwesomeIcon icon={faCheck} className="h-4 w-4" />}
                             </button>
 

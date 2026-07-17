@@ -76,7 +76,7 @@ function SellerAdCard({ ad }: { ad: any }) {
 
     return (
         <article className="overflow-hidden rounded-[26px] bg-white shadow-sm ring-1 ring-black/5">
-            <a href={`/my-ads/${ad.id}`} className="block">
+            <a href={`/listings/${id}`} className="block">
                 <div className="relative aspect-[4/3] overflow-hidden bg-slate-100">
                     <ListingCardImage
                         listing={ad}
