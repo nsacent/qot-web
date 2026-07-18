@@ -5,9 +5,12 @@ import {
     useEffect,
     useMemo,
     useState,
+    type ChangeEvent,
     type FormEvent,
     type ReactNode,
 } from "react";
+import { createPortal } from "react-dom";
+
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
     faArrowLeft,
@@ -25,6 +28,8 @@ import {
     faShieldHalved,
     faSliders,
     faTag,
+    faMagnifyingGlass,
+    faXmark,
 } from "@fortawesome/free-solid-svg-icons";
 
 type CategoryFilterField = {
@@ -120,6 +125,33 @@ async function clientApiPost(path: string, payload: any) {
             data?.error ||
             JSON.stringify(data) ||
             "Failed to post advert."
+        );
+    }
+
+    return data;
+}
+
+async function clientApiUpload(path: string, payload: FormData) {
+    const response = await fetch(`/api/proxy${path}`, {
+        method: "POST",
+        credentials: "include",
+        body: payload,
+    });
+
+    const data = await response.json().catch(() => null);
+
+    if (response.status === 401 || response.status === 403) {
+        throw new Error("__AUTH__");
+    }
+
+    if (!response.ok) {
+        const fieldError = data?.image;
+        throw new Error(
+            data?.detail ||
+            data?.message ||
+            data?.error ||
+            (Array.isArray(fieldError) ? fieldError[0] : fieldError) ||
+            "Failed to upload advert photo."
         );
     }
 
@@ -243,6 +275,7 @@ export default function PostAdForm() {
     const [city, setCity] = useState("");
     const [condition, setCondition] = useState("used");
     const [isNegotiable, setIsNegotiable] = useState(false);
+    const [photos, setPhotos] = useState<File[]>([]);
 
     const [categories, setCategories] = useState<any[]>([]);
     const [cities, setCities] = useState<any[]>([]);
@@ -253,15 +286,40 @@ export default function PostAdForm() {
     const [loading, setLoading] = useState(false);
     const [pageLoading, setPageLoading] = useState(true);
     const [filtersLoading, setFiltersLoading] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState("");
     const [error, setError] = useState("");
 
+    const [categoryModalOpen, setCategoryModalOpen] = useState(false);
+    const [locationModalOpen, setLocationModalOpen] = useState(false);
+    const [categorySearch, setCategorySearch] = useState("");
+    const [locationSearch, setLocationSearch] = useState("");
+
     const flatCategories = useMemo(() => flattenCategories(categories), [categories]);
+
+
 
     const selectedCategory = useMemo(() => {
         return flatCategories.find(
             (item) => String(getOptionValue(item)) === String(category)
         );
     }, [flatCategories, category]);
+
+    const selectedCity = useMemo(() => {
+        return cities.find(
+            (item: any) => String(getOptionValue(item)) === String(city)
+        );
+    }, [cities, city]);
+
+    const photoPreviews = useMemo(
+        () => photos.map((file) => ({ file, url: URL.createObjectURL(file) })),
+        [photos]
+    );
+
+    useEffect(() => {
+        return () => {
+            photoPreviews.forEach((photo) => URL.revokeObjectURL(photo.url));
+        };
+    }, [photoPreviews]);
 
     useEffect(() => {
         async function loadFormData() {
@@ -401,6 +459,53 @@ export default function PostAdForm() {
         return "";
     }
 
+    function selectCategoryValue(value: string) {
+        setCategory(value);
+        setCategorySearch("");
+        setCategoryModalOpen(false);
+    }
+
+    function selectCityValue(value: string) {
+        setCity(value);
+        setLocationSearch("");
+        setLocationModalOpen(false);
+    }
+
+    function handlePhotoSelection(event: ChangeEvent<HTMLInputElement>) {
+        const selectedFiles = Array.from(event.target.files || []);
+        event.target.value = "";
+
+        if (!selectedFiles.length) return;
+
+        const invalidType = selectedFiles.find(
+            (file) => !["image/jpeg", "image/png", "image/webp"].includes(file.type)
+        );
+
+        if (invalidType) {
+            setError("Photos must be JPG, JPEG, PNG, or WEBP files.");
+            return;
+        }
+
+        const oversized = selectedFiles.find((file) => file.size > 5 * 1024 * 1024);
+
+        if (oversized) {
+            setError(`${oversized.name} is larger than the 5MB limit.`);
+            return;
+        }
+
+        if (photos.length + selectedFiles.length > 10) {
+            setError("You can upload a maximum of 10 photos per advert.");
+            return;
+        }
+
+        setError("");
+        setPhotos((current) => [...current, ...selectedFiles]);
+    }
+
+    function removePhoto(index: number) {
+        setPhotos((current) => current.filter((_, itemIndex) => itemIndex !== index));
+    }
+
     function handlePreview(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
         setError("");
@@ -419,6 +524,7 @@ export default function PostAdForm() {
     async function submitAdvert() {
         setLoading(true);
         setError("");
+        setUploadProgress("");
 
         try {
             const data = await clientApiPost("/listings/", {
@@ -435,12 +541,25 @@ export default function PostAdForm() {
 
             const createdListingId = getCreatedListingId(data);
 
-            if (createdListingId) {
-                router.push(`/my-ads/${createdListingId}/edit?images=1`);
-                return;
+            if (!createdListingId) {
+                throw new Error("Advert was created, but its listing ID was not returned.");
             }
 
-            router.push("/my-ads");
+            for (let index = 0; index < photos.length; index += 1) {
+                setUploadProgress(`Uploading photo ${index + 1} of ${photos.length}...`);
+
+                const formData = new FormData();
+                formData.append("image", photos[index]);
+                formData.append("sort_order", String(index));
+
+                await clientApiUpload(
+                    `/listings/${createdListingId}/images/`,
+                    formData
+                );
+            }
+
+            setUploadProgress("Advert submitted successfully.");
+            router.push(`/my-ads/${createdListingId}`);
         } catch (err: any) {
             if (err?.message === "__AUTH__") {
                 router.push("/login?next=/post-ad");
@@ -475,6 +594,28 @@ export default function PostAdForm() {
                 />
 
                 <article className="overflow-hidden rounded-[32px] bg-white shadow-[0_18px_55px_rgba(15,23,42,0.08)] ring-1 ring-black/5">
+                    {photoPreviews.length > 0 && (
+                        <div className="grid grid-cols-2 gap-2 bg-slate-100 p-2 md:grid-cols-4">
+                            {photoPreviews.map((photo, index) => (
+                                <div
+                                    key={`${photo.file.name}-${photo.file.lastModified}-${index}`}
+                                    className="relative aspect-[4/3] overflow-hidden rounded-[18px] bg-white"
+                                >
+                                    <img
+                                        src={photo.url}
+                                        alt={`Advert photo ${index + 1}`}
+                                        className="h-full w-full object-cover"
+                                    />
+                                    {index === 0 && (
+                                        <span className="absolute left-2 top-2 rounded-full bg-orange-500 px-3 py-1 text-[10px] font-black uppercase text-white shadow-sm">
+                                            Primary
+                                        </span>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
                     <div className="bg-slate-950 p-6 text-white md:p-8">
                         <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-xs font-black uppercase tracking-wide text-orange-100 ring-1 ring-white/10">
                             <FontAwesomeIcon icon={faBullhorn} className="h-3.5 w-3.5" />
@@ -539,13 +680,21 @@ export default function PostAdForm() {
                 <div className="rounded-[24px] border border-orange-200 bg-orange-50 p-5 text-orange-800">
                     <p className="flex items-center gap-2 font-black">
                         <FontAwesomeIcon icon={faCamera} className="h-4 w-4" />
-                        Images come after posting.
+                        {photoPreviews.length > 0
+                            ? `${photoPreviews.length} photo${photoPreviews.length === 1 ? "" : "s"} ready to upload.`
+                            : "No photos selected."}
                     </p>
 
                     <p className="mt-1 text-sm font-semibold">
-                        After submitting, you will be redirected to the edit page where you can upload images and choose the primary image.
+                        Photos will be uploaded with this advert. The first photo will be used as the primary image.
                     </p>
                 </div>
+
+                {uploadProgress && (
+                    <div className="rounded-[18px] bg-blue-50 px-4 py-3 text-sm font-black text-blue-700 ring-1 ring-blue-100">
+                        {uploadProgress}
+                    </div>
+                )}
 
                 <div className="flex flex-col gap-3 sm:flex-row">
                     <button
@@ -567,7 +716,7 @@ export default function PostAdForm() {
                         disabled={loading}
                         className="inline-flex h-12 items-center justify-center gap-2 rounded-[18px] bg-orange-500 px-5 text-sm font-black text-white hover:bg-orange-600 disabled:opacity-60"
                     >
-                        {loading ? "Submitting advert..." : "Submit Advert"}
+                        {loading ? uploadProgress || "Submitting advert..." : "Submit Advert"}
                         <FontAwesomeIcon icon={faArrowRight} className="h-4 w-4" />
                     </button>
                 </div>
@@ -667,57 +816,67 @@ export default function PostAdForm() {
             >
                 <div className="grid gap-5 md:grid-cols-2">
                     <Field label="Category" icon={faLayerGroup}>
-                        <SelectWrap>
-                            <select
-                                value={category}
-                                onChange={(event) => setCategory(event.target.value)}
-                                className={selectClass}
-                                required
-                            >
-                                <option value="">Select category</option>
+                        <button
+                            type="button"
+                            onClick={() => setCategoryModalOpen(true)}
+                            className="flex w-full items-center justify-between gap-4 rounded-[18px] bg-white px-4 py-3 text-left ring-1 ring-slate-200 transition hover:bg-orange-50 hover:ring-orange-100"
+                        >
+                            <span>
+                                <span className="block text-sm font-black text-slate-900">
+                                    {selectedCategory ? getOptionLabel(selectedCategory) : "Select category"}
+                                </span>
+                                <span className="mt-0.5 block text-xs font-semibold text-slate-500">
+                                    Choose advert category
+                                </span>
+                            </span>
 
-                                {categories.map((parent: any) => (
-                                    <optgroup
-                                        key={getOptionValue(parent)}
-                                        label={getOptionLabel(parent)}
-                                    >
-                                        <option value={getOptionValue(parent)}>
-                                            All in {getOptionLabel(parent)}
-                                        </option>
-
-                                        {getCategoryChildren(parent).map((child: any) => (
-                                            <option
-                                                key={getOptionValue(child)}
-                                                value={getOptionValue(child)}
-                                            >
-                                                {getOptionLabel(child)}
-                                            </option>
-                                        ))}
-                                    </optgroup>
-                                ))}
-                            </select>
-                        </SelectWrap>
+                            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-orange-50 text-orange-600">
+                                <FontAwesomeIcon icon={faLayerGroup} className="h-4 w-4" />
+                            </span>
+                        </button>
                     </Field>
 
-                    <Field label="City" icon={faLocationDot}>
-                        <SelectWrap>
-                            <select
-                                value={city}
-                                onChange={(event) => setCity(event.target.value)}
-                                className={selectClass}
-                                required
-                            >
-                                <option value="">Select city</option>
+                    <Field label="Location" icon={faLocationDot}>
+                        <button
+                            type="button"
+                            onClick={() => setLocationModalOpen(true)}
+                            className="flex w-full items-center justify-between gap-4 rounded-[18px] bg-white px-4 py-3 text-left ring-1 ring-slate-200 transition hover:bg-orange-50 hover:ring-orange-100"
+                        >
+                            <span>
+                                <span className="block text-sm font-black text-slate-900">
+                                    {selectedCity ? getOptionLabel(selectedCity) : "Select city"}
+                                </span>
+                                <span className="mt-0.5 block text-xs font-semibold text-slate-500">
+                                    Choose advert location
+                                </span>
+                            </span>
 
-                                {cities.map((item: any) => (
-                                    <option key={getOptionValue(item)} value={getOptionValue(item)}>
-                                        {getOptionLabel(item)}
-                                    </option>
-                                ))}
-                            </select>
-                        </SelectWrap>
+                            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-orange-50 text-orange-600">
+                                <FontAwesomeIcon icon={faLocationDot} className="h-4 w-4" />
+                            </span>
+                        </button>
                     </Field>
                 </div>
+
+                <CategoryPickerModal
+                    open={categoryModalOpen}
+                    onClose={() => setCategoryModalOpen(false)}
+                    categories={categories}
+                    selectedValue={category}
+                    search={categorySearch}
+                    setSearch={setCategorySearch}
+                    onSelect={selectCategoryValue}
+                />
+
+                <LocationPickerModal
+                    open={locationModalOpen}
+                    onClose={() => setLocationModalOpen(false)}
+                    cities={cities}
+                    selectedValue={city}
+                    search={locationSearch}
+                    setSearch={setLocationSearch}
+                    onSelect={selectCityValue}
+                />
             </FormCard>
 
             {category && (
@@ -816,6 +975,62 @@ export default function PostAdForm() {
                 </FormCard>
             )}
 
+            <FormCard
+                icon={faCamera}
+                eyebrow="Step 5"
+                title="Advert photos"
+                description="Add up to 10 clear photos. The first photo will be the primary image."
+            >
+                <label className="flex cursor-pointer flex-col items-center justify-center rounded-[24px] border-2 border-dashed border-orange-200 bg-orange-50 px-6 py-10 text-center transition hover:border-orange-300 hover:bg-orange-100/60">
+                    <span className="flex h-14 w-14 items-center justify-center rounded-full bg-white text-orange-600 shadow-sm">
+                        <FontAwesomeIcon icon={faCamera} className="h-6 w-6" />
+                    </span>
+                    <span className="mt-4 text-sm font-black text-slate-900">
+                        Choose advert photos
+                    </span>
+                    <span className="mt-1 text-xs font-semibold text-slate-500">
+                        JPG, PNG, or WEBP - maximum 5MB each
+                    </span>
+                    <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        multiple
+                        onChange={handlePhotoSelection}
+                        className="sr-only"
+                    />
+                </label>
+
+                {photoPreviews.length > 0 && (
+                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-5">
+                        {photoPreviews.map((photo, index) => (
+                            <div
+                                key={`${photo.file.name}-${photo.file.lastModified}-${index}`}
+                                className="group relative aspect-square overflow-hidden rounded-[20px] bg-slate-100 ring-1 ring-slate-200"
+                            >
+                                <img
+                                    src={photo.url}
+                                    alt={`Selected photo ${index + 1}`}
+                                    className="h-full w-full object-cover"
+                                />
+                                {index === 0 && (
+                                    <span className="absolute left-2 top-2 rounded-full bg-orange-500 px-2.5 py-1 text-[9px] font-black uppercase text-white shadow-sm">
+                                        Primary
+                                    </span>
+                                )}
+                                <button
+                                    type="button"
+                                    onClick={() => removePhoto(index)}
+                                    aria-label={`Remove ${photo.file.name}`}
+                                    className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-slate-950/80 text-white shadow-sm transition hover:bg-red-600"
+                                >
+                                    <FontAwesomeIcon icon={faXmark} className="h-4 w-4" />
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </FormCard>
+
             <div className="rounded-[24px] border border-orange-200 bg-orange-50 p-5 text-sm text-orange-800">
                 <p className="flex items-center gap-2 font-black">
                     <FontAwesomeIcon icon={faShieldHalved} className="h-4 w-4" />
@@ -823,7 +1038,7 @@ export default function PostAdForm() {
                 </p>
 
                 <p className="mt-1 font-semibold">
-                    First review your advert details. After submitting, you will upload advert images on the edit page.
+                    Review the advert details and selected photos together before submitting.
                 </p>
             </div>
 
@@ -938,5 +1153,310 @@ function ErrorBox({ message }: { message: string }) {
         <div className="rounded-[20px] border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700">
             {message}
         </div>
+    );
+}
+
+function ModalShell({
+    open,
+    title,
+    description,
+    search,
+    setSearch,
+    searchPlaceholder,
+    onClose,
+    children,
+}: {
+    open: boolean;
+    title: string;
+    description: string;
+    search: string;
+    setSearch: (value: string) => void;
+    searchPlaceholder: string;
+    onClose: () => void;
+    children: ReactNode;
+}) {
+    useEffect(() => {
+        if (!open) return;
+
+        function handleEscape(event: KeyboardEvent) {
+            if (event.key === "Escape") onClose();
+        }
+
+        document.addEventListener("keydown", handleEscape);
+        document.body.style.overflow = "hidden";
+
+        return () => {
+            document.removeEventListener("keydown", handleEscape);
+            document.body.style.overflow = "";
+        };
+    }, [open, onClose]);
+
+    if (!open) return null;
+
+    return createPortal(
+        <div className="fixed inset-0 z-[100] flex items-end justify-center bg-slate-950/60 px-4 pb-4 backdrop-blur-sm sm:items-center sm:pb-0">
+            <div className="w-full max-w-3xl overflow-hidden rounded-[32px] bg-white shadow-2xl ring-1 ring-black/10">
+                <div className="border-b border-slate-100 bg-gradient-to-br from-slate-950 via-slate-900 to-orange-950 p-5 text-white sm:p-6">
+                    <div className="flex items-start justify-between gap-4">
+                        <div>
+                            <p className="text-xs font-black uppercase tracking-wide text-orange-200">
+                                QOT Marketplace
+                            </p>
+
+                            <h3 className="mt-1 text-2xl font-black">{title}</h3>
+
+                            <p className="mt-1 text-sm font-semibold leading-6 text-white/65">
+                                {description}
+                            </p>
+                        </div>
+
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/10 text-white ring-1 ring-white/10 hover:bg-white/20"
+                        >
+                            <FontAwesomeIcon icon={faXmark} className="h-4 w-4" />
+                        </button>
+                    </div>
+
+                    <div className="relative mt-5">
+                        <FontAwesomeIcon
+                            icon={faMagnifyingGlass}
+                            className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
+                        />
+
+                        <input
+                            value={search}
+                            onChange={(event) => setSearch(event.target.value)}
+                            placeholder={searchPlaceholder}
+                            className="w-full rounded-[18px] border-0 bg-white px-11 py-3 text-sm font-bold text-slate-900 outline-none ring-1 ring-white/20 placeholder:text-slate-400 focus:ring-2 focus:ring-orange-300"
+                            autoFocus
+                        />
+                    </div>
+                </div>
+
+                <div className="max-h-[60vh] overflow-y-auto p-4 sm:p-5">
+                    {children}
+                </div>
+            </div>
+        </div>,
+        document.body
+    );
+}
+
+function CategoryPickerModal({
+    open,
+    onClose,
+    categories,
+    selectedValue,
+    search,
+    setSearch,
+    onSelect,
+}: {
+    open: boolean;
+    onClose: () => void;
+    categories: any[];
+    selectedValue: string;
+    search: string;
+    setSearch: (value: string) => void;
+    onSelect: (value: string) => void;
+}) {
+    const normalizedSearch = search.trim().toLowerCase();
+
+    const filteredCategories = categories
+        .map((parent: any) => {
+            const children = getCategoryChildren(parent);
+            const parentLabel = getOptionLabel(parent);
+
+            const matchingChildren = children.filter((child: any) =>
+                getOptionLabel(child).toLowerCase().includes(normalizedSearch)
+            );
+
+            const parentMatches = parentLabel.toLowerCase().includes(normalizedSearch);
+
+            if (!normalizedSearch || parentMatches) {
+                return { parent, children };
+            }
+
+            if (matchingChildren.length > 0) {
+                return { parent, children: matchingChildren };
+            }
+
+            return null;
+        })
+        .filter(Boolean) as { parent: any; children: any[] }[];
+
+    return (
+        <ModalShell
+            open={open}
+            title="Choose category"
+            description="Select the most accurate category for your advert."
+            search={search}
+            setSearch={setSearch}
+            searchPlaceholder="Search categories..."
+            onClose={onClose}
+        >
+            <div className="grid gap-4 md:grid-cols-2">
+                {filteredCategories.map(({ parent, children }) => {
+                    const parentValue = getOptionValue(parent);
+                    const parentSelected = String(selectedValue) === String(parentValue);
+
+                    return (
+                        <div
+                            key={parentValue}
+                            className="overflow-hidden rounded-[24px] bg-slate-50 ring-1 ring-slate-100"
+                        >
+                            <button
+                                type="button"
+                                onClick={() => onSelect(parentValue)}
+                                className={`flex w-full items-center justify-between gap-3 px-4 py-4 text-left transition ${parentSelected
+                                        ? "bg-orange-500 text-white"
+                                        : "bg-white text-slate-900 hover:bg-orange-50"
+                                    }`}
+                            >
+                                <span className="font-black">
+                                    All in {getOptionLabel(parent)}
+                                </span>
+
+                                {parentSelected && (
+                                    <FontAwesomeIcon icon={faCheck} className="h-4 w-4" />
+                                )}
+                            </button>
+
+                            <div className="p-2">
+                                {children.map((child: any) => {
+                                    const childValue = getOptionValue(child);
+                                    const selected = String(selectedValue) === String(childValue);
+
+                                    return (
+                                        <button
+                                            key={childValue}
+                                            type="button"
+                                            onClick={() => onSelect(childValue)}
+                                            className={`mb-1 flex w-full items-center justify-between gap-3 rounded-[16px] px-3 py-3 text-left text-sm font-bold transition ${selected
+                                                    ? "bg-orange-500 text-white"
+                                                    : "text-slate-700 hover:bg-white"
+                                                }`}
+                                        >
+                                            <span>{getOptionLabel(child)}</span>
+
+                                            {selected && (
+                                                <FontAwesomeIcon icon={faCheck} className="h-3.5 w-3.5" />
+                                            )}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    );
+                })}
+
+                {filteredCategories.length === 0 && (
+                    <div className="rounded-[22px] bg-slate-50 p-6 text-sm font-bold text-slate-500 md:col-span-2">
+                        No category found.
+                    </div>
+                )}
+            </div>
+        </ModalShell>
+    );
+}
+
+function LocationPickerModal({
+    open,
+    onClose,
+    cities,
+    selectedValue,
+    search,
+    setSearch,
+    onSelect,
+}: {
+    open: boolean;
+    onClose: () => void;
+    cities: any[];
+    selectedValue: string;
+    search: string;
+    setSearch: (value: string) => void;
+    onSelect: (value: string) => void;
+}) {
+    const normalizedSearch = search.trim().toLowerCase();
+
+    const filteredCities = cities.filter((cityItem: any) => {
+        if (!normalizedSearch) return true;
+
+        const cityName = getOptionLabel(cityItem).toLowerCase();
+        const regionName = String(
+            cityItem?.region?.name ||
+            cityItem?.region_name ||
+            cityItem?.region ||
+            ""
+        ).toLowerCase();
+
+        return cityName.includes(normalizedSearch) || regionName.includes(normalizedSearch);
+    });
+
+    return (
+        <ModalShell
+            open={open}
+            title="Choose location"
+            description="Select the city where the advert item or service is located."
+            search={search}
+            setSearch={setSearch}
+            searchPlaceholder="Search city or region..."
+            onClose={onClose}
+        >
+            <div className="grid gap-3 sm:grid-cols-2">
+                {filteredCities.map((cityItem: any) => {
+                    const value = getOptionValue(cityItem);
+                    const selected = String(selectedValue) === String(value);
+                    const regionName =
+                        cityItem?.region?.name ||
+                        cityItem?.region_name ||
+                        cityItem?.region ||
+                        "";
+
+                    return (
+                        <button
+                            key={value}
+                            type="button"
+                            onClick={() => onSelect(value)}
+                            className={`flex items-center justify-between gap-4 rounded-[20px] px-4 py-4 text-left transition ${selected
+                                    ? "bg-orange-500 text-white"
+                                    : "bg-slate-50 text-slate-900 ring-1 ring-slate-100 hover:bg-orange-50"
+                                }`}
+                        >
+                            <span>
+                                <span className="block text-sm font-black">
+                                    {getOptionLabel(cityItem)}
+                                </span>
+
+                                {regionName && (
+                                    <span
+                                        className={`mt-0.5 block text-xs font-semibold ${selected ? "text-white/75" : "text-slate-500"
+                                            }`}
+                                    >
+                                        {regionName}
+                                    </span>
+                                )}
+                            </span>
+
+                            {selected ? (
+                                <FontAwesomeIcon icon={faCheck} className="h-4 w-4" />
+                            ) : (
+                                <FontAwesomeIcon
+                                    icon={faLocationDot}
+                                    className="h-4 w-4 text-orange-500"
+                                />
+                            )}
+                        </button>
+                    );
+                })}
+
+                {filteredCities.length === 0 && (
+                    <div className="rounded-[22px] bg-slate-50 p-6 text-sm font-bold text-slate-500 sm:col-span-2">
+                        No location found.
+                    </div>
+                )}
+            </div>
+        </ModalShell>
     );
 }
