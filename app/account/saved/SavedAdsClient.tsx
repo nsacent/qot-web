@@ -38,7 +38,7 @@ function SavedAdsContent() {
             await getCurrentUser();
             setCheckingSession(false);
         } catch {
-            window.location.href = "/login?next=/saved";
+            window.location.href = "/login?next=/account/saved";
         }
     }
 
@@ -53,7 +53,7 @@ function SavedAdsContent() {
             });
 
             if (response.status === 401) {
-                window.location.href = "/login?next=/saved";
+                window.location.href = "/login?next=/account/saved";
                 return;
             }
 

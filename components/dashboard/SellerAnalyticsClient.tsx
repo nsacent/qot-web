@@ -1,7 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { apiGet } from "@/lib/apiClient";
+
+async function apiGet(path: string) {
+    const response = await fetch(`/api/proxy${path}`, {
+        credentials: "include",
+        cache: "no-store",
+    });
+    const data = await response.json().catch(() => null);
+    if (!response.ok) throw new Error(data?.detail || "Failed to load analytics.");
+    return data;
+}
 
 const API_BASE_URL =
     process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000/api/v1";
@@ -114,7 +123,7 @@ export default function SellerAnalyticsClient() {
         try {
             const [dashboardResult, listingsResult] = await Promise.allSettled([
                 apiGet("/seller/analytics/"),
-                apiGet("/my-ads/"),
+                apiGet("/seller/listings/?page_size=1000"),
             ]);
 
             if (dashboardResult.status === "fulfilled") {
@@ -166,42 +175,34 @@ export default function SellerAnalyticsClient() {
     );
 
     const stats = [
-        { label: "Total Listings", value: listings.length },
-        { label: "Total Views", value: totalViews },
-        { label: "Total Saves", value: totalSaves },
-        { label: "Messages", value: totalMessages },
+        { label: "Total Listings", value: listings.length, helper: "All your adverts", tone: "from-orange-500 to-orange-600 text-white" },
+        { label: "Total Views", value: totalViews, helper: "Buyer visits", tone: "from-blue-50 to-cyan-100 text-blue-800" },
+        { label: "Total Saves", value: totalSaves, helper: "Buyer interest", tone: "from-rose-50 to-pink-100 text-rose-800" },
+        { label: "Messages", value: totalMessages, helper: "Buyer enquiries", tone: "from-violet-50 to-purple-100 text-violet-800" },
     ];
 
     return (
-        <section className="mx-auto max-w-7xl px-6 py-10">
-            <div className="mb-8 flex flex-col justify-between gap-4 md:flex-row md:items-end">
-                <div>
-                    <p className="text-sm font-semibold uppercase tracking-wide text-orange-600">
-                        Seller Analytics
-                    </p>
-                    <h1 className="mt-2 text-3xl font-bold text-slate-900">
-                        Performance Overview
-                    </h1>
-                    <p className="mt-2 text-slate-600">
-                        View performance for your seller adverts.
-                    </p>
-                </div>
+        <section className="py-6">
+            <div className="relative mb-7 overflow-hidden rounded-[34px] bg-gradient-to-br from-slate-950 via-slate-900 to-violet-950 p-6 text-white shadow-[0_24px_65px_rgba(15,23,42,0.20)] sm:p-8">
+                <div className="absolute -right-16 -top-20 h-56 w-56 rounded-full bg-violet-500/20 blur-2xl" />
+                <div className="relative flex flex-col justify-between gap-6 md:flex-row md:items-end">
+                    <div>
+                        <span className="inline-flex rounded-full bg-violet-500/15 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-violet-200 ring-1 ring-violet-300/20">Seller Analytics</span>
+                        <h1 className="mt-5 text-3xl font-black tracking-tight sm:text-4xl">Understand what buyers love</h1>
+                        <p className="mt-3 max-w-2xl text-sm font-semibold leading-6 text-slate-300 sm:text-base">Compare advert performance and turn buyer activity into better selling decisions.</p>
+                    </div>
 
-                <a
-                    href="/my-ads"
-                    className="rounded-xl border bg-white px-5 py-3 text-center font-semibold hover:bg-slate-50"
-                >
-                    Back to My Listings
-                </a>
+                    <a href="/my-ads" className="rounded-[16px] bg-white/10 px-5 py-3 text-center text-sm font-black text-white ring-1 ring-white/15 hover:bg-white/15">My Listings</a>
+                </div>
             </div>
 
             {loading ? (
-                <div className="rounded-2xl border bg-white p-8 text-slate-600">
-                    Loading seller analytics...
+                <div className="rounded-[30px] bg-white p-10 text-center shadow-[0_18px_55px_rgba(15,23,42,0.08)] ring-1 ring-black/5">
+                    <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-violet-100 border-t-violet-500" />
+                    <p className="mt-4 text-sm font-black text-slate-600">Loading seller analytics...</p>
                 </div>
             ) : error ? (
-                <div className="rounded-2xl border border-red-200 bg-red-50 p-8 text-red-700">
-                    {error}
+                <div className="rounded-[28px] border border-red-200 bg-red-50 p-7 text-red-700"><p className="font-black">Analytics unavailable</p><p className="mt-2 text-sm font-semibold">{error}</p><button type="button" onClick={loadData} className="mt-5 rounded-xl bg-red-600 px-4 py-2.5 text-sm font-black text-white">Try Again</button>
                 </div>
             ) : (
                 <>
@@ -209,19 +210,20 @@ export default function SellerAnalyticsClient() {
                         {stats.map((stat) => (
                             <div
                                 key={stat.label}
-                                className="rounded-2xl border bg-white p-5 shadow-sm"
+                                className={`rounded-[26px] bg-gradient-to-br p-6 shadow-[0_14px_40px_rgba(15,23,42,0.07)] ring-1 ring-black/5 ${stat.tone}`}
                             >
-                                <p className="text-sm font-semibold text-slate-500">
+                                <p className="text-xs font-black uppercase tracking-wide opacity-75">
                                     {stat.label}
                                 </p>
-                                <p className="mt-2 text-3xl font-black text-slate-900">
+                                <p className="mt-3 text-4xl font-black">
                                     {Number(stat.value).toLocaleString()}
                                 </p>
+                                <p className="mt-2 text-xs font-bold opacity-70">{stat.helper}</p>
                             </div>
                         ))}
                     </div>
 
-                    <div className="mt-8 rounded-2xl border bg-white p-6 shadow-sm">
+                    <div className="mt-8 rounded-[30px] bg-white p-6 shadow-[0_18px_55px_rgba(15,23,42,0.08)] ring-1 ring-black/5 sm:p-7">
                         <div className="mb-5">
                             <p className="text-sm font-semibold uppercase tracking-wide text-orange-600">
                                 Listing Performance
@@ -244,9 +246,9 @@ export default function SellerAnalyticsClient() {
                                     return (
                                         <article
                                             key={listingId || getTitle(listing)}
-                                            className="grid gap-4 rounded-2xl border p-4 md:grid-cols-[140px_1fr_auto] md:items-center"
+                                            className="grid gap-4 rounded-[24px] bg-slate-50 p-3 ring-1 ring-slate-100 transition hover:bg-white hover:shadow-[0_14px_35px_rgba(15,23,42,0.08)] md:grid-cols-[128px_1fr_auto] md:items-center"
                                         >
-                                            <div className="flex h-32 items-center justify-center overflow-hidden rounded-xl bg-slate-200 text-slate-500">
+                                            <div className="flex h-28 items-center justify-center overflow-hidden rounded-[18px] bg-slate-200 text-slate-500">
                                                 {image ? (
                                                     <img
                                                         src={image}
@@ -276,8 +278,8 @@ export default function SellerAnalyticsClient() {
 
                                             {listingId && (
                                                 <a
-                                                    href={`/seller/analytics/${listingId}`}
-                                                    className="rounded-xl bg-orange-500 px-5 py-3 text-center text-sm font-semibold text-white hover:bg-orange-600"
+                                                    href={`/account/analytics/${listingId}`}
+                                                    className="rounded-xl bg-orange-500 px-5 py-3 text-center text-sm font-black text-white hover:bg-orange-600"
                                                 >
                                                     Details
                                                 </a>

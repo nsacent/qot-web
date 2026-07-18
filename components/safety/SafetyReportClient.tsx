@@ -227,7 +227,7 @@ export default function SafetyReportClient() {
                             </a>
 
                             <a
-                                href="/saved"
+                                href="/account/saved"
                                 className="rounded-xl border px-5 py-3 text-center font-semibold hover:bg-slate-50"
                             >
                                 Saved Adverts

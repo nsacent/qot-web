@@ -29,7 +29,7 @@ export default function QotMarketplaceFooter() {
                             <a href="/post-ad" className="hover:text-orange-400">
                                 Post Advert
                             </a>
-                            <a href="/seller/dashboard" className="hover:text-orange-400">
+                            <a href="/account/dashboard" className="hover:text-orange-400">
                                 Seller Dashboard
                             </a>
                         </div>
@@ -47,7 +47,7 @@ export default function QotMarketplaceFooter() {
                             <a href="/register" className="hover:text-orange-400">
                                 Register
                             </a>
-                            <a href="/saved" className="hover:text-orange-400">
+                            <a href="/account/saved" className="hover:text-orange-400">
                                 Saved Adverts
                             </a>
                             <a href="/messages" className="hover:text-orange-400">

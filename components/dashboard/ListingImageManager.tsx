@@ -278,7 +278,7 @@ export default function ListingImageManager({
                         </a>
 
                         <a
-                            href={`/seller/analytics/${listingId}`}
+                            href={`/account/analytics/${listingId}`}
                             className="rounded-xl border border-green-200 bg-white px-5 py-3 text-center text-sm font-semibold text-green-700 hover:bg-green-100"
                         >
                             View Analytics

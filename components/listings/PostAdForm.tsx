@@ -131,7 +131,7 @@ async function clientApiPost(path: string, payload: any) {
     return data;
 }
 
-async function clientApiUpload(path: string, payload: FormData) {
+async function clientApiPostForm(path: string, payload: FormData) {
     const response = await fetch(`/api/proxy${path}`, {
         method: "POST",
         credentials: "include",
@@ -151,11 +151,23 @@ async function clientApiUpload(path: string, payload: FormData) {
             data?.message ||
             data?.error ||
             (Array.isArray(fieldError) ? fieldError[0] : fieldError) ||
-            "Failed to upload advert photo."
+            "Failed to submit advert."
         );
     }
 
     return data;
+}
+
+async function clientApiDelete(path: string) {
+    const response = await fetch(`/api/proxy${path}`, {
+        method: "DELETE",
+        credentials: "include",
+    });
+
+    if (!response.ok && response.status !== 204) {
+        const data = await response.json().catch(() => null);
+        throw new Error(data?.detail || "Failed to remove uploaded photo.");
+    }
 }
 
 function getCategoryFilterItems(payload: any): any[] {
@@ -276,6 +288,8 @@ export default function PostAdForm() {
     const [condition, setCondition] = useState("used");
     const [isNegotiable, setIsNegotiable] = useState(false);
     const [photos, setPhotos] = useState<File[]>([]);
+    const [stagedPhotoIds, setStagedPhotoIds] = useState<number[]>([]);
+    const [photosUploading, setPhotosUploading] = useState(false);
 
     const [categories, setCategories] = useState<any[]>([]);
     const [cities, setCities] = useState<any[]>([]);
@@ -455,6 +469,11 @@ export default function PostAdForm() {
         if (!category) return "Please select category.";
         if (!city) return "Please select city.";
         if (!condition) return "Please select condition.";
+        if (!photos.length) return "Please add at least one advert photo.";
+        if (photosUploading) return "Please wait for your photos to finish uploading.";
+        if (stagedPhotoIds.length !== photos.length) {
+            return "One or more photos failed to upload. Remove them and choose them again.";
+        }
 
         return "";
     }
@@ -471,7 +490,7 @@ export default function PostAdForm() {
         setLocationModalOpen(false);
     }
 
-    function handlePhotoSelection(event: ChangeEvent<HTMLInputElement>) {
+    async function handlePhotoSelection(event: ChangeEvent<HTMLInputElement>) {
         const selectedFiles = Array.from(event.target.files || []);
         event.target.value = "";
 
@@ -500,10 +519,45 @@ export default function PostAdForm() {
 
         setError("");
         setPhotos((current) => [...current, ...selectedFiles]);
+
+        setPhotosUploading(true);
+        setUploadProgress(`Uploading 1 of ${selectedFiles.length} new photos...`);
+
+        try {
+            for (let index = 0; index < selectedFiles.length; index += 1) {
+                setUploadProgress(
+                    `Uploading photo ${index + 1} of ${selectedFiles.length} in the background...`
+                );
+
+                const formData = new FormData();
+                formData.append("image", selectedFiles[index]);
+                const data = await clientApiPostForm("/listings/images/stage/", formData);
+                setStagedPhotoIds((current) => [...current, Number(data.id)]);
+            }
+
+            setUploadProgress("Photos uploaded. Continue filling in the advert details.");
+        } catch (err: any) {
+            setError(err.message || "A photo failed to upload.");
+            setUploadProgress("Photo upload failed.");
+        } finally {
+            setPhotosUploading(false);
+        }
     }
 
-    function removePhoto(index: number) {
+    async function removePhoto(index: number) {
+        const stagedId = stagedPhotoIds[index];
+
+        if (stagedId) {
+            try {
+                await clientApiDelete(`/listings/images/stage/${stagedId}/`);
+            } catch (err: any) {
+                setError(err.message || "Failed to remove uploaded photo.");
+                return;
+            }
+        }
+
         setPhotos((current) => current.filter((_, itemIndex) => itemIndex !== index));
+        setStagedPhotoIds((current) => current.filter((_, itemIndex) => itemIndex !== index));
     }
 
     function handlePreview(event: FormEvent<HTMLFormElement>) {
@@ -527,39 +581,29 @@ export default function PostAdForm() {
         setUploadProgress("");
 
         try {
-            const data = await clientApiPost("/listings/", {
-                title,
-                description,
-                price,
-                currency: "UGX",
-                category,
-                city,
-                condition,
-                is_negotiable: isNegotiable,
-                attributes: buildAttributes(),
-            });
+            setUploadProgress("Saving advert details...");
 
-            const createdListingId = getCreatedListingId(data);
+            const formData = new FormData();
+            formData.append("title", title);
+            formData.append("description", description);
+            formData.append("price", price);
+            formData.append("currency", "UGX");
+            formData.append("category", category);
+            formData.append("city", city);
+            formData.append("condition", condition);
+            formData.append("is_negotiable", String(isNegotiable));
+            formData.append("attributes", JSON.stringify(buildAttributes()));
+            formData.append("staged_image_ids", JSON.stringify(stagedPhotoIds));
 
-            if (!createdListingId) {
+            const data = await clientApiPostForm("/listings/", formData);
+            const listingId = String(getCreatedListingId(data));
+
+            if (!listingId) {
                 throw new Error("Advert was created, but its listing ID was not returned.");
             }
 
-            for (let index = 0; index < photos.length; index += 1) {
-                setUploadProgress(`Uploading photo ${index + 1} of ${photos.length}...`);
-
-                const formData = new FormData();
-                formData.append("image", photos[index]);
-                formData.append("sort_order", String(index));
-
-                await clientApiUpload(
-                    `/listings/${createdListingId}/images/`,
-                    formData
-                );
-            }
-
             setUploadProgress("Advert submitted successfully.");
-            router.push(`/my-ads/${createdListingId}`);
+            router.push(`/my-ads/${listingId}`);
         } catch (err: any) {
             if (err?.message === "__AUTH__") {
                 router.push("/login?next=/post-ad");
@@ -567,7 +611,6 @@ export default function PostAdForm() {
             }
 
             setError(err.message || "Something went wrong.");
-            setShowPreview(false);
         } finally {
             setLoading(false);
         }
@@ -725,10 +768,11 @@ export default function PostAdForm() {
     }
 
     return (
-        <form onSubmit={handlePreview} className="space-y-6">
+        <form onSubmit={handlePreview} className="flex flex-col gap-6">
             {error && <ErrorBox message={error} />}
 
             <FormCard
+                className="order-1"
                 icon={faPenToSquare}
                 eyebrow="Step 1"
                 title="Basic advert details"
@@ -757,8 +801,9 @@ export default function PostAdForm() {
             </FormCard>
 
             <FormCard
+                className="order-3"
                 icon={faMoneyBillWave}
-                eyebrow="Step 2"
+                eyebrow="Step 3"
                 title="Price and condition"
                 description="Set your price and let buyers know if they can negotiate."
             >
@@ -809,8 +854,9 @@ export default function PostAdForm() {
             </FormCard>
 
             <FormCard
+                className="order-4"
                 icon={faLayerGroup}
-                eyebrow="Step 3"
+                eyebrow="Step 4"
                 title="Category and location"
                 description="Choose the right category and location so buyers can find your advert."
             >
@@ -881,8 +927,9 @@ export default function PostAdForm() {
 
             {category && (
                 <FormCard
+                    className="order-5"
                     icon={faSliders}
-                    eyebrow="Step 4"
+                    eyebrow="Step 5"
                     title="Category details"
                     description="These details change depending on the category you select."
                 >
@@ -976,8 +1023,9 @@ export default function PostAdForm() {
             )}
 
             <FormCard
+                className="order-2"
                 icon={faCamera}
-                eyebrow="Step 5"
+                eyebrow="Step 2"
                 title="Advert photos"
                 description="Add up to 10 clear photos. The first photo will be the primary image."
             >
@@ -996,6 +1044,7 @@ export default function PostAdForm() {
                         accept="image/jpeg,image/png,image/webp"
                         multiple
                         onChange={handlePhotoSelection}
+                        disabled={photosUploading}
                         className="sr-only"
                     />
                 </label>
@@ -1020,6 +1069,7 @@ export default function PostAdForm() {
                                 <button
                                     type="button"
                                     onClick={() => removePhoto(index)}
+                                    disabled={photosUploading}
                                     aria-label={`Remove ${photo.file.name}`}
                                     className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-slate-950/80 text-white shadow-sm transition hover:bg-red-600"
                                 >
@@ -1029,9 +1079,18 @@ export default function PostAdForm() {
                         ))}
                     </div>
                 )}
+
+                {uploadProgress && !showPreview && (
+                    <div className={`rounded-[18px] px-4 py-3 text-sm font-black ring-1 ${photosUploading
+                        ? "bg-blue-50 text-blue-700 ring-blue-100"
+                        : "bg-green-50 text-green-700 ring-green-100"
+                    }`}>
+                        {uploadProgress}
+                    </div>
+                )}
             </FormCard>
 
-            <div className="rounded-[24px] border border-orange-200 bg-orange-50 p-5 text-sm text-orange-800">
+            <div className="order-6 rounded-[24px] border border-orange-200 bg-orange-50 p-5 text-sm text-orange-800">
                 <p className="flex items-center gap-2 font-black">
                     <FontAwesomeIcon icon={faShieldHalved} className="h-4 w-4" />
                     You will preview before posting.
@@ -1044,7 +1103,7 @@ export default function PostAdForm() {
 
             <button
                 type="submit"
-                className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-[18px] bg-orange-500 px-5 text-sm font-black text-white hover:bg-orange-600"
+                className="order-7 inline-flex h-12 w-full items-center justify-center gap-2 rounded-[18px] bg-orange-500 px-5 text-sm font-black text-white hover:bg-orange-600"
             >
                 Preview Advert
                 <FontAwesomeIcon icon={faArrowRight} className="h-4 w-4" />
@@ -1054,12 +1113,14 @@ export default function PostAdForm() {
 }
 
 function FormCard({
+    className = "",
     icon,
     eyebrow,
     title,
     description,
     children,
 }: {
+    className?: string;
     icon: any;
     eyebrow: string;
     title: string;
@@ -1067,7 +1128,7 @@ function FormCard({
     children?: ReactNode;
 }) {
     return (
-        <section className="rounded-[30px] bg-white p-5 shadow-[0_18px_55px_rgba(15,23,42,0.08)] ring-1 ring-black/5 md:p-6">
+        <section className={`rounded-[30px] bg-white p-5 shadow-[0_18px_55px_rgba(15,23,42,0.08)] ring-1 ring-black/5 md:p-6 ${className}`}>
             <div className="mb-5 flex gap-4">
                 <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-orange-50 text-orange-600">
                     <FontAwesomeIcon icon={icon} className="h-5 w-5" />

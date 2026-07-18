@@ -1,7 +1,37 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { apiGet, apiPost } from "@/lib/apiClient";
+
+async function dashboardApi<T = any>(
+    path: string,
+    method: "GET" | "POST" = "GET"
+): Promise<T> {
+    const response = await fetch(`/api/proxy${path}`, {
+        method,
+        credentials: "include",
+        cache: "no-store",
+        headers: method === "POST" ? { "Content-Type": "application/json" } : undefined,
+        body: method === "POST" ? JSON.stringify({}) : undefined,
+    });
+
+    const data = await response.json().catch(() => null);
+
+    if (!response.ok) {
+        throw new Error(
+            data?.detail || data?.message || `Dashboard request failed: ${response.status}`
+        );
+    }
+
+    return data as T;
+}
+
+function apiGet<T = any>(path: string) {
+    return dashboardApi<T>(path);
+}
+
+function apiPost<T = any>(path: string) {
+    return dashboardApi<T>(path, "POST");
+}
 
 const API_BASE_URL =
     process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000/api/v1";
@@ -235,8 +265,8 @@ function ListingMiniCard({
     }
 
     return (
-        <article className="grid gap-4 rounded-2xl border bg-white p-4 shadow-sm md:grid-cols-[120px_1fr_auto] md:items-center">
-            <div className="flex h-28 items-center justify-center overflow-hidden rounded-xl bg-slate-200 text-slate-500">
+        <article className="grid gap-4 rounded-[24px] bg-slate-50 p-3 ring-1 ring-slate-100 transition hover:bg-white hover:shadow-[0_14px_35px_rgba(15,23,42,0.08)] md:grid-cols-[112px_1fr_auto] md:items-center">
+            <div className="flex h-28 items-center justify-center overflow-hidden rounded-[18px] bg-slate-200 text-slate-500">
                 {image ? (
                     <img
                         src={image}
@@ -244,45 +274,48 @@ function ListingMiniCard({
                         className="h-full w-full object-cover"
                     />
                 ) : (
-                    <span className="text-sm">No image</span>
+                    <span className="text-xs font-bold">No image</span>
                 )}
             </div>
 
             <div>
-                <h3 className="font-bold text-slate-900">
+                <h3 className="text-base font-black text-slate-950">
                     {getTitle(enrichedListing)}
                 </h3>
 
-                <p className="mt-1 text-sm text-slate-500">
-                    {getStatus(enrichedListing)} · {getPrice(enrichedListing)}
+                <p className="mt-2 flex flex-wrap items-center gap-2 text-xs font-bold text-slate-500">
+                    <span className="rounded-full bg-white px-2.5 py-1 capitalize ring-1 ring-slate-200">
+                        {getStatus(enrichedListing)}
+                    </span>
+                    <span className="text-orange-600">{getPrice(enrichedListing)}</span>
                 </p>
 
-                <p className="mt-2 text-sm text-slate-600">
+                <p className="mt-3 text-xs font-semibold text-slate-500">
                     Views: {getViews(enrichedListing).toLocaleString()} · Saves:{" "}
                     {getSaves(enrichedListing).toLocaleString()}
                 </p>
             </div>
 
-            <div className="grid gap-2">
+            <div className="grid min-w-[132px] gap-2">
                 {listingId && (
                     <>
                         <a
-                            href={`/seller/analytics/${listingId}`}
-                            className="rounded-xl bg-orange-500 px-4 py-2 text-center text-sm font-semibold text-white hover:bg-orange-600"
+                            href={`/account/analytics/${listingId}`}
+                            className="rounded-xl bg-orange-500 px-4 py-2.5 text-center text-xs font-black text-white hover:bg-orange-600"
                         >
                             Analytics
                         </a>
 
                         <a
-                            href="/seller/renewals"
-                            className="rounded-xl border px-5 py-3 text-center font-semibold hover:bg-slate-50"
+                            href="/account/renewals"
+                            className="rounded-xl bg-white px-4 py-2.5 text-center text-xs font-black text-slate-700 ring-1 ring-slate-200 hover:bg-orange-50 hover:text-orange-600"
                         >
                             Renewal Center
                         </a>
 
                         <a
                             href={`/my-ads/${listingId}/edit`}
-                            className="rounded-xl border px-4 py-2 text-center text-sm font-semibold hover:bg-slate-50"
+                            className="rounded-xl bg-white px-4 py-2.5 text-center text-xs font-black text-slate-700 ring-1 ring-slate-200 hover:bg-slate-100"
                         >
                             Edit
                         </a>
@@ -295,7 +328,7 @@ function ListingMiniCard({
                             type="button"
                             onClick={() => runAction("renew")}
                             disabled={loading === "renew"}
-                            className="rounded-xl border px-4 py-2 text-sm font-semibold hover:bg-slate-50 disabled:opacity-60"
+                            className="rounded-xl bg-white px-4 py-2.5 text-xs font-black text-slate-700 ring-1 ring-slate-200 hover:bg-orange-50 disabled:opacity-60"
                         >
                             {loading === "renew" ? "Renewing..." : "Renew"}
                         </button>
@@ -304,7 +337,7 @@ function ListingMiniCard({
                             type="button"
                             onClick={() => runAction("relist")}
                             disabled={loading === "relist"}
-                            className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-60"
+                            className="rounded-xl bg-slate-950 px-4 py-2.5 text-xs font-black text-white hover:bg-slate-800 disabled:opacity-60"
                         >
                             {loading === "relist" ? "Relisting..." : "Relist"}
                         </button>
@@ -404,10 +437,14 @@ export default function SellerDashboardClient() {
                 summary?.listings_count,
                 listings.length
             ),
+            helper: "All your adverts",
+            tone: "from-orange-500 to-orange-600 text-white",
         },
         {
             label: "Active Listings",
             value: getNumber(summary?.active_listings, summary?.active_count),
+            helper: "Visible to buyers",
+            tone: "from-emerald-50 to-green-100 text-emerald-800",
         },
         {
             label: "Featured",
@@ -416,6 +453,8 @@ export default function SellerDashboardClient() {
                 summary?.featured_listings,
                 featuredListings.length
             ),
+            helper: "Currently promoted",
+            tone: "from-violet-50 to-purple-100 text-violet-800",
         },
         {
             label: "Need Renewal",
@@ -424,51 +463,62 @@ export default function SellerDashboardClient() {
                 summary?.renewal_count,
                 renewalListings.length
             ),
+            helper: "Needs your attention",
+            tone: "from-amber-50 to-orange-100 text-amber-800",
         },
     ];
 
     return (
-        <section className="mx-auto max-w-7xl px-6 py-10">
-            <div className="mb-8 flex flex-col justify-between gap-4 md:flex-row md:items-end">
-                <div>
-                    <p className="text-sm font-semibold uppercase tracking-wide text-orange-600">
-                        Seller Dashboard
-                    </p>
+        <section className="py-6 text-slate-950">
+            <div className="relative mb-7 overflow-hidden rounded-[34px] bg-gradient-to-br from-slate-950 via-slate-900 to-orange-950 p-6 text-white shadow-[0_24px_65px_rgba(15,23,42,0.20)] sm:p-8">
+                <div className="absolute -right-16 -top-20 h-56 w-56 rounded-full bg-orange-500/20 blur-2xl" />
+                <div className="absolute -bottom-24 left-1/3 h-52 w-52 rounded-full bg-orange-400/10 blur-3xl" />
 
-                    <h1 className="mt-2 text-3xl font-bold text-slate-900">
-                        Seller Home
-                    </h1>
+                <div className="relative flex flex-col justify-between gap-6 md:flex-row md:items-end">
+                    <div>
+                        <span className="inline-flex rounded-full bg-orange-500/15 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-orange-200 ring-1 ring-orange-300/20">
+                            Account Dashboard
+                        </span>
 
-                    <p className="mt-2 text-slate-600">
-                        Manage your seller performance, renew adverts, and track important
-                        listings.
-                    </p>
-                </div>
+                        <h1 className="mt-5 text-3xl font-black tracking-tight sm:text-4xl">
+                            Grow your marketplace presence
+                        </h1>
 
-                <div className="flex flex-col gap-3 sm:flex-row">
-                    <a
-                        href="/seller/analytics"
-                        className="rounded-xl border bg-white px-5 py-3 text-center font-semibold hover:bg-slate-50"
-                    >
-                        Analytics
-                    </a>
+                        <p className="mt-3 max-w-2xl text-sm font-semibold leading-6 text-slate-300 sm:text-base">
+                            Track advert performance, manage renewals, and see what buyers respond to—all in one place.
+                        </p>
+                    </div>
 
-                    <a
-                        href="/post-ad"
-                        className="rounded-xl bg-orange-500 px-5 py-3 text-center font-semibold text-white hover:bg-orange-600"
-                    >
-                        Post New Advert
-                    </a>
+                    <div className="flex flex-col gap-3 sm:flex-row">
+                        <a
+                            href="/account/analytics"
+                            className="rounded-[16px] bg-white/10 px-5 py-3 text-center text-sm font-black text-white ring-1 ring-white/15 hover:bg-white/15"
+                        >
+                            View Analytics
+                        </a>
+
+                        <a
+                            href="/post-ad"
+                            className="rounded-[16px] bg-orange-500 px-5 py-3 text-center text-sm font-black text-white shadow-[0_12px_30px_rgba(249,115,22,0.28)] hover:bg-orange-400"
+                        >
+                            Post New Advert
+                        </a>
+                    </div>
                 </div>
             </div>
 
             {loading ? (
-                <div className="rounded-2xl border bg-white p-8 text-slate-600">
-                    Loading seller dashboard...
+                <div className="rounded-[30px] bg-white p-10 text-center shadow-[0_18px_55px_rgba(15,23,42,0.08)] ring-1 ring-black/5">
+                    <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-orange-100 border-t-orange-500" />
+                    <p className="mt-4 text-sm font-black text-slate-600">Loading your dashboard...</p>
                 </div>
             ) : error ? (
-                <div className="rounded-2xl border border-red-200 bg-red-50 p-8 text-red-700">
-                    {error}
+                <div className="rounded-[28px] border border-red-200 bg-red-50 p-7 text-red-700 shadow-sm">
+                    <p className="font-black">Dashboard unavailable</p>
+                    <p className="mt-2 text-sm font-semibold">{error}</p>
+                    <button type="button" onClick={loadDashboard} className="mt-5 rounded-xl bg-red-600 px-4 py-2.5 text-sm font-black text-white hover:bg-red-700">
+                        Try Again
+                    </button>
                 </div>
             ) : (
                 <>
@@ -476,21 +526,22 @@ export default function SellerDashboardClient() {
                         {stats.map((stat) => (
                             <div
                                 key={stat.label}
-                                className="rounded-2xl border bg-white p-5 shadow-sm"
+                                className={`rounded-[26px] bg-gradient-to-br p-6 shadow-[0_14px_40px_rgba(15,23,42,0.07)] ring-1 ring-black/5 ${stat.tone}`}
                             >
-                                <p className="text-sm font-semibold text-slate-500">
+                                <p className="text-xs font-black uppercase tracking-wide opacity-75">
                                     {stat.label}
                                 </p>
 
-                                <p className="mt-2 text-3xl font-black text-slate-900">
+                                <p className="mt-3 text-4xl font-black">
                                     {Number(stat.value).toLocaleString()}
                                 </p>
+                                <p className="mt-2 text-xs font-bold opacity-70">{stat.helper}</p>
                             </div>
                         ))}
                     </div>
 
                     <div className="mt-8 grid gap-6 lg:grid-cols-2">
-                        <div className="rounded-2xl border bg-white p-6 shadow-sm">
+                        <div className="rounded-[30px] bg-white p-6 shadow-[0_18px_55px_rgba(15,23,42,0.08)] ring-1 ring-black/5">
                             <p className="text-sm font-semibold uppercase tracking-wide text-green-600">
                                 Best Listing
                             </p>
@@ -507,7 +558,7 @@ export default function SellerDashboardClient() {
                             )}
                         </div>
 
-                        <div className="rounded-2xl border bg-white p-6 shadow-sm">
+                        <div className="rounded-[30px] bg-white p-6 shadow-[0_18px_55px_rgba(15,23,42,0.08)] ring-1 ring-black/5">
                             <p className="text-sm font-semibold uppercase tracking-wide text-red-600">
                                 Weakest Listing
                             </p>
@@ -525,7 +576,7 @@ export default function SellerDashboardClient() {
                         </div>
                     </div>
 
-                    <div className="mt-8 rounded-2xl border bg-white p-6 shadow-sm">
+                    <div className="mt-8 rounded-[30px] bg-white p-6 shadow-[0_18px_55px_rgba(15,23,42,0.08)] ring-1 ring-black/5">
                         <div className="mb-5">
                             <p className="text-sm font-semibold uppercase tracking-wide text-orange-600">
                                 Listings Needing Renewal
@@ -556,7 +607,7 @@ export default function SellerDashboardClient() {
                     </div>
 
                     <div className="mt-8 grid gap-6 lg:grid-cols-2">
-                        <div className="rounded-2xl border bg-white p-6 shadow-sm">
+                        <div className="rounded-[30px] bg-white p-6 shadow-[0_18px_55px_rgba(15,23,42,0.08)] ring-1 ring-black/5">
                             <div className="mb-5">
                                 <p className="text-sm font-semibold uppercase tracking-wide text-orange-600">
                                     Recent Listings
@@ -584,7 +635,7 @@ export default function SellerDashboardClient() {
                             )}
                         </div>
 
-                        <div className="rounded-2xl border bg-white p-6 shadow-sm">
+                        <div className="rounded-[30px] bg-white p-6 shadow-[0_18px_55px_rgba(15,23,42,0.08)] ring-1 ring-black/5">
                             <div className="mb-5">
                                 <p className="text-sm font-semibold uppercase tracking-wide text-orange-600">
                                     Active Featured Listings

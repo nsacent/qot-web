@@ -92,17 +92,17 @@ export default function AccountClient() {
         },
         {
             label: "Seller Dashboard",
-            href: "/seller/dashboard",
+            href: "/account/dashboard",
             description: "Seller summary and renewal tools",
         },
         {
             label: "Seller Analytics",
-            href: "/seller/analytics",
+            href: "/account/analytics",
             description: "Track advert performance",
         },
         {
             label: "Saved Adverts",
-            href: "/saved",
+            href: "/account/saved",
             description: "Listings you saved",
         },
         {
@@ -128,7 +128,7 @@ export default function AccountClient() {
 
         {
             label: "Renewal Center",
-            href: "/seller/renewals",
+            href: "/account/renewals",
             description: "Renew expired or expiring adverts",
         },
 
