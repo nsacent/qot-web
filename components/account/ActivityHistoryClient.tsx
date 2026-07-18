@@ -133,7 +133,7 @@ function buildFavoriteItems(favorites: any[]): ActivityItem[] {
             type: "favorite",
             title: `Saved: ${getListingTitle(listing)}`,
             description: "You saved this advert to your favorites.",
-            href: id ? `/listings/${id}` : "/saved",
+            href: id ? `/listings/${id}` : "/account/saved",
             date: safeDate(
                 item?.created_at ||
                 item?.created ||
@@ -519,7 +519,7 @@ export default function ActivityHistoryClient() {
 
                         <div className="mt-4 grid gap-3">
                             <a
-                                href="/saved"
+                                href="/account/saved"
                                 className="rounded-xl border px-5 py-3 text-center font-semibold hover:bg-slate-50"
                             >
                                 Saved Adverts

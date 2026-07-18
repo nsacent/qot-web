@@ -1,4 +1,5 @@
-import SavedAdsClient from "@/app/saved/SavedAdsClient";
+import VerifiedAccountGuard from "@/components/auth/VerifiedAccountGuard";
+import SellerDashboardClient from "@/components/dashboard/SellerDashboardClient";
 import QotMarketplaceFooter from "@/components/layout/QotMarketplaceFooter";
 import QotMarketplaceNav from "@/components/layout/QotMarketplaceNav";
 
@@ -13,9 +14,7 @@ async function apiGet(path: string) {
             cache: "no-store",
         });
 
-        if (!response.ok) {
-            return null;
-        }
+        if (!response.ok) return null;
 
         return await response.json();
     } catch {
@@ -34,7 +33,7 @@ async function getCities() {
     let path = "/locations/cities/?page_size=50";
     const cities: any[] = [];
 
-    for (let i = 0; i < 6 && path; i++) {
+    for (let page = 0; page < 6 && path; page += 1) {
         const data = await apiGet(path);
         cities.push(...getArray(data));
 
@@ -51,7 +50,7 @@ async function getCities() {
     return cities;
 }
 
-export default async function SavedPage() {
+export default async function AccountDashboardPage() {
     const [categoriesData, cities] = await Promise.all([
         apiGet("/categories/"),
         getCities(),
@@ -64,9 +63,14 @@ export default async function SavedPage() {
             <div className="mx-auto max-w-[1500px] px-4 py-4 sm:px-6">
                 <QotMarketplaceNav categories={categories} cities={cities} />
 
-                <SavedAdsClient />
-
+                <VerifiedAccountGuard
+                    title="Account dashboard requires verification"
+                    description="Your account must be verified before you can access dashboard tools."
+                >
+                    <SellerDashboardClient />
+                </VerifiedAccountGuard>
             </div>
+
             <QotMarketplaceFooter />
         </main>
     );

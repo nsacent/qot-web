@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getStoredUser } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/sessionClient";
 
 type VerifiedAccountGuardProps = {
     children: React.ReactNode;
@@ -41,9 +41,24 @@ export default function VerifiedAccountGuard({
     const [user, setUser] = useState<any>(null);
 
     useEffect(() => {
-        const storedUser = getStoredUser();
-        setUser(storedUser);
-        setMounted(true);
+        let active = true;
+
+        async function checkAccount() {
+            try {
+                const currentUser = await getCurrentUser();
+                if (active) setUser(currentUser);
+            } catch {
+                if (active) setUser(null);
+            } finally {
+                if (active) setMounted(true);
+            }
+        }
+
+        checkAccount();
+
+        return () => {
+            active = false;
+        };
     }, []);
 
     if (!mounted) {
@@ -57,6 +72,10 @@ export default function VerifiedAccountGuard({
     }
 
     if (!user) {
+        const nextUrl = encodeURIComponent(
+            window.location.pathname + window.location.search
+        );
+
         return (
             <section className="mx-auto max-w-4xl px-6 py-10">
                 <div className="rounded-2xl border bg-white p-8 shadow-sm">
@@ -73,7 +92,7 @@ export default function VerifiedAccountGuard({
                     </p>
 
                     <a
-                        href="/login"
+                        href={`/login?next=${nextUrl}`}
                         className="mt-6 inline-block rounded-xl bg-orange-500 px-5 py-3 font-semibold text-white hover:bg-orange-600"
                     >
                         Login

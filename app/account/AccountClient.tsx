@@ -12,6 +12,12 @@ import {
     faUser,
 } from "@/lib/faIcons";
 import QotLoader from "@/components/common/QotLoader";
+import SellerDashboardClient from "@/components/dashboard/SellerDashboardClient";
+import SellerAnalyticsClient from "@/components/dashboard/SellerAnalyticsClient";
+import SellerRenewalsClient from "@/components/dashboard/SellerRenewalsClient";
+import SavedAdsClient from "@/app/account/saved/SavedAdsClient";
+import MyListingsClient from "@/app/my-ads/MyListingsClient";
+import NotificationPreferencesClient from "@/components/notifications/NotificationPreferencesClient";
 import {
     getCurrentUser,
     logoutUser,
@@ -23,6 +29,9 @@ function getUserObject(data: any) {
 }
 
 function AccountForm() {
+    const [activeTab, setActiveTab] = useState<
+        "profile" | "dashboard" | "analytics" | "renewals" | "saved" | "ads" | "settings"
+    >("profile");
     const [checkingSession, setCheckingSession] = useState(true);
     const [saving, setSaving] = useState(false);
 
@@ -116,11 +125,21 @@ function AccountForm() {
         user?.email_verified === true ||
         user?.is_email_verified === true;
 
+    const accountTabs = [
+        { id: "profile" as const, label: "Profile Details" },
+        { id: "dashboard" as const, label: "Dashboard" },
+        { id: "analytics" as const, label: "Analytics" },
+        { id: "renewals" as const, label: "Renewals" },
+        { id: "saved" as const, label: "Saved Ads" },
+        { id: "ads" as const, label: "My Ads" },
+        { id: "settings" as const, label: "Account Settings" },
+    ];
+
     return (
         <section className="text-slate-950">
             <div className="mx-auto max-w-[1500px]">
-                <div className="mx-auto grid max-w-6xl items-start gap-6 lg:grid-cols-[0.85fr_1.15fr]">
-                    <aside className="flex min-h-[560px] flex-col rounded-[34px] bg-white p-6 shadow-[0_18px_60px_rgba(15,23,42,0.10)] ring-1 ring-black/5 sm:min-h-[620px] lg:min-h-[calc(100vh-260px)]">
+                <div className="mx-auto grid max-w-[1400px] items-start gap-6 lg:grid-cols-[300px_minmax(0,1fr)]">
+                    <aside className="flex min-h-[560px] flex-col rounded-[34px] bg-white p-6 shadow-[0_18px_60px_rgba(15,23,42,0.10)] ring-1 ring-black/5 sm:min-h-[620px] lg:sticky lg:top-6 lg:min-h-[calc(100vh-160px)]">
                         <div className="flex items-center gap-4">
                             <div className="flex h-20 w-20 items-center justify-center rounded-[28px] bg-orange-500 text-3xl font-black text-white shadow-[0_18px_40px_rgba(249,115,22,0.25)]">
                                 {(user?.full_name || user?.email || user?.phone || "Q")
@@ -183,33 +202,24 @@ function AccountForm() {
 
                         <div className="mt-6 flex flex-1 flex-col">
                             <div className="grid gap-2">
-                                <a
-                                    href="/my-ads"
-                                    className="rounded-2xl bg-slate-50 px-4 py-3 text-sm font-black text-slate-700 hover:bg-orange-50 hover:text-orange-600"
-                                >
-                                    My Ads
-                                </a>
+                                {accountTabs.map((tab) => {
+                                    const active = activeTab === tab.id;
 
-                                <a
-                                    href="/seller/dashboard"
-                                    className="rounded-2xl bg-slate-50 px-4 py-3 text-sm font-black text-slate-700 hover:bg-orange-50 hover:text-orange-600"
-                                >
-                                    Dashboard
-                                </a>
+                                    return (
+                                        <button
+                                            key={tab.id}
+                                            type="button"
+                                            onClick={() => setActiveTab(tab.id)}
+                                            className={`rounded-2xl px-4 py-3 text-left text-sm font-black transition ${active
+                                                ? "bg-orange-500 text-white shadow-[0_10px_24px_rgba(249,115,22,0.22)]"
+                                                : "bg-slate-50 text-slate-700 hover:bg-orange-50 hover:text-orange-600"
+                                            }`}
+                                        >
+                                            {tab.label}
+                                        </button>
+                                    );
+                                })}
 
-                                <a
-                                    href="/saved"
-                                    className="rounded-2xl bg-slate-50 px-4 py-3 text-sm font-black text-slate-700 hover:bg-orange-50 hover:text-orange-600"
-                                >
-                                    Saved Ads
-                                </a>
-
-                                <a
-                                    href="/account/settings"
-                                    className="rounded-2xl bg-slate-50 px-4 py-3 text-sm font-black text-slate-700 hover:bg-orange-50 hover:text-orange-600"
-                                >
-                                    Account Settings
-                                </a>
                             </div>
 
                             <button
@@ -223,6 +233,7 @@ function AccountForm() {
                         </div>
                     </aside>
 
+                    {activeTab === "profile" ? (
                     <section className="rounded-[34px] bg-white p-6 shadow-[0_18px_60px_rgba(15,23,42,0.10)] ring-1 ring-black/5 sm:p-8">
                         <div className="flex items-center gap-3">
                             <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-orange-100 text-orange-600">
@@ -324,6 +335,16 @@ function AccountForm() {
                             </button>
                         </form>
                     </section>
+                    ) : (
+                        <div className="min-w-0">
+                            {activeTab === "dashboard" && <SellerDashboardClient />}
+                            {activeTab === "analytics" && <SellerAnalyticsClient />}
+                            {activeTab === "renewals" && <SellerRenewalsClient />}
+                            {activeTab === "saved" && <SavedAdsClient />}
+                            {activeTab === "ads" && <MyListingsClient />}
+                            {activeTab === "settings" && <NotificationPreferencesClient />}
+                        </div>
+                    )}
                 </div>
             </div>
         </section>

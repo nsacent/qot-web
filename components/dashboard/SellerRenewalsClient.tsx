@@ -1,8 +1,15 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { apiGet, apiPost } from "@/lib/apiClient";
-import { getStoredUser } from "@/lib/auth";
+
+async function renewalApi(path: string, method: "GET" | "POST" = "GET") {
+    const response = await fetch(`/api/proxy${path}`, { method, credentials: "include", cache: "no-store", headers: method === "POST" ? { "Content-Type": "application/json" } : undefined, body: method === "POST" ? JSON.stringify({}) : undefined });
+    const data = await response.json().catch(() => null);
+    if (!response.ok) throw new Error(data?.detail || "Renewal request failed.");
+    return data;
+}
+const apiGet = (path: string) => renewalApi(path);
+const apiPost = (path: string, _data?: any) => renewalApi(path, "POST");
 
 function getArray(data: any): any[] {
     if (Array.isArray(data)) return data;
@@ -119,13 +126,6 @@ export default function SellerRenewalsClient() {
     const [success, setSuccess] = useState("");
 
     useEffect(() => {
-        const user = getStoredUser();
-
-        if (!user) {
-            window.location.href = "/login?next=/seller/renewals";
-            return;
-        }
-
         setMounted(true);
         loadListings();
     }, []);
@@ -135,7 +135,7 @@ export default function SellerRenewalsClient() {
         setError("");
 
         try {
-            const data = await apiGet("/my-ads/");
+            const data = await apiGet("/seller/listings/?page_size=1000");
             setListings(getArray(data));
         } catch (error: any) {
             setError(error.message || "Failed to load your adverts.");
@@ -202,55 +202,57 @@ export default function SellerRenewalsClient() {
 
     if (!mounted) {
         return (
-            <section className="mx-auto max-w-6xl px-6 py-10">
-                <div className="rounded-2xl border bg-white p-8 text-slate-600">
-                    Loading renewal center...
+            <section className="py-6">
+                <div className="rounded-[30px] bg-white p-10 text-center shadow-[0_18px_55px_rgba(15,23,42,0.08)] ring-1 ring-black/5">
+                    <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-orange-100 border-t-orange-500" />
+                    <p className="mt-4 text-sm font-black text-slate-600">Loading renewal center...</p>
                 </div>
             </section>
         );
     }
 
     return (
-        <section className="mx-auto max-w-6xl px-6 py-10">
-            <div className="mb-8">
-                <p className="text-sm font-semibold uppercase tracking-wide text-orange-600">
-                    Seller Tools
-                </p>
+        <section className="py-6">
+            <div className="relative mb-7 overflow-hidden rounded-[34px] bg-gradient-to-br from-slate-950 via-slate-900 to-amber-950 p-6 text-white shadow-[0_24px_65px_rgba(15,23,42,0.20)] sm:p-8">
+                <div className="absolute -right-16 -top-20 h-56 w-56 rounded-full bg-amber-500/20 blur-2xl" />
+                <div className="relative flex flex-col justify-between gap-6 md:flex-row md:items-end">
+                    <div>
+                        <span className="inline-flex rounded-full bg-amber-500/15 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-amber-200 ring-1 ring-amber-300/20">Renewal Center</span>
+                        <h1 className="mt-5 text-3xl font-black tracking-tight sm:text-4xl">Keep your adverts working</h1>
+                        <p className="mt-3 max-w-2xl text-sm font-semibold leading-6 text-slate-300 sm:text-base">Renew expiring adverts and bring older listings back to buyers without starting over.</p>
+                    </div>
 
-                <h1 className="mt-2 text-3xl font-bold text-slate-900 md:text-5xl">
-                    Renewal Center
-                </h1>
-
-                <p className="mt-3 max-w-2xl text-slate-600">
-                    Keep your adverts visible by renewing listings that are expired or
-                    expiring soon.
-                </p>
+                    <a href="/my-ads" className="rounded-[16px] bg-white/10 px-5 py-3 text-center text-sm font-black text-white ring-1 ring-white/15 hover:bg-white/15">View My Listings</a>
+                </div>
             </div>
 
             <div className="grid gap-6 md:grid-cols-3">
-                <div className="rounded-2xl border bg-white p-6 shadow-sm">
-                    <p className="text-sm font-semibold text-slate-500">Total Adverts</p>
-                    <p className="mt-2 text-3xl font-bold text-slate-900">
+                <div className="rounded-[26px] bg-gradient-to-br from-orange-500 to-orange-600 p-6 text-white shadow-[0_14px_40px_rgba(249,115,22,0.18)]">
+                    <p className="text-xs font-black uppercase tracking-wide text-orange-100">Total Adverts</p>
+                    <p className="mt-3 text-4xl font-black">
                         {listings.length}
                     </p>
+                    <p className="mt-2 text-xs font-bold text-orange-100">All your listings</p>
                 </div>
 
-                <div className="rounded-2xl border bg-white p-6 shadow-sm">
-                    <p className="text-sm font-semibold text-slate-500">Need Action</p>
-                    <p className="mt-2 text-3xl font-bold text-orange-600">
+                <div className="rounded-[26px] bg-gradient-to-br from-amber-50 to-orange-100 p-6 text-amber-800 shadow-[0_14px_40px_rgba(15,23,42,0.07)] ring-1 ring-black/5">
+                    <p className="text-xs font-black uppercase tracking-wide opacity-75">Need Action</p>
+                    <p className="mt-3 text-4xl font-black">
                         {renewalListings.length}
                     </p>
+                    <p className="mt-2 text-xs font-bold opacity-70">Expired or expiring soon</p>
                 </div>
 
-                <div className="rounded-2xl border bg-white p-6 shadow-sm">
-                    <p className="text-sm font-semibold text-slate-500">Active</p>
-                    <p className="mt-2 text-3xl font-bold text-green-600">
+                <div className="rounded-[26px] bg-gradient-to-br from-emerald-50 to-green-100 p-6 text-emerald-800 shadow-[0_14px_40px_rgba(15,23,42,0.07)] ring-1 ring-black/5">
+                    <p className="text-xs font-black uppercase tracking-wide opacity-75">Active</p>
+                    <p className="mt-3 text-4xl font-black">
                         {activeListings.length}
                     </p>
+                    <p className="mt-2 text-xs font-bold opacity-70">Currently visible</p>
                 </div>
             </div>
 
-            <div className="mt-8 rounded-2xl border bg-white p-6 shadow-sm md:p-8">
+            <div className="mt-8 rounded-[30px] bg-white p-6 shadow-[0_18px_55px_rgba(15,23,42,0.08)] ring-1 ring-black/5 md:p-8">
                 {error && (
                     <div className="mb-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
                         {error}
@@ -276,18 +278,19 @@ export default function SellerRenewalsClient() {
                     <button
                         type="button"
                         onClick={loadListings}
-                        className="rounded-xl border px-5 py-3 text-sm font-semibold hover:bg-slate-50"
+                        className="rounded-[14px] bg-slate-50 px-5 py-3 text-sm font-black text-slate-700 ring-1 ring-slate-200 hover:bg-orange-50 hover:text-orange-600"
                     >
                         Refresh
                     </button>
                 </div>
 
                 {loading ? (
-                    <div className="rounded-2xl border border-dashed p-8 text-center text-slate-500">
-                        Loading your adverts...
+                    <div className="rounded-[24px] bg-slate-50 p-10 text-center">
+                        <div className="mx-auto h-9 w-9 animate-spin rounded-full border-4 border-orange-100 border-t-orange-500" />
+                        <p className="mt-4 text-sm font-black text-slate-500">Loading your adverts...</p>
                     </div>
                 ) : renewalListings.length === 0 ? (
-                    <div className="rounded-2xl border border-dashed p-8 text-center">
+                    <div className="rounded-[24px] border-2 border-dashed border-green-200 bg-green-50/60 p-10 text-center">
                         <p className="font-bold text-slate-900">No adverts need renewal.</p>
                         <p className="mt-2 text-sm text-slate-600">
                             All your active adverts are currently okay.
@@ -310,7 +313,7 @@ export default function SellerRenewalsClient() {
                             return (
                                 <div
                                     key={id}
-                                    className="rounded-2xl border p-5 transition hover:border-orange-200 hover:bg-orange-50/30"
+                                    className="rounded-[24px] bg-slate-50 p-5 ring-1 ring-slate-100 transition hover:bg-white hover:shadow-[0_14px_35px_rgba(15,23,42,0.08)]"
                                 >
                                     <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                                         <div>
@@ -347,7 +350,7 @@ export default function SellerRenewalsClient() {
                                                 type="button"
                                                 disabled={busy}
                                                 onClick={() => renewListing(listing)}
-                                                className="rounded-xl bg-orange-500 px-4 py-3 text-sm font-semibold text-white hover:bg-orange-600 disabled:opacity-60"
+                                                className="rounded-xl bg-orange-500 px-4 py-3 text-sm font-black text-white hover:bg-orange-600 disabled:opacity-60"
                                             >
                                                 {busy ? "Processing..." : "Renew Advert"}
                                             </button>
@@ -356,21 +359,21 @@ export default function SellerRenewalsClient() {
                                                 type="button"
                                                 disabled={busy}
                                                 onClick={() => relistListing(listing)}
-                                                className="rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-60"
+                                                className="rounded-xl bg-slate-950 px-4 py-3 text-sm font-black text-white hover:bg-slate-800 disabled:opacity-60"
                                             >
                                                 {busy ? "Processing..." : "Relist Advert"}
                                             </button>
 
                                             <a
                                                 href={`/my-ads/${id}/edit`}
-                                                className="rounded-xl border px-4 py-3 text-center text-sm font-semibold hover:bg-white"
+                                                className="rounded-xl bg-white px-4 py-3 text-center text-sm font-black text-slate-700 ring-1 ring-slate-200 hover:bg-orange-50"
                                             >
                                                 Edit
                                             </a>
 
                                             <a
                                                 href={`/listings/${id}`}
-                                                className="rounded-xl border px-4 py-3 text-center text-sm font-semibold hover:bg-white"
+                                                className="rounded-xl bg-white px-4 py-3 text-center text-sm font-black text-slate-700 ring-1 ring-slate-200 hover:bg-orange-50"
                                             >
                                                 View
                                             </a>

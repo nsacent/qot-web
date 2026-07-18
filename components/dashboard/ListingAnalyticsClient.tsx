@@ -1,7 +1,23 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { apiGet } from "@/lib/apiClient";
+
+async function apiGet(path: string) {
+    const response = await fetch(`/api/proxy${path}`, {
+        credentials: "include",
+        cache: "no-store",
+    });
+
+    const data = await response.json().catch(() => null);
+
+    if (!response.ok) {
+        throw new Error(
+            data?.detail || data?.message || "Failed to load listing analytics."
+        );
+    }
+
+    return data;
+}
 
 const API_BASE_URL =
     process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000/api/v1";
@@ -134,8 +150,8 @@ export default function ListingAnalyticsClient({
 
         try {
             const [listingsResult, analyticsResult] = await Promise.allSettled([
-                apiGet("/my-ads/"),
-                apiGet(`/my-ads/${listingId}/analytics/`),
+                apiGet("/seller/listings/"),
+                apiGet(`/seller/listings/${listingId}/analytics/`),
             ]);
 
             if (listingsResult.status === "rejected") {
@@ -182,38 +198,48 @@ export default function ListingAnalyticsClient({
     const image = getImage(listing);
 
     return (
-        <section className="mx-auto max-w-7xl px-6 py-10">
-            <div className="mb-8 flex flex-col justify-between gap-4 md:flex-row md:items-end">
-                <div>
-                    <p className="text-sm font-semibold uppercase tracking-wide text-orange-600">
-                        Listing Analytics
-                    </p>
-                    <h1 className="mt-2 text-3xl font-bold text-slate-900">
-                        Advert Performance
-                    </h1>
-                </div>
+        <section className="py-6">
+            <div className="relative mb-7 overflow-hidden rounded-[34px] bg-gradient-to-br from-slate-950 via-slate-900 to-violet-950 p-6 text-white shadow-[0_24px_65px_rgba(15,23,42,0.20)] sm:p-8">
+                <div className="absolute -right-16 -top-20 h-56 w-56 rounded-full bg-violet-500/20 blur-2xl" />
+                <div className="absolute -bottom-24 left-1/3 h-52 w-52 rounded-full bg-orange-400/10 blur-3xl" />
+                <div className="relative flex flex-col justify-between gap-6 md:flex-row md:items-end">
+                    <div>
+                        <span className="inline-flex rounded-full bg-violet-500/15 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-violet-200 ring-1 ring-violet-300/20">
+                            Advert Analytics
+                        </span>
+                        <h1 className="mt-5 text-3xl font-black tracking-tight sm:text-4xl">
+                            See how this advert performs
+                        </h1>
+                        <p className="mt-3 max-w-2xl text-sm font-semibold leading-6 text-slate-300 sm:text-base">
+                            Follow buyer interest, engagement, and activity for one listing in detail.
+                        </p>
+                    </div>
 
-                <a
-                    href="/seller/analytics"
-                    className="rounded-xl border bg-white px-5 py-3 text-center font-semibold hover:bg-slate-50"
-                >
-                    Back to Analytics
-                </a>
+                    <a
+                        href="/account/analytics"
+                        className="rounded-[16px] bg-white/10 px-5 py-3 text-center text-sm font-black text-white ring-1 ring-white/15 hover:bg-white/15"
+                    >
+                        All Analytics
+                    </a>
+                </div>
             </div>
 
             {loading ? (
-                <div className="rounded-2xl border bg-white p-8 text-slate-600">
-                    Loading listing analytics...
+                <div className="rounded-[30px] bg-white p-10 text-center shadow-[0_18px_55px_rgba(15,23,42,0.08)] ring-1 ring-black/5">
+                    <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-violet-100 border-t-violet-500" />
+                    <p className="mt-4 text-sm font-black text-slate-600">Loading advert analytics...</p>
                 </div>
             ) : error ? (
-                <div className="rounded-2xl border border-red-200 bg-red-50 p-8 text-red-700">
-                    {error}
+                <div className="rounded-[28px] border border-red-200 bg-red-50 p-7 text-red-700 shadow-sm">
+                    <p className="font-black">Advert analytics unavailable</p>
+                    <p className="mt-2 text-sm font-semibold">{error}</p>
+                    <button type="button" onClick={loadData} className="mt-5 rounded-xl bg-red-600 px-4 py-2.5 text-sm font-black text-white hover:bg-red-700">Try Again</button>
                 </div>
             ) : (
                 <>
                     <div className="grid gap-6 lg:grid-cols-[380px_1fr]">
-                        <div className="overflow-hidden rounded-2xl border bg-white shadow-sm">
-                            <div className="flex h-72 items-center justify-center bg-slate-200 text-slate-500">
+                        <div className="overflow-hidden rounded-[30px] bg-white shadow-[0_18px_55px_rgba(15,23,42,0.09)] ring-1 ring-black/5">
+                            <div className="relative flex h-72 items-center justify-center bg-slate-200 text-slate-500">
                                 {image ? (
                                     <img
                                         src={image}
@@ -221,22 +247,22 @@ export default function ListingAnalyticsClient({
                                         className="h-full w-full object-cover"
                                     />
                                 ) : (
-                                    <span>No image found</span>
+                                    <span className="text-sm font-black">No image found</span>
                                 )}
                             </div>
 
-                            <div className="p-5">
+                            <div className="p-6">
                                 <div className="flex flex-wrap gap-2">
-                                    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase text-slate-700">
+                                    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black uppercase text-slate-700 ring-1 ring-slate-200">
                                         {listing?.status || "active"}
                                     </span>
 
-                                    <span className="rounded-full bg-orange-50 px-3 py-1 text-xs font-semibold text-orange-700">
+                                    <span className="rounded-full bg-orange-50 px-3 py-1 text-xs font-black text-orange-700 ring-1 ring-orange-100">
                                         {getCategory(listing)}
                                     </span>
                                 </div>
 
-                                <h2 className="mt-4 text-xl font-bold text-slate-900">
+                                <h2 className="mt-4 text-xl font-black text-slate-950">
                                     {getTitle(listing)}
                                 </h2>
 
@@ -251,14 +277,14 @@ export default function ListingAnalyticsClient({
                                 <div className="mt-5 grid gap-3">
                                     <a
                                         href={`/listings/${listingId}`}
-                                        className="rounded-xl border px-4 py-3 text-center text-sm font-semibold hover:bg-slate-50"
+                                        className="rounded-xl bg-slate-50 px-4 py-3 text-center text-sm font-black text-slate-700 ring-1 ring-slate-200 hover:bg-slate-100"
                                     >
                                         View Public Advert
                                     </a>
 
                                     <a
                                         href={`/my-ads/${listingId}/edit`}
-                                        className="rounded-xl bg-orange-500 px-4 py-3 text-center text-sm font-semibold text-white hover:bg-orange-600"
+                                        className="rounded-xl bg-orange-500 px-4 py-3 text-center text-sm font-black text-white shadow-[0_10px_24px_rgba(249,115,22,0.20)] hover:bg-orange-600"
                                     >
                                         Edit Advert
                                     </a>
@@ -273,18 +299,21 @@ export default function ListingAnalyticsClient({
                                     value: getViews(analytics, listing),
                                     helper: "People who opened this advert",
                                     note: "Shows buyer interest",
+                                    tone: "from-blue-50 to-cyan-100 text-blue-800",
                                 },
                                 {
                                     label: "Saves",
                                     value: getSaves(analytics, listing),
                                     helper: "Buyers who saved this advert",
                                     note: "Good sign of serious interest",
+                                    tone: "from-rose-50 to-pink-100 text-rose-800",
                                 },
                                 {
                                     label: "Messages",
                                     value: getMessages(analytics, listing),
                                     helper: "Buyer inquiries from this advert",
                                     note: "Shows direct buyer action",
+                                    tone: "from-violet-50 to-purple-100 text-violet-800",
                                 },
                                 {
                                     label: "Reports",
@@ -297,6 +326,7 @@ export default function ListingAnalyticsClient({
                                     ),
                                     helper: "Reports made against this advert",
                                     note: "Should ideally remain at zero",
+                                    tone: "from-amber-50 to-orange-100 text-amber-800",
                                 },
                                 {
                                     label: "Status",
@@ -304,6 +334,7 @@ export default function ListingAnalyticsClient({
                                     helper: "Current visibility state",
                                     note: "Active adverts are visible to buyers",
                                     isText: true,
+                                    tone: "from-emerald-50 to-green-100 text-emerald-800",
                                 },
                                 {
                                     label: "Price",
@@ -311,27 +342,28 @@ export default function ListingAnalyticsClient({
                                     helper: "Advert asking price",
                                     note: listing?.is_negotiable ? "Negotiable price" : "Fixed or not specified",
                                     isText: true,
+                                    tone: "from-orange-500 to-orange-600 text-white",
                                 },
                             ].map((stat) => (
                                 <div
                                     key={stat.label}
-                                    className="rounded-2xl border bg-white p-6 shadow-sm"
+                                    className={`rounded-[26px] bg-gradient-to-br p-6 shadow-[0_14px_40px_rgba(15,23,42,0.07)] ring-1 ring-black/5 ${stat.tone}`}
                                 >
-                                    <p className="text-sm font-semibold text-slate-500">
+                                    <p className="text-xs font-black uppercase tracking-wide opacity-75">
                                         {stat.label}
                                     </p>
 
-                                    <p className="mt-2 text-4xl font-black text-slate-900">
+                                    <p className={`mt-3 font-black ${stat.isText ? "text-2xl capitalize" : "text-4xl"}`}>
                                         {stat.isText
                                             ? stat.value
                                             : Number(stat.value).toLocaleString()}
                                     </p>
 
-                                    <p className="mt-2 text-sm font-semibold text-slate-600">
+                                    <p className="mt-3 text-sm font-black opacity-80">
                                         {stat.helper}
                                     </p>
 
-                                    <p className="mt-1 text-sm text-slate-500">
+                                    <p className="mt-1 text-xs font-semibold opacity-65">
                                         {stat.note}
                                     </p>
                                 </div>
@@ -339,20 +371,20 @@ export default function ListingAnalyticsClient({
                         </div>
                     </div>
 
-                    <div className="mt-8 rounded-2xl border bg-white p-6 shadow-sm">
-                        <h2 className="text-2xl font-bold text-slate-900">
+                    <div className="mt-8 rounded-[30px] bg-white p-6 shadow-[0_18px_55px_rgba(15,23,42,0.08)] ring-1 ring-black/5 sm:p-7">
+                        <h2 className="text-2xl font-black text-slate-950">
                             Daily Performance
                         </h2>
 
                         {timeline.length === 0 ? (
-                            <div className="mt-5 rounded-2xl bg-slate-50 p-6 text-slate-600">
+                            <div className="mt-5 rounded-[22px] border-2 border-dashed border-slate-200 bg-slate-50 p-8 text-center text-sm font-semibold text-slate-500">
                                 No daily activity data available yet.
                             </div>
                         ) : (
                             <div className="mt-5 overflow-x-auto">
-                                <table className="w-full min-w-[620px] text-left text-sm">
+                                <table className="w-full min-w-[620px] overflow-hidden text-left text-sm">
                                     <thead>
-                                        <tr className="border-b text-slate-500">
+                                        <tr className="border-b bg-slate-50 text-xs font-black uppercase tracking-wide text-slate-500">
                                             <th className="py-3 pr-4">Date</th>
                                             <th className="py-3 pr-4">Views</th>
                                             <th className="py-3 pr-4">Saves</th>
@@ -362,7 +394,7 @@ export default function ListingAnalyticsClient({
 
                                     <tbody>
                                         {timeline.map((item, index) => (
-                                            <tr key={index} className="border-b last:border-0">
+                                            <tr key={index} className="border-b border-slate-100 transition hover:bg-orange-50/40 last:border-0">
                                                 <td className="py-4 pr-4">
                                                     {item.date || item.day || "Unknown date"}
                                                 </td>

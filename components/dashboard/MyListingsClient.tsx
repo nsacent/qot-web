@@ -146,14 +146,14 @@ export default function MyListingsClient() {
                 </div>
 
                 <a
-                    href="/seller/dashboard"
+                    href="/account/dashboard"
                     className="rounded-xl border bg-white px-5 py-3 text-center font-semibold hover:bg-slate-50"
                 >
                     Seller Dashboard
                 </a>
 
                 <a
-                    href="/seller/analytics"
+                    href="/account/analytics"
                     className="rounded-xl border bg-white px-5 py-3 text-center font-semibold hover:bg-slate-50"
                 >
                     Seller Analytics

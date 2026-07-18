@@ -694,7 +694,7 @@ export default function QotMarketplaceNav({
                         />
 
                         <NavAction
-                            href="/saved"
+                            href="/account/saved"
                             icon={faHeartRegular}
                             label="Favorites"
                             count={counts.favorites}

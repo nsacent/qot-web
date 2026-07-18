@@ -68,7 +68,7 @@ export default function MobileBottomNav() {
                     <span className="text-[11px] font-black">Post</span>
                 </a>
 
-                <a href="/saved" className={navClass(pathname === "/saved")}>
+                <a href="/account/saved" className={navClass(pathname === "/account/saved")}>
                     <FontAwesomeIcon icon={faHeartRegular} className="h-5 w-5" />
                     Saved
                 </a>

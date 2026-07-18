@@ -152,15 +152,15 @@ export default function UserProfileTab() {
                         </a>
 
                         <a
-                            href="/seller/dashboard"
+                            href="/account/dashboard"
                             className="flex items-center gap-3 rounded-2xl px-3 py-3 text-sm font-bold text-slate-700 hover:bg-orange-50 hover:text-orange-600"
                         >
                             <FontAwesomeIcon icon={faStore} className="h-4 w-4" />
-                            Seller Dashboard
+                            Dashboard
                         </a>
 
                         <a
-                            href="/saved"
+                            href="/account/saved"
                             className="flex items-center gap-3 rounded-2xl px-3 py-3 text-sm font-bold text-slate-700 hover:bg-orange-50 hover:text-orange-600"
                         >
                             <FontAwesomeIcon icon={faHeartRegular} className="h-4 w-4" />

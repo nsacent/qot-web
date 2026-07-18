@@ -239,7 +239,7 @@ export default function VerificationRequestClient() {
                         </a>
 
                         <a
-                            href="/seller/dashboard"
+                            href="/account/dashboard"
                             className="rounded-xl border border-green-200 bg-white px-5 py-3 text-center font-semibold text-green-700 hover:bg-green-100"
                         >
                             Seller Dashboard

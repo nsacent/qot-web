@@ -179,7 +179,7 @@ export default function FavoriteButton({
                 onChanged();
             }
 
-            if (!nextSavedState && window.location.pathname === "/saved") {
+            if (!nextSavedState && window.location.pathname === "/account/saved") {
                 window.location.reload();
             }
         } catch (error: any) {
