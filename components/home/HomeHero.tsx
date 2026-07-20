@@ -43,25 +43,22 @@ function FeaturedAdMiniCard({ ad }: { ad: HeroListing }) {
     return (
         <Link
             href={id ? `/listings/${id}` : "/listings"}
-            className="group flex gap-3 border-t border-slate-100 py-3 first:border-t-0"
+            className="group flex snap-start gap-3 border-t border-slate-100 py-2.5 first:border-t-0"
         >
-            <div className="relative h-14 w-16 shrink-0 overflow-hidden rounded-xl bg-slate-100">
+            <div className="relative h-12 w-14 shrink-0 overflow-hidden rounded-lg bg-slate-100">
                 <ListingCardImage
                     listing={ad}
                     title={getAdTitle(ad)}
                     className="h-full transition duration-300 group-hover:scale-105"
                 />
-                <span className="absolute left-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-orange-500 text-white shadow-sm">
-                    <FontAwesomeIcon icon={faStar} className="h-2.5 w-2.5" />
-                </span>
             </div>
 
             <div className="min-w-0">
-                <p className="line-clamp-1 text-sm font-black text-slate-950 transition group-hover:text-orange-600">
+                <p className="line-clamp-1 text-xs font-black text-slate-950 transition group-hover:text-orange-600">
                     {getAdTitle(ad)}
                 </p>
 
-                <p className="mt-1 text-sm font-black text-orange-600">
+                <p className="mt-1 text-xs font-black text-orange-600">
                     {formatPrice(ad.price, ad.currency || "UGX")}
                 </p>
             </div>
@@ -118,8 +115,8 @@ export default function HomeHero({ featuredAds = [] }: HomeHeroProps) {
 
                     <div className="absolute bottom-0 right-0 h-full w-[82%] rounded-l-[5rem] bg-[radial-gradient(circle_at_50%_35%,rgba(255,255,255,0.96),rgba(251,146,60,0.35)_46%,rgba(249,115,22,0.18)_100%)]" />
 
-                    <div className="absolute right-16 top-8 w-72 rounded-3xl bg-white p-5 shadow-[0_20px_50px_rgba(15,23,42,0.14)]">
-                        <div className="mb-3 flex items-center justify-between gap-2 text-sm font-black text-slate-950">
+                    <div className="absolute bottom-6 right-10 top-6 flex w-[330px] flex-col rounded-3xl bg-white p-4 shadow-[0_20px_50px_rgba(15,23,42,0.14)]">
+                        <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-2.5 text-sm font-black text-slate-950">
                             <span className="inline-flex items-center gap-2">
                                 <FontAwesomeIcon icon={faStar} className="h-3.5 w-3.5 text-orange-500" />
                                 Featured Ads
@@ -133,14 +130,19 @@ export default function HomeHero({ featuredAds = [] }: HomeHeroProps) {
                             </Link>
                         </div>
 
-                        {featuredAds.slice(0, 3).length > 0 ? (
-                            featuredAds
-                                .slice(0, 3)
-                                .map((ad) => (
-                                    <FeaturedAdMiniCard key={getAdId(ad) || getAdTitle(ad)} ad={ad} />
-                                ))
+                        {featuredAds.slice(0, 5).length > 0 ? (
+                            <div
+                                aria-label="Featured listings"
+                                className="mt-1 flex-1 snap-y snap-mandatory overflow-y-auto overscroll-contain pr-1 [scrollbar-color:#fdba74_transparent] [scrollbar-width:thin]"
+                            >
+                                {featuredAds
+                                    .slice(0, 5)
+                                    .map((ad) => (
+                                        <FeaturedAdMiniCard key={getAdId(ad) || getAdTitle(ad)} ad={ad} />
+                                    ))}
+                            </div>
                         ) : (
-                            <div className="rounded-2xl border border-dashed border-orange-200 bg-orange-50/60 p-5 text-center">
+                            <div className="mt-3 rounded-2xl border border-dashed border-slate-200 p-5 text-center">
                                 <p className="text-sm font-black text-slate-900">
                                     Featured spots available
                                 </p>
