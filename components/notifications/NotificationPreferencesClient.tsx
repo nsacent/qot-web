@@ -286,7 +286,7 @@ export default function NotificationPreferencesClient() {
 
                         <div className="mt-4 grid gap-3">
                             <a
-                                href="/notifications"
+                                href="/account/notifications"
                                 className="rounded-[14px] bg-slate-50 px-5 py-3 text-center text-sm font-black text-slate-700 ring-1 ring-slate-200 hover:bg-orange-50 hover:text-orange-600"
                             >
                                 View Notifications

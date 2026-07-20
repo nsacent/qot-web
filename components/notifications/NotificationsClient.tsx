@@ -1,14 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { apiGet, apiPost } from "@/lib/apiClient";
-
-const NOTIFICATIONS_ENDPOINT = "/notifications/";
-
-const MARK_ALL_READ_ENDPOINT = "/notifications/read-all/";
-
-const markReadEndpoint = (id: number | string) =>
-    `/notifications/${id}/read/`;
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+    faBell,
+    faBullhorn,
+    faCircleCheck,
+    faClock,
+    faEnvelope,
+    faShieldHalved,
+} from "@/lib/faIcons";
 
 function getArray(data: any): any[] {
     if (Array.isArray(data)) return data;
@@ -19,253 +20,351 @@ function getArray(data: any): any[] {
 }
 
 function isUnread(notification: any) {
-    return !(
-        notification.is_read ||
-        notification.read ||
-        notification.status === "read"
-    );
+    return notification?.is_read === false;
 }
 
 function getTitle(notification: any) {
-    return (
-        notification.title ||
-        notification.subject ||
-        notification.heading ||
-        "Notification"
-    );
+    return notification?.title || notification?.subject || "QOT update";
 }
 
 function getMessage(notification: any) {
-    return (
-        notification.message ||
-        notification.body ||
-        notification.description ||
-        ""
-    );
+    return notification?.message || notification?.body || "You have a new update.";
+}
+
+function getType(notification: any) {
+    return notification?.notification_type || notification?.type || "system";
 }
 
 function getLink(notification: any) {
-    return (
-        notification.link ||
-        notification.url ||
-        notification.action_url ||
-        notification.target_url ||
-        ""
-    );
+    if (notification?.chat_thread) return `/account/messages/${notification.chat_thread}`;
+    if (notification?.listing) return `/listings/${notification.listing}`;
+
+    return notification?.link || notification?.url || "";
 }
 
-function formatDate(value: string) {
-    if (!value) return "";
+function getVisual(notification: any) {
+    switch (getType(notification)) {
+        case "message":
+            return { icon: faEnvelope, tone: "bg-blue-50 text-blue-600 ring-blue-100", label: "Message" };
+        case "listing_approved":
+            return { icon: faCircleCheck, tone: "bg-emerald-50 text-emerald-600 ring-emerald-100", label: "Approved" };
+        case "listing_rejected":
+            return { icon: faShieldHalved, tone: "bg-rose-50 text-rose-600 ring-rose-100", label: "Needs attention" };
+        case "listing_expired":
+            return { icon: faClock, tone: "bg-amber-50 text-amber-700 ring-amber-100", label: "Expired" };
+        default:
+            return { icon: faBullhorn, tone: "bg-violet-50 text-violet-600 ring-violet-100", label: "QOT update" };
+    }
+}
+
+function formatDate(value: string | undefined) {
+    if (!value) return "Recently";
 
     const date = new Date(value);
 
-    if (Number.isNaN(date.getTime())) return "";
+    if (Number.isNaN(date.getTime())) return "Recently";
 
-    return date.toLocaleDateString("en-UG", {
-        year: "numeric",
-        month: "short",
+    return new Intl.DateTimeFormat("en-UG", {
         day: "numeric",
+        month: "short",
+        hour: "numeric",
+        minute: "2-digit",
+    }).format(date);
+}
+
+async function notificationRequest(path: string, init: RequestInit = {}) {
+    const response = await fetch(`/api/proxy${path}`, {
+        ...init,
+        credentials: "include",
+        cache: "no-store",
     });
+
+    if (response.status === 401) {
+        window.location.href = "/login?next=/account/notifications";
+        throw new Error("Login required.");
+    }
+
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+        throw new Error(data?.detail || data?.message || "Request failed.");
+    }
+
+    return data;
 }
 
 export default function NotificationsClient() {
     const [notifications, setNotifications] = useState<any[]>([]);
+    const [filter, setFilter] = useState<"all" | "unread">("all");
     const [loading, setLoading] = useState(true);
-    const [actionLoading, setActionLoading] = useState(false);
+    const [actionLoading, setActionLoading] = useState<string | null>(null);
     const [error, setError] = useState("");
 
-    async function loadNotifications() {
-        setLoading(true);
+    const loadNotifications = useCallback(async (showLoader = false) => {
+        if (showLoader) setLoading(true);
         setError("");
 
         try {
-            const data = await apiGet(NOTIFICATIONS_ENDPOINT);
+            const data = await notificationRequest("/notifications/");
             setNotifications(getArray(data));
-        } catch (error: any) {
-            setError(error.message || "Failed to load notifications.");
+        } catch (requestError: any) {
+            if (requestError?.message !== "Login required.") {
+                setError(requestError?.message || "Failed to load notifications.");
+            }
         } finally {
             setLoading(false);
         }
-    }
-
-    useEffect(() => {
-        loadNotifications();
     }, []);
 
-    async function markRead(notification: any) {
-        if (!notification.id) return;
+    useEffect(() => {
+        loadNotifications(true);
 
-        setActionLoading(true);
+        const interval = window.setInterval(() => loadNotifications(), 60000);
+        const refresh = () => loadNotifications();
 
-        try {
-            await apiPost(markReadEndpoint(notification.id));
-            await loadNotifications();
-        } catch (error: any) {
-            alert(error.message || "Failed to mark notification as read.");
-        } finally {
-            setActionLoading(false);
+        window.addEventListener("focus", refresh);
+        window.addEventListener("qot_notifications_updated", refresh);
+
+        return () => {
+            window.clearInterval(interval);
+            window.removeEventListener("focus", refresh);
+            window.removeEventListener("qot_notifications_updated", refresh);
+        };
+    }, [loadNotifications]);
+
+    const unreadCount = useMemo(
+        () => notifications.filter(isUnread).length,
+        [notifications]
+    );
+
+    const visibleNotifications = useMemo(
+        () => filter === "unread" ? notifications.filter(isUnread) : notifications,
+        [filter, notifications]
+    );
+
+    async function markRead(notification: any, openAfter = false) {
+        const link = getLink(notification);
+
+        if (notification?.id && isUnread(notification)) {
+            setActionLoading(String(notification.id));
+
+            try {
+                await notificationRequest(`/notifications/${notification.id}/read/`, {
+                    method: "POST",
+                });
+                setNotifications((current) =>
+                    current.map((item) =>
+                        item.id === notification.id ? { ...item, is_read: true } : item
+                    )
+                );
+                window.dispatchEvent(new Event("qot_notifications_updated"));
+            } catch (requestError: any) {
+                setError(requestError?.message || "Failed to mark notification as read.");
+                return;
+            } finally {
+                setActionLoading(null);
+            }
         }
+
+        if (openAfter && link) window.location.href = link;
     }
 
     async function markAllRead() {
-        setActionLoading(true);
+        setActionLoading("all");
+        setError("");
 
         try {
-            await apiPost(MARK_ALL_READ_ENDPOINT);
-            await loadNotifications();
-        } catch (error: any) {
-            alert(error.message || "Failed to mark all notifications as read.");
+            await notificationRequest("/notifications/read-all/", {
+                method: "POST",
+            });
+            setNotifications((current) =>
+                current.map((notification) => ({ ...notification, is_read: true }))
+            );
+            window.dispatchEvent(new Event("qot_notifications_updated"));
+        } catch (requestError: any) {
+            setError(requestError?.message || "Failed to mark notifications as read.");
         } finally {
-            setActionLoading(false);
+            setActionLoading(null);
         }
     }
-
-    async function openNotification(notification: any) {
-        if (isUnread(notification)) {
-            await markRead(notification);
-        }
-
-        const link = getLink(notification);
-
-        if (link) {
-            window.location.href = link;
-        }
-    }
-
-    const unreadCount = notifications.filter(isUnread).length;
 
     return (
-        <section className="mx-auto max-w-7xl px-6 py-10">
-            <div className="mb-6 flex flex-col justify-between gap-4 md:flex-row md:items-center">
-                <div>
-                    <h2 className="text-2xl font-bold text-slate-900">
-                        Notification Center
-                    </h2>
-                    <p className="mt-1 text-sm text-slate-600">
-                        {unreadCount} unread notification{unreadCount === 1 ? "" : "s"}.
-                    </p>
-                </div>
+        <section className="py-6">
+            <div className="relative overflow-hidden rounded-[30px] bg-gradient-to-br from-slate-950 via-slate-900 to-orange-950 px-6 py-7 text-white shadow-[0_22px_60px_rgba(15,23,42,0.18)] sm:px-8">
+                <div className="absolute -right-20 -top-24 h-60 w-60 rounded-full bg-orange-500/20 blur-3xl" />
+                <div className="relative flex flex-col justify-between gap-6 md:flex-row md:items-end">
+                    <div>
+                        <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.17em] text-orange-200 ring-1 ring-white/15">
+                            <FontAwesomeIcon icon={faBell} className="h-3 w-3" />
+                            Notification center
+                        </span>
+                        <h1 className="mt-4 text-3xl font-black tracking-tight sm:text-4xl">Stay on top of every update.</h1>
+                        <p className="mt-2 max-w-2xl text-sm font-semibold leading-6 text-slate-300">
+                            Messages, advert decisions, expiry reminders, and important account news in one place.
+                        </p>
+                    </div>
 
-                <div className="flex flex-col gap-3 sm:flex-row">
-                    <button
-                        type="button"
-                        onClick={loadNotifications}
-                        className="rounded-xl border bg-white px-5 py-3 font-semibold hover:bg-slate-50"
-                    >
-                        Refresh
-                    </button>
-
-                    <button
-                        type="button"
-                        onClick={markAllRead}
-                        disabled={actionLoading || unreadCount === 0}
-                        className="rounded-xl bg-orange-500 px-5 py-3 font-semibold text-white hover:bg-orange-600 disabled:opacity-60"
-                    >
-                        Mark all read
-                    </button>
+                    <div className="grid grid-cols-2 gap-2">
+                        <div className="rounded-[17px] bg-white/10 px-4 py-3 ring-1 ring-white/10">
+                            <p className="text-xl font-black">{notifications.length}</p>
+                            <p className="mt-0.5 text-[9px] font-black uppercase tracking-wider text-slate-400">All updates</p>
+                        </div>
+                        <div className="rounded-[17px] bg-orange-500 px-4 py-3 shadow-lg">
+                            <p className="text-xl font-black">{unreadCount}</p>
+                            <p className="mt-0.5 text-[9px] font-black uppercase tracking-wider text-orange-100">Unread</p>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            {loading && (
-                <div className="rounded-2xl border bg-white p-8 text-slate-600">
-                    Loading notifications...
-                </div>
-            )}
-
-            {!loading && error && (
-                <div className="rounded-2xl border border-red-200 bg-red-50 p-8 text-red-700">
-                    {error}
-                </div>
-            )}
-
-            {!loading && !error && notifications.length === 0 && (
-                <div className="rounded-2xl border bg-white p-8 text-slate-600">
-                    You have no notifications yet.
-                </div>
-            )}
-
-            {!loading && !error && notifications.length > 0 && (
-                <div className="grid gap-4">
-                    {notifications.map((notification) => {
-                        const unread = isUnread(notification);
-                        const link = getLink(notification);
-
-                        return (
-                            <article
-                                key={notification.id}
-                                className={
-                                    unread
-                                        ? "rounded-2xl border border-orange-200 bg-orange-50 p-5 shadow-sm"
-                                        : "rounded-2xl border bg-white p-5 shadow-sm"
-                                }
+            <div className="mt-6 rounded-[28px] bg-white p-4 shadow-[0_16px_50px_rgba(15,23,42,0.08)] ring-1 ring-black/5 sm:p-6">
+                <div className="flex flex-col justify-between gap-4 border-b border-slate-100 pb-5 sm:flex-row sm:items-center">
+                    <div className="flex rounded-[14px] bg-slate-100 p-1">
+                        {(["all", "unread"] as const).map((option) => (
+                            <button
+                                key={option}
+                                type="button"
+                                onClick={() => setFilter(option)}
+                                className={`rounded-[11px] px-4 py-2 text-xs font-black capitalize transition ${
+                                    filter === option ? "bg-white text-slate-950 shadow-sm" : "text-slate-500"
+                                }`}
                             >
-                                <div className="flex flex-col justify-between gap-4 md:flex-row md:items-start">
-                                    <div className="min-w-0 flex-1">
-                                        <div className="flex flex-wrap items-center gap-2">
-                                            <span
-                                                className={
-                                                    unread
-                                                        ? "rounded-full bg-orange-500 px-3 py-1 text-xs font-bold text-white"
-                                                        : "rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600"
-                                                }
-                                            >
-                                                {unread ? "Unread" : "Read"}
-                                            </span>
+                                {option} {option === "unread" && unreadCount > 0 ? `(${unreadCount})` : ""}
+                            </button>
+                        ))}
+                    </div>
 
-                                            {notification.type && (
-                                                <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold capitalize text-slate-700">
-                                                    {String(notification.type).replaceAll("_", " ")}
+                    <div className="flex gap-2">
+                        <button
+                            type="button"
+                            onClick={() => loadNotifications(true)}
+                            disabled={loading}
+                            className="rounded-[13px] bg-slate-100 px-4 py-2.5 text-xs font-black text-slate-600 transition hover:bg-slate-200 disabled:opacity-50"
+                        >
+                            Refresh
+                        </button>
+                        <button
+                            type="button"
+                            onClick={markAllRead}
+                            disabled={actionLoading !== null || unreadCount === 0}
+                            className="rounded-[13px] bg-orange-500 px-4 py-2.5 text-xs font-black text-white transition hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-45"
+                        >
+                            {actionLoading === "all" ? "Updating..." : "Mark all read"}
+                        </button>
+                    </div>
+                </div>
+
+                {error && (
+                    <div className="mt-5 rounded-[16px] border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
+                        {error}
+                    </div>
+                )}
+
+                {loading ? (
+                    <div className="mt-5 space-y-3">
+                        {[0, 1, 2, 3].map((item) => (
+                            <div key={item} className="flex animate-pulse gap-4 rounded-[20px] bg-slate-50 p-4">
+                                <div className="h-12 w-12 rounded-[15px] bg-slate-200" />
+                                <div className="flex-1 space-y-3 py-1">
+                                    <div className="h-3 w-1/3 rounded bg-slate-200" />
+                                    <div className="h-3 w-3/4 rounded bg-slate-200" />
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                ) : visibleNotifications.length > 0 ? (
+                    <div className="mt-5 space-y-3">
+                        {visibleNotifications.map((notification) => {
+                            const unread = isUnread(notification);
+                            const visual = getVisual(notification);
+                            const link = getLink(notification);
+                            const busy = actionLoading === String(notification.id);
+
+                            return (
+                                <article
+                                    key={notification.id}
+                                    className={`relative overflow-hidden rounded-[22px] p-4 ring-1 transition sm:p-5 ${
+                                        unread
+                                            ? "bg-orange-50/70 ring-orange-100"
+                                            : "bg-slate-50/70 ring-slate-100 hover:bg-white"
+                                    }`}
+                                >
+                                    {unread && <span className="absolute bottom-0 left-0 top-0 w-1 bg-orange-500" />}
+                                    <div className="flex gap-4">
+                                        <span className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-[16px] ring-1 ${visual.tone}`}>
+                                            <FontAwesomeIcon icon={visual.icon} className="h-5 w-5" />
+                                        </span>
+
+                                        <div className="min-w-0 flex-1">
+                                            <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-start">
+                                                <div>
+                                                    <div className="flex flex-wrap items-center gap-2">
+                                                        <span className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-400">
+                                                            {visual.label}
+                                                        </span>
+                                                        {unread && (
+                                                            <span className="rounded-full bg-orange-500 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-white">
+                                                                New
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <h2 className="mt-1.5 text-base font-black text-slate-950">
+                                                        {getTitle(notification)}
+                                                    </h2>
+                                                </div>
+                                                <span className="shrink-0 text-[11px] font-bold text-slate-400">
+                                                    {formatDate(notification?.created_at || notification?.created)}
                                                 </span>
-                                            )}
-                                        </div>
+                                            </div>
 
-                                        <h3 className="mt-4 text-lg font-bold text-slate-900">
-                                            {getTitle(notification)}
-                                        </h3>
-
-                                        {getMessage(notification) && (
-                                            <p className="mt-2 leading-6 text-slate-600">
+                                            <p className="mt-2 text-sm font-semibold leading-6 text-slate-600">
                                                 {getMessage(notification)}
                                             </p>
-                                        )}
 
-                                        {(notification.created_at || notification.created) && (
-                                            <p className="mt-3 text-sm text-slate-500">
-                                                {formatDate(
-                                                    notification.created_at || notification.created
+                                            <div className="mt-4 flex flex-wrap gap-2">
+                                                {link && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => markRead(notification, true)}
+                                                        disabled={busy}
+                                                        className="rounded-[12px] bg-slate-950 px-4 py-2.5 text-xs font-black text-white transition hover:bg-orange-500 disabled:opacity-50"
+                                                    >
+                                                        {busy ? "Opening..." : "Open update"}
+                                                    </button>
                                                 )}
-                                            </p>
-                                        )}
+                                                {unread && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => markRead(notification)}
+                                                        disabled={busy}
+                                                        className="rounded-[12px] bg-white px-4 py-2.5 text-xs font-black text-slate-600 ring-1 ring-slate-200 transition hover:text-orange-600 disabled:opacity-50"
+                                                    >
+                                                        Mark as read
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
                                     </div>
-
-                                    <div className="flex w-full flex-col gap-3 md:w-44">
-                                        {link && (
-                                            <button
-                                                type="button"
-                                                onClick={() => openNotification(notification)}
-                                                className="rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white hover:bg-slate-800"
-                                            >
-                                                Open
-                                            </button>
-                                        )}
-
-                                        {unread && (
-                                            <button
-                                                type="button"
-                                                onClick={() => markRead(notification)}
-                                                disabled={actionLoading}
-                                                className="rounded-xl border bg-white px-4 py-3 text-sm font-semibold hover:bg-slate-50 disabled:opacity-60"
-                                            >
-                                                Mark read
-                                            </button>
-                                        )}
-                                    </div>
-                                </div>
-                            </article>
-                        );
-                    })}
-                </div>
-            )}
+                                </article>
+                            );
+                        })}
+                    </div>
+                ) : (
+                    <div className="px-6 py-16 text-center">
+                        <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-[22px] bg-emerald-50 text-emerald-600">
+                            <FontAwesomeIcon icon={faCircleCheck} className="h-6 w-6" />
+                        </span>
+                        <h2 className="mt-5 text-xl font-black text-slate-950">
+                            {filter === "unread" ? "You are all caught up" : "No notifications yet"}
+                        </h2>
+                        <p className="mx-auto mt-2 max-w-md text-sm font-semibold leading-6 text-slate-500">
+                            {filter === "unread"
+                                ? "There are no unread updates waiting for you."
+                                : "Messages and marketplace updates will appear here as they arrive."}
+                        </p>
+                    </div>
+                )}
+            </div>
         </section>
     );
 }

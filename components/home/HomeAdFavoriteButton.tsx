@@ -92,7 +92,7 @@ export default function HomeAdFavoriteButton({
             onClick={toggleFavorite}
             disabled={loading}
             aria-label={favorited ? "Remove from saved ads" : "Save ad"}
-            className="absolute right-3 top-3 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-white/95 text-slate-700 shadow-sm ring-1 ring-black/5 hover:text-orange-600 disabled:cursor-not-allowed disabled:opacity-60"
+            className="absolute right-3 top-3 z-20 flex h-10 w-10 items-center justify-center rounded-[14px] bg-white/90 text-slate-700 shadow-[0_8px_20px_rgba(15,23,42,0.14)] ring-1 ring-white/70 backdrop-blur transition hover:scale-105 hover:bg-white hover:text-orange-600 disabled:cursor-not-allowed disabled:opacity-60"
         >
             <FontAwesomeIcon
                 icon={favorited ? faHeart : faHeartRegular}

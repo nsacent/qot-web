@@ -107,12 +107,12 @@ export default function AccountClient() {
         },
         {
             label: "Messages",
-            href: "/messages",
+            href: "/account/messages",
             description: "Buyer and seller chats",
         },
         {
             label: "Notifications",
-            href: "/notifications",
+            href: "/account/notifications",
             description: "Account alerts",
         },
         {

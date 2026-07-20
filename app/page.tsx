@@ -110,7 +110,15 @@ export default async function HomePage() {
   const apiCategories = getArray(categoriesData);
 
   const categories =
-    apiCategories.length > 0 ? apiCategories.slice(0, 10) : fallbackCategories;
+    apiCategories.length > 0
+      ? [...apiCategories]
+        .sort(
+          (first, second) =>
+            Number(second?.listings_count || 0) -
+            Number(first?.listings_count || 0)
+        )
+        .slice(0, 10)
+      : fallbackCategories;
 
   const latestAds = getArray(adsData).slice(0, 24);
   const cities = await fetchCities();

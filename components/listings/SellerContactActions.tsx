@@ -241,7 +241,7 @@ export default function SellerContactActions({
                                         </div>
 
                                         <a
-                                            href="/messages"
+                                            href="/account/messages"
                                             className="mt-5 inline-flex h-11 w-full items-center justify-center gap-2 rounded-[18px] bg-slate-950 px-4 text-sm font-black text-white hover:bg-slate-800"
                                         >
                                             <FontAwesomeIcon

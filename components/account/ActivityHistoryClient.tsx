@@ -183,7 +183,7 @@ function buildNotificationItems(notifications: any[]): ActivityItem[] {
                 notification?.body ||
                 notification?.description ||
                 "You received a QOT notification.",
-            href: notification?.url || notification?.link || "/notifications",
+            href: notification?.url || notification?.link || "/account/notifications",
             date: safeDate(
                 notification?.created_at ||
                 notification?.created ||
@@ -547,7 +547,7 @@ export default function ActivityHistoryClient() {
                             </a>
 
                             <a
-                                href="/notifications"
+                                href="/account/notifications"
                                 className="rounded-xl border px-5 py-3 text-center font-semibold hover:bg-slate-50"
                             >
                                 Notifications

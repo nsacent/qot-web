@@ -1,8 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { apiGet, apiPost } from "@/lib/apiClient";
-import { getStoredToken } from "@/lib/auth";
 
 const NOTIFICATIONS_ENDPOINT = "/notifications/";
 
@@ -44,6 +42,9 @@ function getMessage(notification: any) {
 }
 
 function getLink(notification: any) {
+    if (notification.chat_thread) return `/account/messages/${notification.chat_thread}`;
+    if (notification.listing) return `/listings/${notification.listing}`;
+
     return (
         notification.link ||
         notification.url ||
@@ -55,23 +56,31 @@ function getLink(notification: any) {
 
 export default function NotificationBell() {
     const [mounted, setMounted] = useState(false);
-    const [hasToken, setHasToken] = useState(false);
+    const [hasSession, setHasSession] = useState(false);
     const [open, setOpen] = useState(false);
     const [notifications, setNotifications] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
 
     async function loadNotifications() {
-        const token = getStoredToken();
-
-        if (!token) return;
-
         setLoading(true);
 
         try {
-            const data = await apiGet(NOTIFICATIONS_ENDPOINT, {
-                redirectOnUnauthorized: false,
+            const response = await fetch(`/api/proxy${NOTIFICATIONS_ENDPOINT}`, {
+                credentials: "include",
+                cache: "no-store",
             });
 
+            if (response.status === 401) {
+                setHasSession(false);
+                setNotifications([]);
+                return;
+            }
+
+            const data = await response.json().catch(() => ({}));
+
+            if (!response.ok) throw new Error("Failed to load notifications.");
+
+            setHasSession(true);
             setNotifications(getArray(data).slice(0, 8));
         } catch (error) {
             console.error("Notifications error:", error);
@@ -81,14 +90,8 @@ export default function NotificationBell() {
     }
 
     useEffect(() => {
-        const token = getStoredToken();
-
-        setHasToken(Boolean(token));
         setMounted(true);
-
-        if (token) {
-            loadNotifications();
-        }
+        loadNotifications();
     }, []);
 
     async function openNotification(notification: any) {
@@ -97,9 +100,11 @@ export default function NotificationBell() {
 
         try {
             if (id && isUnread(notification)) {
-                await apiPost(markReadEndpoint(id), undefined, {
-                    redirectOnUnauthorized: false,
+                await fetch(`/api/proxy${markReadEndpoint(id)}`, {
+                    method: "POST",
+                    credentials: "include",
                 });
+                window.dispatchEvent(new Event("qot_notifications_updated"));
             }
         } catch (error) {
             console.error("Mark notification read error:", error);
@@ -110,11 +115,11 @@ export default function NotificationBell() {
             return;
         }
 
-        window.location.href = "/notifications";
+        window.location.href = "/account/notifications";
     }
 
     if (!mounted) return null;
-    if (!hasToken) return null;
+    if (!hasSession) return null;
 
     const unreadCount = notifications.filter(isUnread).length;
 
@@ -141,7 +146,7 @@ export default function NotificationBell() {
                     <div className="flex items-center justify-between border-b px-4 py-3">
                         <h3 className="font-bold text-slate-900">Notifications</h3>
                         <a
-                            href="/notifications"
+                            href="/account/notifications"
                             className="text-sm font-semibold text-orange-600 hover:text-orange-700"
                         >
                             View all

@@ -5,7 +5,6 @@ type ListingCardImageProps = {
     listing: any;
     title?: string;
     href?: string;
-    showNewBadge?: boolean;
     className?: string;
 };
 
@@ -13,7 +12,6 @@ export default function ListingCardImage({
     listing,
     title = "Listing image",
     href = "#",
-    showNewBadge = false,
     className = "",
 }: ListingCardImageProps) {
     const image = getPrimaryListingImage(listing);
@@ -35,12 +33,6 @@ export default function ListingCardImage({
                     </div>
                 )}
             </div>
-
-            {showNewBadge && (
-                <span className="absolute left-3 top-3 rounded-md bg-orange-500 px-2.5 py-1 text-[10px] font-black uppercase text-white">
-                    New
-                </span>
-            )}
 
             <ListingPhotoCountBadge
                 listing={listing}

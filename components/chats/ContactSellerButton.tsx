@@ -98,11 +98,11 @@ export default function ContactSellerButton({
                     const threadId = getThreadId(data);
 
                     if (threadId) {
-                        window.location.href = `/messages/${threadId}`;
+                        window.location.href = `/account/messages/${threadId}`;
                         return;
                     }
 
-                    window.location.href = "/messages";
+                    window.location.href = "/account/messages";
                     return;
                 }
 

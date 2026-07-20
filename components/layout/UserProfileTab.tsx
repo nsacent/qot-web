@@ -41,12 +41,8 @@ export default function UserProfileTab() {
             const data = await getCurrentUser();
 
             setUser(data);
-            localStorage.setItem("qot_user", JSON.stringify(data));
-            localStorage.removeItem("qot_access_token");
-            localStorage.removeItem("qot_refresh_token");
         } catch {
             setUser(null);
-            localStorage.removeItem("qot_user");
         } finally {
             setChecking(false);
         }
@@ -57,11 +53,11 @@ export default function UserProfileTab() {
         loadUser();
 
         window.addEventListener("focus", loadUser);
-        window.addEventListener("storage", loadUser);
+        window.addEventListener("qot_session_updated", loadUser);
 
         return () => {
             window.removeEventListener("focus", loadUser);
-            window.removeEventListener("storage", loadUser);
+            window.removeEventListener("qot_session_updated", loadUser);
         };
     }, []);
 
@@ -72,11 +68,7 @@ export default function UserProfileTab() {
             // continue clearing local state
         }
 
-        localStorage.removeItem("qot_user");
-        localStorage.removeItem("qot_access_token");
-        localStorage.removeItem("qot_refresh_token");
-
-        window.dispatchEvent(new Event("storage"));
+        window.dispatchEvent(new Event("qot_session_updated"));
         window.location.href = "/";
     }
 
@@ -168,7 +160,7 @@ export default function UserProfileTab() {
                         </a>
 
                         <a
-                            href="/messages"
+                            href="/account/messages"
                             className="flex items-center gap-3 rounded-2xl px-3 py-3 text-sm font-bold text-slate-700 hover:bg-orange-50 hover:text-orange-600"
                         >
                             <FontAwesomeIcon icon={faEnvelope} className="h-4 w-4" />
