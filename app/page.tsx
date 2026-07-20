@@ -1,7 +1,6 @@
 import QotMarketplaceFooter from "@/components/layout/QotMarketplaceFooter";
 import QotMarketplaceNav from "@/components/layout/QotMarketplaceNav";
 import HomeHero from "@/components/home/HomeHero";
-import HomeFloatingSearch from "@/components/home/HomeFloatingSearch";
 import HomeCategoryScroller from "@/components/home/HomeCategoryScroller";
 import HomeLatestAds from "@/components/home/HomeLatestAds";
 
@@ -22,6 +21,18 @@ const fallbackCategories = [
   { name: "Pets", slug: "pets" },
   { name: "More", slug: "" },
 ];
+
+type HomeCategory = {
+  id?: string | number;
+  name?: string;
+  slug?: string;
+  listings_count?: string | number;
+  children?: HomeCategory[];
+};
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
 
 function buildApiUrl(path: string) {
   const base = API_BASE.replace(/\/$/, "");
@@ -45,15 +56,21 @@ async function safeApiGet(path: string) {
   }
 }
 
-function getArray(data: any): any[] {
-  if (Array.isArray(data)) return data;
-  if (Array.isArray(data?.results)) return data.results;
-  if (Array.isArray(data?.data)) return data.data;
-  if (Array.isArray(data?.data?.results)) return data.data.results;
-  if (Array.isArray(data?.categories)) return data.categories;
-  if (Array.isArray(data?.listings)) return data.listings;
-  if (Array.isArray(data?.featured)) return data.featured;
-  if (Array.isArray(data?.latest)) return data.latest;
+function getArray<T>(data: unknown): T[] {
+  if (Array.isArray(data)) return data as T[];
+  if (!isRecord(data)) return [];
+
+  if (Array.isArray(data.results)) return data.results as T[];
+  if (Array.isArray(data.data)) return data.data as T[];
+
+  if (isRecord(data.data) && Array.isArray(data.data.results)) {
+    return data.data.results as T[];
+  }
+
+  if (Array.isArray(data.categories)) return data.categories as T[];
+  if (Array.isArray(data.listings)) return data.listings as T[];
+  if (Array.isArray(data.featured)) return data.featured as T[];
+  if (Array.isArray(data.latest)) return data.latest as T[];
 
   return [];
 }
@@ -107,7 +124,7 @@ export default async function HomePage() {
     safeApiGet("/listings/?sort=newest&page_size=24"),
   ]);
 
-  const apiCategories = getArray(categoriesData);
+  const apiCategories = getArray<HomeCategory>(categoriesData);
 
   const categories =
     apiCategories.length > 0
@@ -120,7 +137,7 @@ export default async function HomePage() {
         .slice(0, 10)
       : fallbackCategories;
 
-  const latestAds = getArray(adsData).slice(0, 24);
+  const latestAds = getArray<Record<string, unknown>>(adsData).slice(0, 24);
   const cities = await fetchCities();
 
 
@@ -130,7 +147,6 @@ export default async function HomePage() {
         <QotMarketplaceNav categories={categories} cities={cities} />
         <HomeHero latestAds={latestAds} />
 
-        <HomeFloatingSearch categories={categories} cities={cities} />
         <HomeCategoryScroller categories={categories} />
 
         <HomeLatestAds ads={latestAds} />
