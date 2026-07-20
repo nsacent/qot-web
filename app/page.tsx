@@ -2,6 +2,7 @@ import QotMarketplaceFooter from "@/components/layout/QotMarketplaceFooter";
 import QotMarketplaceNav from "@/components/layout/QotMarketplaceNav";
 import HomeHero from "@/components/home/HomeHero";
 import HomeCategoryScroller from "@/components/home/HomeCategoryScroller";
+import HomeFeaturedAds from "@/components/home/HomeFeaturedAds";
 import HomeLatestAds from "@/components/home/HomeLatestAds";
 
 export const dynamic = "force-dynamic";
@@ -119,9 +120,10 @@ async function fetchCities() {
 }
 
 export default async function HomePage() {
-  const [categoriesData, adsData] = await Promise.all([
+  const [categoriesData, adsData, homeData] = await Promise.all([
     safeApiGet("/categories/"),
     safeApiGet("/listings/?sort=newest&page_size=24"),
+    safeApiGet("/home/"),
   ]);
 
   const apiCategories = getArray<HomeCategory>(categoriesData);
@@ -138,6 +140,9 @@ export default async function HomePage() {
       : fallbackCategories;
 
   const latestAds = getArray<Record<string, unknown>>(adsData).slice(0, 24);
+  const featuredAds = isRecord(homeData)
+    ? getArray<Record<string, unknown>>(homeData.featured_listings).slice(0, 10)
+    : [];
   const cities = await fetchCities();
 
 
@@ -145,9 +150,10 @@ export default async function HomePage() {
     <main className="min-h-screen bg-[#fff7f2] text-slate-950 antialiased">
       <div className="mx-auto max-w-[1500px] px-4 py-4 sm:px-6">
         <QotMarketplaceNav categories={categories} cities={cities} />
-        <HomeHero latestAds={latestAds} />
+        <HomeHero featuredAds={featuredAds} />
 
         <HomeCategoryScroller categories={categories} />
+        <HomeFeaturedAds ads={featuredAds} />
 
         <HomeLatestAds ads={latestAds} />
       </div>

@@ -1,68 +1,75 @@
+import Link from "next/link";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faCircleCheck } from "@/lib/faIcons";
-import { getPrimaryListingImage } from "@/lib/listingImages";
+import { faCircleCheck, faStar } from "@/lib/faIcons";
+import ListingCardImage from "@/components/listings/ListingCardImage";
 
-type HomeHeroProps = {
-    latestAds?: any[];
+type HeroListing = Record<string, unknown> & {
+    id?: string | number;
+    listing_id?: string | number;
+    uuid?: string;
+    title?: string;
+    name?: string;
+    price?: string | number;
+    currency?: string;
 };
 
-function formatPrice(value: any, currency = "UGX") {
+type HomeHeroProps = {
+    featuredAds?: HeroListing[];
+};
+
+function formatPrice(value: unknown, currency = "UGX") {
     if (!value) return "Price on request";
 
     const numberValue = Number(value);
 
     if (Number.isNaN(numberValue)) {
-        return `${currency} ${value}`;
+        return `${currency} ${String(value)}`;
     }
 
     return `${currency} ${numberValue.toLocaleString()}`;
 }
 
-function getAdId(ad: any) {
-    return ad?.id || ad?.listing_id || ad?.uuid || "";
+function getAdId(ad: HeroListing) {
+    return ad.id || ad.listing_id || ad.uuid || "";
 }
 
-function getAdTitle(ad: any) {
-    return ad?.title || ad?.name || "Untitled ad";
+function getAdTitle(ad: HeroListing) {
+    return ad.title || ad.name || "Untitled ad";
 }
 
-function LatestAdMiniCard({ ad }: { ad: any }) {
+function FeaturedAdMiniCard({ ad }: { ad: HeroListing }) {
     const id = getAdId(ad);
-    const image = getPrimaryListingImage(ad);
 
     return (
-        <a
+        <Link
             href={id ? `/listings/${id}` : "/listings"}
-            className="flex gap-3 border-t border-slate-100 py-3 first:border-t-0"
+            className="group flex gap-3 border-t border-slate-100 py-3 first:border-t-0"
         >
-            <div className="h-14 w-16 shrink-0 overflow-hidden rounded-xl bg-slate-100">
-                {image ? (
-                    <img
-                        src={image}
-                        alt={getAdTitle(ad)}
-                        className="h-full w-full object-cover"
-                    />
-                ) : (
-                    <div className="flex h-full w-full items-center justify-center text-xs font-black text-slate-300">
-                        QOT
-                    </div>
-                )}
+            <div className="relative h-14 w-16 shrink-0 overflow-hidden rounded-xl bg-slate-100">
+                <ListingCardImage
+                    listing={ad}
+                    title={getAdTitle(ad)}
+                    className="h-full transition duration-300 group-hover:scale-105"
+                />
+                <span className="absolute left-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-orange-500 text-white shadow-sm">
+                    <FontAwesomeIcon icon={faStar} className="h-2.5 w-2.5" />
+                </span>
             </div>
 
             <div className="min-w-0">
-                <p className="line-clamp-1 text-sm font-black text-slate-950">
+                <p className="line-clamp-1 text-sm font-black text-slate-950 transition group-hover:text-orange-600">
                     {getAdTitle(ad)}
                 </p>
 
                 <p className="mt-1 text-sm font-black text-orange-600">
-                    {formatPrice(ad?.price, ad?.currency)}
+                    {formatPrice(ad.price, ad.currency || "UGX")}
                 </p>
             </div>
-        </a>
+        </Link>
     );
 }
 
-export default function HomeHero({ latestAds = [] }: HomeHeroProps) {
+export default function HomeHero({ featuredAds = [] }: HomeHeroProps) {
     return (
         <section className="relative overflow-hidden rounded-[2rem] bg-white shadow-[0_12px_45px_rgba(15,23,42,0.08)]">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_8%_20%,rgba(255,103,0,0.12),transparent_26%),linear-gradient(90deg,rgba(255,255,255,0.96)_0%,rgba(255,255,255,0.9)_50%,rgba(255,237,213,0.55)_100%)]" />
@@ -83,32 +90,26 @@ export default function HomeHero({ latestAds = [] }: HomeHeroProps) {
                             <span className="absolute -bottom-2 left-2 h-1 w-24 rounded-full bg-orange-500" />
                         </span>
                     </h1>
-
-                    <p className="mt-4 max-w-lg text-sm font-medium leading-6 text-slate-700">
-                        Find great deals, sell what you don&apos;t need, and connect with
-                        trusted buyers and sellers across Uganda.
-                    </p>
-
                     <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-                        <a
+                        <Link
                             href="/listings"
                             className="rounded-2xl bg-orange-500 px-7 py-3.5 text-center text-sm font-black text-white shadow-sm hover:bg-orange-600"
                         >
                             Browse Ads →
-                        </a>
+                        </Link>
 
-                        <a
+                        <Link
                             href="/post-ad"
                             className="rounded-2xl border border-slate-200 bg-white px-7 py-3.5 text-center text-sm font-black text-slate-950 shadow-sm hover:bg-slate-50"
                         >
                             Post Your Ad
-                        </a>
+                        </Link>
                     </div>
 
                     <div className="mt-5 flex flex-wrap gap-4 text-xs font-black text-slate-800">
                         <span>100% Free to Use</span>
                         <span>Verified Sellers</span>
-                        <span>Safe & Secure</span>
+                        <span>Safe &amp; Secure</span>
                     </div>
                 </div>
 
@@ -119,29 +120,32 @@ export default function HomeHero({ latestAds = [] }: HomeHeroProps) {
 
                     <div className="absolute right-16 top-8 w-72 rounded-3xl bg-white p-5 shadow-[0_20px_50px_rgba(15,23,42,0.14)]">
                         <div className="mb-3 flex items-center justify-between gap-2 text-sm font-black text-slate-950">
-                            <span>Latest Ads</span>
+                            <span className="inline-flex items-center gap-2">
+                                <FontAwesomeIcon icon={faStar} className="h-3.5 w-3.5 text-orange-500" />
+                                Featured Ads
+                            </span>
 
-                            <a
-                                href="/listings?sort=newest"
+                            <Link
+                                href="/listings?sort=featured"
                                 className="text-xs font-black text-orange-600 hover:text-orange-700"
                             >
                                 View all
-                            </a>
+                            </Link>
                         </div>
 
-                        {latestAds.slice(0, 3).length > 0 ? (
-                            latestAds
+                        {featuredAds.slice(0, 3).length > 0 ? (
+                            featuredAds
                                 .slice(0, 3)
                                 .map((ad) => (
-                                    <LatestAdMiniCard key={getAdId(ad) || getAdTitle(ad)} ad={ad} />
+                                    <FeaturedAdMiniCard key={getAdId(ad) || getAdTitle(ad)} ad={ad} />
                                 ))
                         ) : (
-                            <div className="rounded-2xl border border-dashed p-5 text-center">
+                            <div className="rounded-2xl border border-dashed border-orange-200 bg-orange-50/60 p-5 text-center">
                                 <p className="text-sm font-black text-slate-900">
-                                    No ads yet
+                                    Featured spots available
                                 </p>
                                 <p className="mt-1 text-xs font-semibold text-slate-500">
-                                    New ads will appear here.
+                                    Promoted ads will appear here.
                                 </p>
                             </div>
                         )}
