@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
     faBan,
@@ -37,16 +38,41 @@ type UserModal =
     }
     | null;
 
-function getArray(data: any): any[] {
+type AdminUserSummary = {
+    id: number;
+    phone: string | null;
+    email: string | null;
+    full_name: string;
+    role: "user" | "moderator" | "admin";
+    is_active: boolean;
+    is_verified: boolean;
+    is_banned: boolean;
+    banned_reason: string | null;
+    is_staff: boolean;
+    date_joined: string;
+};
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === "object" && value !== null;
+}
+
+function getArray(data: unknown): AdminUserSummary[] {
     if (Array.isArray(data)) return data;
-    if (Array.isArray(data?.results)) return data.results;
-    if (Array.isArray(data?.data)) return data.data;
-    if (Array.isArray(data?.users)) return data.users;
+
+    if (!isRecord(data)) return [];
+    if (Array.isArray(data.results)) return data.results;
+    if (Array.isArray(data.data)) return data.data;
+    if (Array.isArray(data.users)) return data.users;
+
     return [];
 }
 
-function getUserName(user: any) {
-    return user?.full_name || user?.name || user?.phone || user?.email || "QOT user";
+function getUserName(user: AdminUserSummary) {
+    return user.full_name || user.phone || user.email || "QOT user";
+}
+
+function getErrorMessage(error: unknown, fallback: string) {
+    return error instanceof Error && error.message ? error.message : fallback;
 }
 
 function formatDate(value: string) {
@@ -69,7 +95,7 @@ function roleClass(role: string) {
 }
 
 export default function AdminUsersClient() {
-    const [users, setUsers] = useState<any[]>([]);
+    const [users, setUsers] = useState<AdminUserSummary[]>([]);
     const [search, setSearch] = useState("");
     const [role, setRole] = useState("");
     const [isBanned, setIsBanned] = useState("");
@@ -92,26 +118,27 @@ export default function AdminUsersClient() {
         return query ? `${USERS_ENDPOINT}?${query}` : USERS_ENDPOINT;
     }
 
-    async function loadUsers() {
+    async function loadUsers(endpoint = buildEndpoint()) {
         setLoading(true);
         setError("");
 
         try {
-            const data = await apiGet(buildEndpoint());
+            const data = await apiGet<unknown>(endpoint);
             setUsers(getArray(data));
-        } catch (error: any) {
-            setError(error.message || "Failed to load users.");
+        } catch (error: unknown) {
+            setError(getErrorMessage(error, "Failed to load users."));
         } finally {
             setLoading(false);
         }
     }
 
     useEffect(() => {
-        loadUsers();
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        void loadUsers();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    function openUserModal(type: "ban" | "unban", user: any) {
+    function openUserModal(type: "ban" | "unban", user: AdminUserSummary) {
         setModal({
             type,
             id: user.id,
@@ -144,8 +171,8 @@ export default function AdminUsersClient() {
 
             setModal(null);
             await loadUsers();
-        } catch (error: any) {
-            setModalError(error.message || "The account action failed.");
+        } catch (error: unknown) {
+            setModalError(getErrorMessage(error, "The account action failed."));
         } finally {
             setActionLoading("");
         }
@@ -156,7 +183,7 @@ export default function AdminUsersClient() {
         setRole("");
         setIsBanned("");
         setIsVerified("");
-        window.setTimeout(loadUsers, 0);
+        void loadUsers(USERS_ENDPOINT);
     }
 
     const verifiedCount = users.filter((user) => user?.is_verified).length;
@@ -185,7 +212,7 @@ export default function AdminUsersClient() {
                 eyebrow="Account administration"
                 title="Users"
                 description="Search registered accounts, review trust signals, and control access with clear account status information."
-                action={<AdminRefreshButton onClick={loadUsers} loading={loading} />}
+                action={<AdminRefreshButton onClick={() => void loadUsers()} loading={loading} />}
             />
 
             {!loading && !error && (
@@ -200,7 +227,7 @@ export default function AdminUsersClient() {
             <form
                 onSubmit={(event) => {
                     event.preventDefault();
-                    loadUsers();
+                    void loadUsers();
                 }}
                 className="mb-6 rounded-[28px] bg-white p-5 shadow-sm ring-1 ring-slate-200/70"
             >
@@ -247,7 +274,7 @@ export default function AdminUsersClient() {
             {loading ? (
                 <AdminLoadingState label="Loading users" />
             ) : error ? (
-                <AdminErrorState message={error} onRetry={loadUsers} />
+                <AdminErrorState message={error} onRetry={() => void loadUsers()} />
             ) : users.length === 0 ? (
                 <AdminEmptyState title="No users found" description="Try a broader search or clear the selected status filters." />
             ) : (
@@ -311,7 +338,14 @@ export default function AdminUsersClient() {
                                         </div>
                                     </div>
 
-                                    <div className="lg:w-40">
+                                    <div className="grid gap-2 lg:w-44">
+                                        <Link
+                                            href={`/admin/users/${user.id}`}
+                                            className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-950 px-4 py-3 text-xs font-black text-white hover:bg-orange-500"
+                                        >
+                                            <FontAwesomeIcon icon={faShieldHalved} className="h-3 w-3" />
+                                            View & manage
+                                        </Link>
                                         {banned ? (
                                             <button
                                                 type="button"
