@@ -34,6 +34,48 @@ function json(data: any, status = 200) {
     return NextResponse.json(data, { status });
 }
 
+function normalizeOrigin(value: string | null | undefined) {
+    if (!value) return "";
+
+    try {
+        return new URL(value).origin;
+    } catch {
+        return "";
+    }
+}
+
+function hasTrustedOrigin(request: NextRequest) {
+    const requestOrigin = normalizeOrigin(request.headers.get("origin"));
+
+    if (!requestOrigin) return false;
+
+    const forwardedHost = request.headers
+        .get("x-forwarded-host")
+        ?.split(",")[0]
+        ?.trim();
+    const forwardedProtocol = request.headers
+        .get("x-forwarded-proto")
+        ?.split(",")[0]
+        ?.trim();
+    const requestHost = forwardedHost || request.headers.get("host") || "";
+    const requestProtocol =
+        forwardedProtocol || request.nextUrl.protocol.replace(":", "");
+    const proxyOrigin =
+        requestHost && requestProtocol
+            ? normalizeOrigin(`${requestProtocol}://${requestHost}`)
+            : "";
+
+    const trustedOrigins = new Set(
+        [
+            normalizeOrigin(process.env.APP_ORIGIN),
+            normalizeOrigin(request.nextUrl.origin),
+            proxyOrigin,
+        ].filter(Boolean)
+    );
+
+    return trustedOrigins.has(requestOrigin);
+}
+
 async function handleAuthRequest(
     request: NextRequest,
     context: RouteContext,
@@ -44,9 +86,7 @@ async function handleAuthRequest(
     const bodyText = method === "GET" ? "" : await getBodyText(request);
 
     if (authKey === "google") {
-        const requestOrigin = request.headers.get("origin");
-
-        if (requestOrigin && requestOrigin !== request.nextUrl.origin) {
+        if (!hasTrustedOrigin(request)) {
             return json({ detail: "Invalid Google sign-in origin." }, 403);
         }
 
