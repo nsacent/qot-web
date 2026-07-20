@@ -1,7 +1,29 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+    faArrowUpRightFromSquare,
+    faCircleCheck,
+    faFlag,
+    faMagnifyingGlass,
+    faRotateLeft,
+    faShieldHalved,
+    faTrash,
+    faTriangleExclamation,
+} from "@fortawesome/free-solid-svg-icons";
 import { apiGet, apiPost, buildQuery } from "@/lib/apiClient";
+import AdminActionModal, {
+    type AdminModalField,
+} from "@/components/admin/AdminActionModal";
+import {
+    AdminEmptyState,
+    AdminErrorState,
+    AdminLoadingState,
+    AdminPageHeader,
+    AdminRefreshButton,
+    AdminStatCard,
+} from "@/components/admin/AdminUi";
 
 const reportReasons = [
     { value: "", label: "All reasons" },
@@ -15,14 +37,20 @@ const reportReasons = [
     { value: "other", label: "Other issue" },
 ];
 
+type ReportModal =
+    | {
+        type: "reject" | "delete";
+        id: string | number;
+        title: string;
+    }
+    | null;
+
 function getArray(data: any): any[] {
     if (Array.isArray(data)) return data;
     if (Array.isArray(data?.results)) return data.results;
     if (Array.isArray(data?.data)) return data.data;
     if (Array.isArray(data?.reports)) return data.reports;
     if (Array.isArray(data?.data?.results)) return data.data.results;
-    if (Array.isArray(data?.data?.reports)) return data.data.reports;
-
     return [];
 }
 
@@ -36,53 +64,22 @@ function getListing(report: any) {
 
 function getListingId(report: any) {
     const listing = getListing(report);
-
-    return (
-        listing?.id ||
-        report?.listing_id ||
-        report?.advert_id ||
-        report?.item_id ||
-        ""
-    );
+    return listing?.id || report?.listing_id || report?.advert_id || "";
 }
 
 function getListingTitle(report: any) {
     const listing = getListing(report);
-
-    return (
-        listing?.title ||
-        report?.listing_title ||
-        report?.advert_title ||
-        "Reported listing"
-    );
+    return listing?.title || report?.listing_title || report?.advert_title || "Reported listing";
 }
 
 function getReporter(report: any) {
     return (
         report?.reporter?.full_name ||
-        report?.reporter?.name ||
-        report?.reporter?.username ||
         report?.reporter?.phone ||
         report?.reporter_name ||
         report?.user?.full_name ||
-        report?.user?.username ||
-        "Reporter"
+        "QOT user"
     );
-}
-
-function getReasonLabel(reason: string) {
-    const found = reportReasons.find((item) => item.value === reason);
-    return found?.label || reason || "Not specified";
-}
-
-function getStatus(report: any) {
-    if (report?.is_resolved === true || report?.resolved === true) {
-        return "Resolved";
-    }
-
-    if (report?.status) return String(report.status);
-
-    return "Pending";
 }
 
 function isResolved(report: any) {
@@ -93,11 +90,13 @@ function isResolved(report: any) {
     );
 }
 
+function reasonLabel(reason: string) {
+    return reportReasons.find((item) => item.value === reason)?.label || reason || "Not specified";
+}
+
 function formatDate(value: string) {
     if (!value) return "";
-
     const date = new Date(value);
-
     if (Number.isNaN(date.getTime())) return "";
 
     return date.toLocaleDateString("en-UG", {
@@ -113,28 +112,32 @@ export default function ReportModerationClient() {
     const [actionLoading, setActionLoading] = useState("");
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
-
     const [search, setSearch] = useState("");
     const [reason, setReason] = useState("");
     const [status, setStatus] = useState("pending");
+    const [modal, setModal] = useState<ReportModal>(null);
+    const [modalValues, setModalValues] = useState<Record<string, string>>({});
+    const [modalError, setModalError] = useState("");
 
-    async function loadReports() {
+    async function loadReports(
+        values = { search, reason, status },
+        preserveSuccess = false
+    ) {
         setLoading(true);
         setError("");
-        setSuccess("");
+        if (!preserveSuccess) setSuccess("");
 
         try {
             const query = buildQuery({
-                search,
-                reason,
+                search: values.search.trim(),
+                reason: values.reason,
                 is_resolved:
-                    status === "pending"
+                    values.status === "pending"
                         ? "false"
-                        : status === "resolved"
+                        : values.status === "resolved"
                             ? "true"
                             : undefined,
             });
-
             const data = await apiGet(`/moderation/reports/${query}`);
             setReports(getArray(data));
         } catch (error: any) {
@@ -147,328 +150,228 @@ export default function ReportModerationClient() {
 
     useEffect(() => {
         loadReports();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    async function applyFilters(event: React.FormEvent<HTMLFormElement>) {
-        event.preventDefault();
-        await loadReports();
-    }
-
-    async function resolveReport(reportId: string | number) {
-        setActionLoading(`resolve-${reportId}`);
+    async function performAction(
+        key: string,
+        successMessage: string,
+        callback: () => Promise<any>
+    ) {
+        setActionLoading(key);
         setError("");
         setSuccess("");
 
         try {
-            await apiPost(`/moderation/reports/${reportId}/resolve/`);
-            setSuccess("Report resolved successfully.");
-            await loadReports();
+            await callback();
+            setSuccess(successMessage);
+            await loadReports({ search, reason, status }, true);
         } catch (error: any) {
-            setError(error.message || "Failed to resolve report.");
+            setError(error.message || "The moderation action failed.");
         } finally {
             setActionLoading("");
         }
     }
 
-    async function rejectListing(reportId: string | number) {
-        const rejectionReason = window.prompt(
-            "Enter reason for rejecting this listing:",
-            "Reported listing contains suspicious or misleading content."
+    function resolveReport(id: string | number) {
+        return performAction(`resolve-${id}`, "Report resolved successfully.", () =>
+            apiPost(`/moderation/reports/${id}/resolve/`)
         );
+    }
 
-        if (!rejectionReason) return;
+    function openReportModal(type: "reject" | "delete", report: any) {
+        setModal({
+            type,
+            id: getReportId(report),
+            title: getListingTitle(report),
+        });
+        setModalValues({
+            reason:
+                type === "reject"
+                    ? "Reported listing contains suspicious or misleading content."
+                    : "",
+        });
+        setModalError("");
+    }
 
-        setActionLoading(`reject-${reportId}`);
-        setError("");
-        setSuccess("");
+    async function confirmReportModal() {
+        if (!modal) return;
+
+        if (modal.type === "reject" && !modalValues.reason?.trim()) {
+            setModalError("Please enter a rejection reason.");
+            return;
+        }
+
+        const key = `${modal.type}-${modal.id}`;
+        setActionLoading(key);
+        setModalError("");
 
         try {
-            await apiPost(`/moderation/reports/${reportId}/reject-listing/`, {
-                rejection_reason: rejectionReason,
-            });
+            if (modal.type === "reject") {
+                await apiPost(`/moderation/reports/${modal.id}/reject-listing/`, {
+                    rejection_reason: modalValues.reason.trim(),
+                });
+                setSuccess("Listing rejected successfully.");
+            } else {
+                await apiPost(`/moderation/reports/${modal.id}/delete-listing/`);
+                setSuccess("Listing deleted successfully.");
+            }
 
-            setSuccess("Listing rejected successfully.");
-            await loadReports();
+            setModal(null);
+            await loadReports({ search, reason, status }, true);
         } catch (error: any) {
-            setError(error.message || "Failed to reject listing.");
+            setModalError(error.message || "The moderation action failed.");
         } finally {
             setActionLoading("");
         }
     }
 
-    async function deleteListing(reportId: string | number) {
-        const confirmed = window.confirm(
-            "Delete the reported listing? This is a serious moderation action."
-        );
-
-        if (!confirmed) return;
-
-        setActionLoading(`delete-${reportId}`);
-        setError("");
-        setSuccess("");
-
-        try {
-            await apiPost(`/moderation/reports/${reportId}/delete-listing/`);
-            setSuccess("Listing deleted successfully.");
-            await loadReports();
-        } catch (error: any) {
-            setError(error.message || "Failed to delete listing.");
-        } finally {
-            setActionLoading("");
-        }
+    function resetFilters() {
+        const defaults = { search: "", reason: "", status: "pending" };
+        setSearch(defaults.search);
+        setReason(defaults.reason);
+        setStatus(defaults.status);
+        loadReports(defaults);
     }
 
     const pendingCount = reports.filter((report) => !isResolved(report)).length;
-    const resolvedCount = reports.filter((report) => isResolved(report)).length;
+    const resolvedCount = reports.filter(isResolved).length;
+    const modalFields: AdminModalField[] =
+        modal?.type === "reject"
+            ? [
+                {
+                    key: "reason",
+                    label: "Rejection reason",
+                    type: "textarea",
+                    placeholder: "Explain why the advert is being rejected…",
+                    required: true,
+                },
+            ]
+            : [];
 
     return (
-        <section className="mx-auto max-w-7xl px-6 py-10">
-            <div className="mb-8 flex flex-col justify-between gap-4 md:flex-row md:items-end">
-                <div>
-                    <p className="text-sm font-semibold uppercase tracking-wide text-orange-600">
-                        Admin Moderation
-                    </p>
+        <section>
+            <AdminPageHeader
+                eyebrow="Trust and safety"
+                title="Reports"
+                description="Review marketplace complaints, inspect the reported advert, and take a clear moderation action."
+                action={<AdminRefreshButton onClick={() => loadReports()} loading={loading} />}
+            />
 
-                    <h1 className="mt-2 text-3xl font-bold text-slate-900">
-                        Report Moderation
-                    </h1>
-
-                    <p className="mt-2 text-slate-600">
-                        Review buyer reports and take action on suspicious adverts.
-                    </p>
+            {!loading && !error && (
+                <div className="mb-6 grid gap-3 sm:grid-cols-3">
+                    <AdminStatCard label="Loaded reports" value={reports.length.toLocaleString()} detail="Current result set" icon={faFlag} tone="slate" />
+                    <AdminStatCard label="Pending" value={pendingCount.toLocaleString()} detail="Needs moderator attention" icon={faTriangleExclamation} tone="orange" />
+                    <AdminStatCard label="Resolved" value={resolvedCount.toLocaleString()} detail="Completed cases" icon={faCircleCheck} tone="green" />
                 </div>
-
-                <a
-                    href="/admin"
-                    className="rounded-xl border bg-white px-5 py-3 text-center font-semibold hover:bg-slate-50"
-                >
-                    Admin Dashboard
-                </a>
-            </div>
-
-            <div className="mb-6 grid gap-4 sm:grid-cols-3">
-                <div className="rounded-2xl border bg-white p-5 shadow-sm">
-                    <p className="text-sm font-semibold text-slate-500">Loaded Reports</p>
-                    <p className="mt-2 text-3xl font-black text-slate-900">
-                        {reports.length.toLocaleString()}
-                    </p>
-                </div>
-
-                <div className="rounded-2xl border bg-white p-5 shadow-sm">
-                    <p className="text-sm font-semibold text-slate-500">Pending</p>
-                    <p className="mt-2 text-3xl font-black text-orange-600">
-                        {pendingCount.toLocaleString()}
-                    </p>
-                </div>
-
-                <div className="rounded-2xl border bg-white p-5 shadow-sm">
-                    <p className="text-sm font-semibold text-slate-500">Resolved</p>
-                    <p className="mt-2 text-3xl font-black text-green-600">
-                        {resolvedCount.toLocaleString()}
-                    </p>
-                </div>
-            </div>
+            )}
 
             <form
-                onSubmit={applyFilters}
-                className="mb-6 rounded-2xl border bg-white p-5 shadow-sm"
+                onSubmit={(event) => {
+                    event.preventDefault();
+                    loadReports();
+                }}
+                className="mb-6 rounded-[28px] bg-white p-5 shadow-sm ring-1 ring-slate-200/70"
             >
-                <div className="grid gap-4 md:grid-cols-4">
-                    <div className="md:col-span-2">
-                        <label className="mb-2 block text-sm font-semibold text-slate-700">
-                            Search
-                        </label>
-
+                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                    <label className="relative md:col-span-2">
+                        <span className="sr-only">Search reports</span>
+                        <FontAwesomeIcon icon={faMagnifyingGlass} className="absolute left-4 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
                         <input
                             value={search}
                             onChange={(event) => setSearch(event.target.value)}
-                            placeholder="Search listing, reporter, reason..."
-                            className="w-full rounded-xl border px-4 py-3 outline-none focus:border-orange-500"
+                            placeholder="Search listing, reporter, or description…"
+                            className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 pl-10 pr-4 text-sm font-semibold outline-none focus:border-orange-400 focus:bg-white"
                         />
-                    </div>
-
-                    <div>
-                        <label className="mb-2 block text-sm font-semibold text-slate-700">
-                            Reason
-                        </label>
-
-                        <select
-                            value={reason}
-                            onChange={(event) => setReason(event.target.value)}
-                            className="w-full rounded-xl border px-4 py-3 outline-none focus:border-orange-500"
-                        >
-                            {reportReasons.map((item) => (
-                                <option key={item.value || "all"} value={item.value}>
-                                    {item.label}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-
-                    <div>
-                        <label className="mb-2 block text-sm font-semibold text-slate-700">
-                            Status
-                        </label>
-
-                        <select
-                            value={status}
-                            onChange={(event) => setStatus(event.target.value)}
-                            className="w-full rounded-xl border px-4 py-3 outline-none focus:border-orange-500"
-                        >
-                            <option value="pending">Pending</option>
-                            <option value="resolved">Resolved</option>
-                            <option value="">All</option>
-                        </select>
-                    </div>
+                    </label>
+                    <select value={reason} onChange={(event) => setReason(event.target.value)} className="h-12 rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold outline-none focus:border-orange-400">
+                        {reportReasons.map((item) => (
+                            <option key={item.value || "all"} value={item.value}>{item.label}</option>
+                        ))}
+                    </select>
+                    <select value={status} onChange={(event) => setStatus(event.target.value)} className="h-12 rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold outline-none focus:border-orange-400">
+                        <option value="pending">Pending</option>
+                        <option value="resolved">Resolved</option>
+                        <option value="">All statuses</option>
+                    </select>
                 </div>
-
-                <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-                    <button
-                        type="submit"
-                        className="rounded-xl bg-orange-500 px-5 py-3 font-semibold text-white hover:bg-orange-600"
-                    >
-                        Apply Filters
-                    </button>
-
-                    <button
-                        type="button"
-                        onClick={() => {
-                            setSearch("");
-                            setReason("");
-                            setStatus("pending");
-                            setTimeout(loadReports, 0);
-                        }}
-                        className="rounded-xl border px-5 py-3 font-semibold hover:bg-slate-50"
-                    >
-                        Reset
+                <div className="mt-4 flex flex-wrap gap-3">
+                    <button type="submit" className="rounded-2xl bg-orange-500 px-5 py-3 text-xs font-black text-white shadow-lg shadow-orange-100 hover:bg-orange-600">Apply filters</button>
+                    <button type="button" onClick={resetFilters} className="inline-flex items-center gap-2 rounded-2xl bg-slate-100 px-5 py-3 text-xs font-black text-slate-700 hover:bg-slate-200">
+                        <FontAwesomeIcon icon={faRotateLeft} className="h-3 w-3" /> Reset
                     </button>
                 </div>
             </form>
 
-            {error && (
-                <div className="mb-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-                    {error}
-                </div>
-            )}
-
             {success && (
-                <div className="mb-6 rounded-xl border border-green-200 bg-green-50 p-4 text-sm text-green-700">
+                <div className="mb-5 rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm font-bold text-emerald-700">
                     {success}
                 </div>
             )}
 
             {loading ? (
-                <div className="rounded-2xl border bg-white p-8 text-slate-600">
-                    Loading reports...
-                </div>
+                <AdminLoadingState label="Loading reports" />
+            ) : error ? (
+                <AdminErrorState message={error} onRetry={() => loadReports()} />
             ) : reports.length === 0 ? (
-                <div className="rounded-2xl border bg-white p-8 text-slate-600">
-                    No reports found.
-                </div>
+                <AdminEmptyState title="No reports found" description="There are no reports matching the selected moderation filters." />
             ) : (
-                <div className="grid gap-5">
+                <div className="grid gap-4">
                     {reports.map((report) => {
-                        const reportId = getReportId(report);
+                        const id = getReportId(report);
                         const listingId = getListingId(report);
                         const resolved = isResolved(report);
 
                         return (
-                            <article
-                                key={reportId}
-                                className="rounded-2xl border bg-white p-6 shadow-sm"
-                            >
-                                <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-start">
+                            <article key={id} className="rounded-[26px] bg-white p-5 shadow-sm ring-1 ring-slate-200/70 sm:p-6">
+                                <div className="flex flex-col gap-5 lg:flex-row lg:items-start">
                                     <div className="min-w-0 flex-1">
-                                        <div className="flex flex-wrap gap-2">
-                                            <span
-                                                className={
-                                                    resolved
-                                                        ? "rounded-full bg-green-100 px-3 py-1 text-xs font-bold text-green-700"
-                                                        : "rounded-full bg-orange-100 px-3 py-1 text-xs font-bold text-orange-700"
-                                                }
-                                            >
-                                                {getStatus(report)}
+                                        <div className="flex flex-wrap items-center gap-2">
+                                            <span className={`rounded-full px-3 py-1 text-[9px] font-black uppercase tracking-wider ${resolved ? "bg-emerald-50 text-emerald-700" : "bg-orange-50 text-orange-700"}`}>
+                                                {resolved ? "Resolved" : "Pending"}
                                             </span>
-
-                                            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700">
-                                                {getReasonLabel(report?.reason)}
+                                            <span className="rounded-full bg-slate-100 px-3 py-1 text-[9px] font-black uppercase tracking-wider text-slate-600">
+                                                {reasonLabel(report?.reason)}
                                             </span>
                                         </div>
 
-                                        <h2 className="mt-4 text-xl font-bold text-slate-900">
+                                        <h3 className="mt-3 text-lg font-black tracking-tight text-slate-950 sm:text-xl">
                                             {getListingTitle(report)}
-                                        </h2>
-
-                                        <p className="mt-2 text-sm text-slate-500">
+                                        </h3>
+                                        <p className="mt-1 text-xs font-semibold text-slate-500">
                                             Reported by {getReporter(report)}
-                                            {report?.created_at
-                                                ? ` · ${formatDate(report.created_at)}`
-                                                : ""}
+                                            {report?.created_at ? ` · ${formatDate(report.created_at)}` : ""}
                                         </p>
 
-                                        <p className="mt-4 whitespace-pre-line leading-7 text-slate-700">
-                                            {report?.description ||
-                                                report?.comment ||
-                                                report?.message ||
-                                                "No report description provided."}
+                                        <p className="mt-4 rounded-2xl bg-slate-50 px-4 py-3 text-sm font-medium leading-6 text-slate-700">
+                                            {report?.description || report?.comment || report?.message || "No report description provided."}
                                         </p>
 
                                         {listingId && (
-                                            <a
-                                                href={`/listings/${listingId}`}
-                                                target="_blank"
-                                                rel="noreferrer"
-                                                className="mt-4 inline-block text-sm font-semibold text-orange-600 hover:text-orange-700"
-                                            >
-                                                Open reported listing →
+                                            <a href={`/listings/${listingId}`} target="_blank" rel="noreferrer" className="mt-4 inline-flex items-center gap-2 text-xs font-black text-orange-600 hover:text-orange-700">
+                                                Open reported listing
+                                                <FontAwesomeIcon icon={faArrowUpRightFromSquare} className="h-3 w-3" />
                                             </a>
                                         )}
                                     </div>
 
-                                    <div className="grid gap-2 lg:min-w-56">
-                                        {!resolved && reportId && (
-                                            <button
-                                                type="button"
-                                                onClick={() => resolveReport(reportId)}
-                                                disabled={actionLoading === `resolve-${reportId}`}
-                                                className="rounded-xl border bg-white px-5 py-3 text-sm font-semibold hover:bg-slate-50 disabled:opacity-60"
-                                            >
-                                                {actionLoading === `resolve-${reportId}`
-                                                    ? "Resolving..."
-                                                    : "Resolve Report"}
-                                            </button>
-                                        )}
-
-                                        {!resolved && reportId && (
-                                            <button
-                                                type="button"
-                                                onClick={() => rejectListing(reportId)}
-                                                disabled={actionLoading === `reject-${reportId}`}
-                                                className="rounded-xl bg-orange-500 px-5 py-3 text-sm font-semibold text-white hover:bg-orange-600 disabled:opacity-60"
-                                            >
-                                                {actionLoading === `reject-${reportId}`
-                                                    ? "Rejecting..."
-                                                    : "Reject Listing"}
-                                            </button>
-                                        )}
-
-                                        {!resolved && reportId && (
-                                            <button
-                                                type="button"
-                                                onClick={() => deleteListing(reportId)}
-                                                disabled={actionLoading === `delete-${reportId}`}
-                                                className="rounded-xl bg-red-600 px-5 py-3 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-60"
-                                            >
-                                                {actionLoading === `delete-${reportId}`
-                                                    ? "Deleting..."
-                                                    : "Delete Listing"}
-                                            </button>
-                                        )}
-
-                                        {resolved && (
-                                            <div className="rounded-xl bg-green-50 p-4 text-sm font-semibold text-green-700">
-                                                This report has been resolved.
+                                    <div className="grid grid-cols-2 gap-2 lg:w-48 lg:grid-cols-1">
+                                        {resolved ? (
+                                            <div className="col-span-full inline-flex items-center justify-center gap-2 rounded-2xl bg-emerald-50 px-4 py-3 text-xs font-black text-emerald-700">
+                                                <FontAwesomeIcon icon={faCircleCheck} className="h-3.5 w-3.5" /> Resolved
                                             </div>
+                                        ) : (
+                                            <>
+                                                <button type="button" onClick={() => resolveReport(id)} disabled={actionLoading === `resolve-${id}`} className="inline-flex items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-4 py-3 text-xs font-black text-white hover:bg-emerald-700 disabled:opacity-60">
+                                                    <FontAwesomeIcon icon={faCircleCheck} className="h-3 w-3" /> Resolve
+                                                </button>
+                                                <button type="button" onClick={() => openReportModal("reject", report)} disabled={actionLoading === `reject-${id}`} className="inline-flex items-center justify-center gap-2 rounded-2xl bg-orange-50 px-4 py-3 text-xs font-black text-orange-700 hover:bg-orange-100 disabled:opacity-60">
+                                                    <FontAwesomeIcon icon={faShieldHalved} className="h-3 w-3" /> Reject advert
+                                                </button>
+                                                <button type="button" onClick={() => openReportModal("delete", report)} disabled={actionLoading === `delete-${id}`} className="col-span-full inline-flex items-center justify-center gap-2 rounded-2xl bg-red-50 px-4 py-3 text-xs font-black text-red-700 hover:bg-red-100 disabled:opacity-60">
+                                                    <FontAwesomeIcon icon={faTrash} className="h-3 w-3" /> Delete advert
+                                                </button>
+                                            </>
                                         )}
                                     </div>
                                 </div>
@@ -476,6 +379,36 @@ export default function ReportModerationClient() {
                         );
                     })}
                 </div>
+            )}
+
+            {modal && (
+                <AdminActionModal
+                    title={
+                        modal.type === "reject"
+                            ? "Reject reported listing"
+                            : "Delete reported listing?"
+                    }
+                    description={
+                        modal.type === "reject"
+                            ? `Add a clear moderation reason before rejecting “${modal.title}”.`
+                            : `“${modal.title}” will be removed from QOT. This is a serious moderation action.`
+                    }
+                    confirmLabel={modal.type === "reject" ? "Reject listing" : "Delete listing"}
+                    tone="red"
+                    fields={modalFields}
+                    values={modalValues}
+                    error={modalError}
+                    loading={actionLoading === `${modal.type}-${modal.id}`}
+                    onChange={(key, value) => {
+                        setModalValues((current) => ({ ...current, [key]: value }));
+                        setModalError("");
+                    }}
+                    onConfirm={confirmReportModal}
+                    onClose={() => {
+                        setModal(null);
+                        setModalError("");
+                    }}
+                />
             )}
         </section>
     );

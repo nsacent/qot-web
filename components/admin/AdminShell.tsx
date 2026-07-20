@@ -1,107 +1,191 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
-    getStoredUser,
+    faArrowUpRightFromSquare,
+    faBars,
+    faChartPie,
+    faCreditCard,
+    faFlag,
+    faListCheck,
+    faRightFromBracket,
+    faShieldHalved,
+    faUsers,
+    faXmark,
+} from "@fortawesome/free-solid-svg-icons";
+import {
+    getUserDisplayName,
+    getUserRole,
     isAdminOrModerator,
 } from "@/lib/auth";
 
 const links = [
-    { label: "Dashboard", href: "/admin" },
-    { label: "Reports", href: "/admin/reports" },
-    { label: "Listings", href: "/admin/listings" },
-    { label: "Users", href: "/admin/users" },
-    { label: "Payments", href: "/admin/payments" },
+    {
+        label: "Overview",
+        description: "Platform health",
+        href: "/admin",
+        icon: faChartPie,
+    },
+    {
+        label: "Listings",
+        description: "Review adverts",
+        href: "/admin/listings",
+        icon: faListCheck,
+    },
+    {
+        label: "Reports",
+        description: "Moderation queue",
+        href: "/admin/reports",
+        icon: faFlag,
+    },
+    {
+        label: "Users",
+        description: "Manage accounts",
+        href: "/admin/users",
+        icon: faUsers,
+    },
+    {
+        label: "Payments",
+        description: "Revenue records",
+        href: "/admin/payments",
+        icon: faCreditCard,
+    },
 ];
 
 type AdminShellProps = {
     children: React.ReactNode;
 };
 
-function getStoredToken() {
-    return (
-        localStorage.getItem("qot_access_token") ||
-        localStorage.getItem("access_token") ||
-        localStorage.getItem("access") ||
-        localStorage.getItem("token") ||
-        ""
-    );
+function isActivePath(pathname: string, href: string) {
+    if (href === "/admin") return pathname === href;
+    return pathname === href || pathname.startsWith(`${href}/`);
 }
 
 export default function AdminShell({ children }: AdminShellProps) {
+    const pathname = usePathname();
     const [checking, setChecking] = useState(true);
-    const [allowed, setAllowed] = useState(false);
+    const [user, setUser] = useState<any>(null);
+    const [accessError, setAccessError] = useState("");
+    const [menuOpen, setMenuOpen] = useState(false);
 
     useEffect(() => {
-        try {
-            const token = getStoredToken();
-            const user = getStoredUser();
+        let cancelled = false;
 
-            if (!token) {
-                setAllowed(false);
-                setChecking(false);
+        async function checkAccess() {
+            try {
+                const response = await fetch("/api/proxy/auth/me/", {
+                    credentials: "include",
+                    cache: "no-store",
+                });
 
-                const nextUrl = encodeURIComponent(window.location.pathname);
-                window.location.href = `/login?next=${nextUrl}`;
-                return;
+                if (response.status === 401) {
+                    const nextUrl = encodeURIComponent(
+                        window.location.pathname + window.location.search
+                    );
+                    window.location.href = `/login?next=${nextUrl}`;
+                    return;
+                }
+
+                const data = await response.json().catch(() => ({}));
+
+                if (!response.ok) {
+                    throw new Error(
+                        data?.detail || data?.message || "Unable to verify admin access."
+                    );
+                }
+
+                const currentUser = data?.user || data?.data || data;
+
+                if (!isAdminOrModerator(currentUser)) {
+                    if (!cancelled) {
+                        setAccessError(
+                            "This workspace is only available to QOT administrators and moderators."
+                        );
+                    }
+                    return;
+                }
+
+                if (!cancelled) setUser(currentUser);
+            } catch (error: any) {
+                if (!cancelled) {
+                    setAccessError(error?.message || "Unable to verify admin access.");
+                }
+            } finally {
+                if (!cancelled) setChecking(false);
             }
-
-            localStorage.setItem("qot_access_token", token);
-
-            /*
-              If user details are available, enforce role.
-              If user details are missing, allow the API itself to decide.
-              This avoids blocking admin users when the login response does not store user data.
-            */
-            if (user && !isAdminOrModerator(user)) {
-                setAllowed(false);
-                setChecking(false);
-                return;
-            }
-
-            setAllowed(true);
-            setChecking(false);
-        } catch (error) {
-            console.error("Admin access check failed:", error);
-            setAllowed(false);
-            setChecking(false);
         }
+
+        checkAccess();
+
+        return () => {
+            cancelled = true;
+        };
     }, []);
+
+    useEffect(() => {
+        setMenuOpen(false);
+    }, [pathname]);
+
+    async function logout() {
+        await fetch("/api/auth/logout", {
+            method: "POST",
+            credentials: "include",
+        }).catch(() => null);
+
+        window.location.href = "/";
+    }
 
     if (checking) {
         return (
-            <main className="min-h-screen bg-slate-50 px-6 py-20">
-                <div className="mx-auto max-w-3xl rounded-2xl border bg-white p-8 text-slate-600">
-                    Checking admin access...
+            <main className="flex min-h-screen items-center justify-center bg-[#f7f8fc] px-5">
+                <div className="w-full max-w-md rounded-[28px] bg-white p-8 text-center shadow-[0_24px_70px_rgba(15,23,42,0.10)] ring-1 ring-slate-200/70">
+                    <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-orange-500 text-white shadow-lg shadow-orange-200">
+                        <FontAwesomeIcon icon={faShieldHalved} className="h-6 w-6" />
+                    </div>
+                    <h1 className="mt-5 text-xl font-black text-slate-950">
+                        Opening admin workspace
+                    </h1>
+                    <p className="mt-2 text-sm font-medium text-slate-500">
+                        Securely checking your QOT permissions…
+                    </p>
+                    <div className="mx-auto mt-6 h-1.5 w-32 overflow-hidden rounded-full bg-slate-100">
+                        <div className="h-full w-1/2 animate-pulse rounded-full bg-orange-500" />
+                    </div>
                 </div>
             </main>
         );
     }
 
-    if (!allowed) {
+    if (!user) {
         return (
-            <main className="min-h-screen bg-slate-50 px-6 py-20">
-                <div className="mx-auto max-w-3xl rounded-2xl border bg-white p-8">
-                    <h1 className="text-2xl font-bold text-slate-900">
+            <main className="flex min-h-screen items-center justify-center bg-[#f7f8fc] px-5 py-12">
+                <div className="w-full max-w-lg rounded-[30px] bg-white p-8 text-center shadow-[0_24px_70px_rgba(15,23,42,0.10)] ring-1 ring-slate-200/70 sm:p-10">
+                    <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-[22px] bg-red-50 text-red-500">
+                        <FontAwesomeIcon icon={faShieldHalved} className="h-7 w-7" />
+                    </div>
+                    <p className="mt-6 text-xs font-black uppercase tracking-[0.2em] text-red-500">
+                        Restricted area
+                    </p>
+                    <h1 className="mt-2 text-3xl font-black tracking-tight text-slate-950">
                         Admin access required
                     </h1>
-                    <p className="mt-2 text-slate-600">
-                        This area is only available to admin or moderator accounts.
+                    <p className="mx-auto mt-3 max-w-md text-sm font-medium leading-6 text-slate-500">
+                        {accessError}
                     </p>
-
-                    <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+                    <div className="mt-7 grid gap-3 sm:grid-cols-2">
                         <a
                             href="/"
-                            className="rounded-xl border px-5 py-3 text-center font-semibold hover:bg-slate-50"
+                            className="rounded-2xl border border-slate-200 px-5 py-3.5 text-sm font-black text-slate-700 transition hover:bg-slate-50"
                         >
-                            Back to Website
+                            Back to marketplace
                         </a>
-
                         <a
                             href="/login?next=/admin"
-                            className="rounded-xl bg-orange-500 px-5 py-3 text-center font-semibold text-white hover:bg-orange-600"
+                            className="rounded-2xl bg-orange-500 px-5 py-3.5 text-sm font-black text-white shadow-lg shadow-orange-200 transition hover:bg-orange-600"
                         >
-                            Login as Admin
+                            Sign in as admin
                         </a>
                     </div>
                 </div>
@@ -109,47 +193,161 @@ export default function AdminShell({ children }: AdminShellProps) {
         );
     }
 
-    return (
-        <div className="min-h-screen bg-slate-50">
-            <div className="mx-auto grid max-w-7xl gap-6 px-6 py-6 lg:grid-cols-[260px_1fr]">
-                <aside className="h-fit rounded-2xl border bg-white p-5 shadow-sm lg:sticky lg:top-6">
-                    <a href="/admin" className="block">
-                        <p className="text-sm font-semibold uppercase tracking-wide text-orange-600">
+    const activeLink = links.find((link) => isActivePath(pathname, link.href));
+    const name = getUserDisplayName(user);
+    const role = getUserRole(user) || "staff";
+
+    const sidebar = (
+        <div className="flex h-full flex-col">
+            <div className="flex items-center justify-between gap-3 px-2">
+                <a href="/admin" className="flex min-w-0 items-center gap-3">
+                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-orange-500 text-lg font-black text-white shadow-lg shadow-orange-950/30">
+                        Q
+                    </span>
+                    <span className="min-w-0">
+                        <span className="block truncate text-lg font-black tracking-tight text-white">
                             QOT Admin
-                        </p>
-                        <h2 className="mt-1 text-xl font-bold text-slate-900">
-                            Control Panel
-                        </h2>
-                    </a>
+                        </span>
+                        <span className="block text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">
+                            Control centre
+                        </span>
+                    </span>
+                </a>
 
-                    <nav className="mt-6 grid gap-2">
-                        {links.map((link) => (
-                            <a
-                                key={link.href}
-                                href={link.href}
-                                className="rounded-xl px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-orange-50 hover:text-orange-700"
+                <button
+                    type="button"
+                    onClick={() => setMenuOpen(false)}
+                    aria-label="Close admin menu"
+                    className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10 text-white lg:hidden"
+                >
+                    <FontAwesomeIcon icon={faXmark} className="h-4 w-4" />
+                </button>
+            </div>
+
+            <nav className="mt-8 grid gap-2" aria-label="Admin navigation">
+                {links.map((link) => {
+                    const active = isActivePath(pathname, link.href);
+
+                    return (
+                        <a
+                            key={link.href}
+                            href={link.href}
+                            className={`group flex items-center gap-3 rounded-2xl px-3 py-3 transition ${
+                                active
+                                    ? "bg-white text-slate-950 shadow-[0_12px_28px_rgba(0,0,0,0.18)]"
+                                    : "text-slate-300 hover:bg-white/10 hover:text-white"
+                            }`}
+                        >
+                            <span
+                                className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
+                                    active
+                                        ? "bg-orange-50 text-orange-600"
+                                        : "bg-white/5 text-slate-400 group-hover:text-white"
+                                }`}
                             >
-                                {link.label}
-                            </a>
-                        ))}
-                    </nav>
+                                <FontAwesomeIcon icon={link.icon} className="h-4 w-4" />
+                            </span>
+                            <span className="min-w-0">
+                                <span className="block text-sm font-black">{link.label}</span>
+                                <span
+                                    className={`block truncate text-[11px] font-semibold ${
+                                        active ? "text-slate-500" : "text-slate-500"
+                                    }`}
+                                >
+                                    {link.description}
+                                </span>
+                            </span>
+                        </a>
+                    );
+                })}
+            </nav>
 
-                    <div className="mt-6 rounded-xl bg-slate-50 p-4 text-sm text-slate-600">
-                        <p className="font-semibold text-slate-900">Admin tools</p>
-                        <p className="mt-1">
-                            Manage listings, users, reports, and platform activity.
-                        </p>
+            <div className="mt-auto pt-8">
+                <div className="rounded-[22px] bg-white/7 p-4 ring-1 ring-white/10">
+                    <div className="flex items-center gap-3">
+                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-orange-500 text-sm font-black text-white">
+                            {name.charAt(0).toUpperCase()}
+                        </span>
+                        <span className="min-w-0">
+                            <span className="block truncate text-sm font-black text-white">
+                                {name}
+                            </span>
+                            <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                                {role}
+                            </span>
+                        </span>
                     </div>
 
-                    <a
-                        href="/"
-                        className="mt-5 block rounded-xl border px-4 py-3 text-center text-sm font-semibold hover:bg-slate-50"
+                    <button
+                        type="button"
+                        onClick={logout}
+                        className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-white/10 px-3 py-2.5 text-xs font-black text-slate-200 transition hover:bg-white/15 hover:text-white"
                     >
-                        Back to Website
-                    </a>
-                </aside>
+                        <FontAwesomeIcon icon={faRightFromBracket} className="h-3.5 w-3.5" />
+                        Sign out
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
 
-                <div className="min-w-0">{children}</div>
+    return (
+        <div className="min-h-screen bg-[#f7f8fc] text-slate-950">
+            {menuOpen && (
+                <button
+                    type="button"
+                    aria-label="Close admin navigation"
+                    onClick={() => setMenuOpen(false)}
+                    className="fixed inset-0 z-40 bg-slate-950/55 backdrop-blur-sm lg:hidden"
+                />
+            )}
+
+            <aside
+                className={`fixed inset-y-0 left-0 z-50 w-[285px] bg-slate-950 p-5 transition-transform duration-300 lg:translate-x-0 ${
+                    menuOpen ? "translate-x-0" : "-translate-x-full"
+                }`}
+            >
+                {sidebar}
+            </aside>
+
+            <div className="lg:pl-[285px]">
+                <header className="sticky top-0 z-30 border-b border-slate-200/70 bg-[#f7f8fc]/90 px-4 py-3 backdrop-blur-xl sm:px-6 lg:px-8">
+                    <div className="mx-auto flex max-w-[1500px] items-center justify-between gap-4">
+                        <div className="flex min-w-0 items-center gap-3">
+                            <button
+                                type="button"
+                                onClick={() => setMenuOpen(true)}
+                                aria-label="Open admin navigation"
+                                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-slate-950 text-white shadow-sm lg:hidden"
+                            >
+                                <FontAwesomeIcon icon={faBars} className="h-4 w-4" />
+                            </button>
+                            <div className="min-w-0">
+                                <p className="truncate text-[10px] font-black uppercase tracking-[0.18em] text-orange-600">
+                                    QOT administration
+                                </p>
+                                <h1 className="truncate text-lg font-black tracking-tight text-slate-950 sm:text-xl">
+                                    {activeLink?.label || "Admin workspace"}
+                                </h1>
+                            </div>
+                        </div>
+
+                        <a
+                            href="/"
+                            className="inline-flex items-center gap-2 rounded-2xl bg-white px-4 py-3 text-xs font-black text-slate-700 shadow-sm ring-1 ring-slate-200 transition hover:text-orange-600"
+                        >
+                            <span className="hidden sm:inline">Open marketplace</span>
+                            <FontAwesomeIcon
+                                icon={faArrowUpRightFromSquare}
+                                className="h-3.5 w-3.5"
+                            />
+                        </a>
+                    </div>
+                </header>
+
+                <main className="mx-auto max-w-[1500px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+                    {children}
+                </main>
             </div>
         </div>
     );

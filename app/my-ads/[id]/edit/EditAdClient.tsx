@@ -526,7 +526,6 @@ function EditAdForm({ id }: { id: string }) {
                                         <option value="">Select condition</option>
                                         <option value="new">New</option>
                                         <option value="used">Used</option>
-                                        <option value="refurbished">Refurbished</option>
                                     </select>
                                 </label>
                             </div>

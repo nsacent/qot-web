@@ -1,8 +1,3 @@
-import { clearAuthStorage, getStoredToken } from "@/lib/auth";
-
-const API_BASE_URL =
-    process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000/api/v1";
-
 type ApiClientOptions = RequestInit & {
     auth?: boolean;
     redirectOnUnauthorized?: boolean;
@@ -34,33 +29,25 @@ export async function apiFetch<T = any>(
         ...rest
     } = options;
 
-    const token = getStoredToken();
-
-    if (auth && !token) {
-        if (redirectOnUnauthorized && typeof window !== "undefined") {
-            window.location.href = getLoginRedirectUrl();
-        }
-
-        throw new Error("Login required.");
-    }
-
     const requestHeaders: HeadersInit = {
-        ...(auth && token ? { Authorization: `Bearer ${token}` } : {}),
         ...(isFormDataBody(body) ? {} : { "Content-Type": "application/json" }),
         ...(headers || {}),
     };
 
-    const response = await fetch(`${API_BASE_URL}${path}`, {
+    const cleanPath = path.startsWith("/") ? path : `/${path}`;
+
+    const response = await fetch(`/api/proxy${cleanPath}`, {
         ...rest,
         body,
         headers: requestHeaders,
+        credentials: "include",
+        cache: rest.cache || "no-store",
     });
 
     const data = await response.json().catch(() => null);
 
-    if (response.status === 401 || response.status === 403) {
+    if (auth && response.status === 401) {
         if (redirectOnUnauthorized && typeof window !== "undefined") {
-            clearAuthStorage();
             window.location.href = getLoginRedirectUrl();
         }
 
@@ -68,6 +55,14 @@ export async function apiFetch<T = any>(
             data?.detail ||
             data?.message ||
             "Your session has expired. Please login again."
+        );
+    }
+
+    if (auth && response.status === 403) {
+        throw new Error(
+            data?.detail ||
+            data?.message ||
+            "You do not have permission to perform this action."
         );
     }
 

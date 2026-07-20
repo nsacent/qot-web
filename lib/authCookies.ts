@@ -5,6 +5,10 @@ export const API_BASE_URL =
 
 export const ACCESS_COOKIE = "qot_access_token";
 export const REFRESH_COOKIE = "qot_refresh_token";
+export const KEEP_SIGNED_IN_COOKIE = "qot_keep_signed_in";
+
+const ACCESS_COOKIE_MAX_AGE = 60 * 30;
+const KEEP_SIGNED_IN_MAX_AGE = 60 * 60 * 24 * 365;
 
 const isProduction = process.env.NODE_ENV === "production";
 
@@ -25,20 +29,47 @@ export async function getRefreshToken() {
     return cookieStore.get(REFRESH_COOKIE)?.value || "";
 }
 
-export async function setAuthCookies(access?: string, refresh?: string) {
+export async function getKeepSignedIn() {
     const cookieStore = await cookies();
+    return cookieStore.get(KEEP_SIGNED_IN_COOKIE)?.value === "1";
+}
+
+export async function setAuthCookies(
+    access?: string,
+    refresh?: string,
+    keepSignedIn = false
+) {
+    const cookieStore = await cookies();
+    const accessPersistence = keepSignedIn
+        ? { maxAge: ACCESS_COOKIE_MAX_AGE }
+        : {};
+    const refreshPersistence = keepSignedIn
+        ? { maxAge: KEEP_SIGNED_IN_MAX_AGE }
+        : {};
 
     if (access) {
         cookieStore.set(ACCESS_COOKIE, access, {
             ...cookieOptions,
-            maxAge: 60 * 15,
+            ...accessPersistence,
         });
     }
 
     if (refresh) {
         cookieStore.set(REFRESH_COOKIE, refresh, {
             ...cookieOptions,
-            maxAge: 60 * 60 * 24 * 30,
+            ...refreshPersistence,
+        });
+    }
+
+    if (keepSignedIn) {
+        cookieStore.set(KEEP_SIGNED_IN_COOKIE, "1", {
+            ...cookieOptions,
+            maxAge: KEEP_SIGNED_IN_MAX_AGE,
+        });
+    } else {
+        cookieStore.set(KEEP_SIGNED_IN_COOKIE, "", {
+            ...cookieOptions,
+            maxAge: 0,
         });
     }
 }
@@ -52,6 +83,11 @@ export async function clearAuthCookies() {
     });
 
     cookieStore.set(REFRESH_COOKIE, "", {
+        ...cookieOptions,
+        maxAge: 0,
+    });
+
+    cookieStore.set(KEEP_SIGNED_IN_COOKIE, "", {
         ...cookieOptions,
         maxAge: 0,
     });
@@ -132,15 +168,40 @@ export async function backendJson(
     };
 }
 
+type BackendJsonResult = Awaited<ReturnType<typeof backendJson>>;
+
+const refreshRequests = new Map<string, Promise<BackendJsonResult>>();
+
+function refreshOnce(refresh: string) {
+    const pendingRefresh = refreshRequests.get(refresh);
+
+    if (pendingRefresh) return pendingRefresh;
+
+    const request = backendJson("/auth/token/refresh/", {
+        method: "POST",
+        body: JSON.stringify({ refresh }),
+    });
+
+    refreshRequests.set(refresh, request);
+
+    const clearPendingRequest = () => {
+        if (refreshRequests.get(refresh) === request) {
+            refreshRequests.delete(refresh);
+        }
+    };
+
+    void request.then(clearPendingRequest, clearPendingRequest);
+
+    return request;
+}
+
 export async function refreshAccessToken() {
     const refresh = await getRefreshToken();
 
     if (!refresh) return "";
 
-    const result = await backendJson("/auth/token/refresh/", {
-        method: "POST",
-        body: JSON.stringify({ refresh }),
-    });
+    const keepSignedIn = await getKeepSignedIn();
+    const result = await refreshOnce(refresh);
 
     if (!result.ok) {
         await clearAuthCookies();
@@ -155,7 +216,7 @@ export async function refreshAccessToken() {
         return "";
     }
 
-    await setAuthCookies(access, newRefresh);
+    await setAuthCookies(access, newRefresh, keepSignedIn);
 
     return access;
 }

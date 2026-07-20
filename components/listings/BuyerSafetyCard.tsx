@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { apiGet } from "@/lib/apiClient";
-import { getStoredToken } from "@/lib/auth";
 
 type BuyerSafetyCardProps = {
     listingId?: string | number;
@@ -30,15 +29,15 @@ export default function BuyerSafetyCard({ listingId }: BuyerSafetyCardProps) {
 
     useEffect(() => {
         async function checkOwnership() {
-            const token = getStoredToken();
-
-            if (!token || !currentListingId) {
+            if (!currentListingId) {
                 setOwnershipStatus("not-own");
                 return;
             }
 
             try {
-                const data = await apiGet("/my-ads/?page_size=1000");
+                const data = await apiGet("/seller/listings/?page_size=1000", {
+                    redirectOnUnauthorized: false,
+                });
                 const listings = getArray(data);
 
                 const isOwnListing = listings.some(

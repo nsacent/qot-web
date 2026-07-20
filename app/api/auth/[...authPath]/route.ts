@@ -6,6 +6,7 @@ import {
     extractAccessToken,
     extractRefreshToken,
     getRefreshToken,
+    refreshAccessToken,
     setAuthCookies,
     stripTokens,
 } from "@/lib/authCookies";
@@ -33,9 +34,6 @@ function json(data: any, status = 200) {
     return NextResponse.json(data, { status });
 }
 
-
-
-
 async function handleAuthRequest(
     request: NextRequest,
     context: RouteContext,
@@ -44,6 +42,52 @@ async function handleAuthRequest(
     const authKey = await getAuthKey(context);
     const backendPath = `/auth/${authKey}/`;
     const bodyText = method === "GET" ? "" : await getBodyText(request);
+
+    if (authKey === "google") {
+        const requestOrigin = request.headers.get("origin");
+
+        if (requestOrigin && requestOrigin !== request.nextUrl.origin) {
+            return json({ detail: "Invalid Google sign-in origin." }, 403);
+        }
+
+        let payload: Record<string, unknown> = {};
+
+        try {
+            const parsed = bodyText ? JSON.parse(bodyText) : {};
+
+            payload =
+                parsed && typeof parsed === "object" && !Array.isArray(parsed)
+                    ? (parsed as Record<string, unknown>)
+                    : {};
+        } catch {
+            payload = {};
+        }
+
+        const keepSignedIn = payload.keep_signed_in === true;
+        const result = await backendJson("/auth/google/", {
+            method: "POST",
+            body: JSON.stringify({
+                credential:
+                    typeof payload.credential === "string"
+                        ? payload.credential
+                        : "",
+                keep_signed_in: keepSignedIn,
+            }),
+        });
+
+        if (!result.ok) {
+            return json(result.data, result.status);
+        }
+
+        const access = extractAccessToken(result.data);
+        const refresh = extractRefreshToken(result.data);
+
+        if (access || refresh) {
+            await setAuthCookies(access, refresh, keepSignedIn);
+        }
+
+        return json(stripTokens(result.data), result.status);
+    }
 
     if (authKey === "verification/confirm") {
         let payload: any = {};
@@ -95,17 +139,19 @@ async function handleAuthRequest(
         ).trim();
 
         const password = payload.password;
+        const keepSignedIn =
+            payload.keep_signed_in === true || payload.keepSignedIn === true;
 
         const loginAttempts = identifier.includes("@")
             ? [
-                { email: identifier, password },
-                { identifier, password },
-                { phone: identifier, password },
+                { email: identifier, password, keep_signed_in: keepSignedIn },
+                { identifier, password, keep_signed_in: keepSignedIn },
+                { phone: identifier, password, keep_signed_in: keepSignedIn },
             ]
             : [
-                { phone: identifier, password },
-                { identifier, password },
-                { email: identifier, password },
+                { phone: identifier, password, keep_signed_in: keepSignedIn },
+                { identifier, password, keep_signed_in: keepSignedIn },
+                { email: identifier, password, keep_signed_in: keepSignedIn },
             ];
 
         let result: any = null;
@@ -129,7 +175,7 @@ async function handleAuthRequest(
         const refresh = extractRefreshToken(result.data);
 
         if (access || refresh) {
-            await setAuthCookies(access, refresh);
+            await setAuthCookies(access, refresh, keepSignedIn);
         }
 
         return json(stripTokens(result.data), result.status);
@@ -169,22 +215,11 @@ async function handleAuthRequest(
     }
 
     if (authKey === "token/refresh") {
-        const refresh = await getRefreshToken();
+        const access = await refreshAccessToken();
 
-        const result = await backendJson("/auth/token/refresh/", {
-            method: "POST",
-            body: bodyText || JSON.stringify({ refresh }),
-        });
-
-        if (!result.ok) {
-            await clearAuthCookies();
-            return json(result.data, result.status);
+        if (!access) {
+            return json({ detail: "Invalid or expired refresh token." }, 401);
         }
-
-        const access = extractAccessToken(result.data);
-        const newRefresh = extractRefreshToken(result.data) || refresh;
-
-        await setAuthCookies(access, newRefresh);
 
         return json({ detail: "Session refreshed." });
     }

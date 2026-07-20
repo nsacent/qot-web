@@ -150,7 +150,11 @@ export default function SellerRenewalsClient() {
                 listing,
                 renewal: getRenewalStatus(listing),
             }))
-            .filter(({ renewal }) => renewal.label !== "Active")
+            .filter(({ listing, renewal }) =>
+                ["active", "expired", "unavailable", "sold"].includes(
+                    getStatus(listing)
+                ) && renewal.label !== "Active"
+            )
             .sort((a, b) => {
                 const aDays = daysUntil(getExpiryDate(a.listing)) ?? 999;
                 const bDays = daysUntil(getExpiryDate(b.listing)) ?? 999;
@@ -159,7 +163,11 @@ export default function SellerRenewalsClient() {
     }, [listings]);
 
     const activeListings = useMemo(() => {
-        return listings.filter((listing) => getRenewalStatus(listing).label === "Active");
+        return listings.filter(
+            (listing) =>
+                getStatus(listing) === "active" &&
+                getRenewalStatus(listing).label === "Active"
+        );
     }, [listings]);
 
     async function renewListing(listing: any) {
@@ -309,6 +317,11 @@ export default function SellerRenewalsClient() {
                             const id = getListingId(listing);
                             const expiryDate = getExpiryDate(listing);
                             const busy = actionLoadingId === id;
+                            const listingStatus = getStatus(listing);
+                            const canRenew = ["active", "expired"].includes(listingStatus);
+                            const canRelist = ["expired", "unavailable", "sold"].includes(
+                                listingStatus
+                            );
 
                             return (
                                 <div
@@ -346,23 +359,27 @@ export default function SellerRenewalsClient() {
                                         </div>
 
                                         <div className="grid gap-2 sm:grid-cols-2 lg:min-w-80">
-                                            <button
-                                                type="button"
-                                                disabled={busy}
-                                                onClick={() => renewListing(listing)}
-                                                className="rounded-xl bg-orange-500 px-4 py-3 text-sm font-black text-white hover:bg-orange-600 disabled:opacity-60"
-                                            >
-                                                {busy ? "Processing..." : "Renew Advert"}
-                                            </button>
+                                            {canRenew && (
+                                                <button
+                                                    type="button"
+                                                    disabled={busy}
+                                                    onClick={() => renewListing(listing)}
+                                                    className="rounded-xl bg-orange-500 px-4 py-3 text-sm font-black text-white hover:bg-orange-600 disabled:opacity-60"
+                                                >
+                                                    {busy ? "Processing..." : "Renew Advert"}
+                                                </button>
+                                            )}
 
-                                            <button
-                                                type="button"
-                                                disabled={busy}
-                                                onClick={() => relistListing(listing)}
-                                                className="rounded-xl bg-slate-950 px-4 py-3 text-sm font-black text-white hover:bg-slate-800 disabled:opacity-60"
-                                            >
-                                                {busy ? "Processing..." : "Relist Advert"}
-                                            </button>
+                                            {canRelist && (
+                                                <button
+                                                    type="button"
+                                                    disabled={busy}
+                                                    onClick={() => relistListing(listing)}
+                                                    className="rounded-xl bg-slate-950 px-4 py-3 text-sm font-black text-white hover:bg-slate-800 disabled:opacity-60"
+                                                >
+                                                    {busy ? "Processing..." : "Relist Advert"}
+                                                </button>
+                                            )}
 
                                             <a
                                                 href={`/my-ads/${id}/edit`}

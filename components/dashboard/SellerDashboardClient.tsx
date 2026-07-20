@@ -361,7 +361,7 @@ export default function SellerDashboardClient() {
         try {
             const [dashboardResult, listingsResult] = await Promise.allSettled([
                 apiGet("/seller/dashboard/"),
-                apiGet("/my-ads/"),
+                apiGet("/seller/listings/?page_size=1000"),
             ]);
 
             if (dashboardResult.status === "rejected") {

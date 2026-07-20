@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { getUserDisplayName } from "@/lib/auth";
-import { getCurrentUser } from "@/lib/sessionClient";
+import { getCurrentUser, updateCurrentUser } from "@/lib/sessionClient";
 import {
     faBell,
     faBullhorn,
@@ -14,8 +14,6 @@ import {
     faUser,
 } from "@/lib/faIcons";
 
-const STORAGE_KEY = "qot_notification_preferences";
-
 const defaultPreferences = {
     verification: true,
     messages: true,
@@ -25,6 +23,8 @@ const defaultPreferences = {
     renewals: true,
     marketing: false,
 };
+
+type NotificationPreferences = typeof defaultPreferences;
 
 const preferenceItems = [
     {
@@ -76,28 +76,34 @@ const preferenceItems = [
         icon: faBullhorn,
         iconTone: "bg-pink-100 text-pink-600",
     },
-];
+] as const;
 
-function loadPreferences() {
-    try {
-        const saved = localStorage.getItem(STORAGE_KEY);
-
-        if (!saved) return defaultPreferences;
-
-        return {
-            ...defaultPreferences,
-            ...JSON.parse(saved),
-        };
-    } catch {
-        return defaultPreferences;
+function normalizePreferences(value: unknown): NotificationPreferences {
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+        return { ...defaultPreferences };
     }
+
+    const saved = value as Partial<NotificationPreferences>;
+
+    return Object.fromEntries(
+        Object.entries(defaultPreferences).map(([key, fallback]) => [
+            key,
+            typeof saved[key as keyof NotificationPreferences] === "boolean"
+                ? saved[key as keyof NotificationPreferences]
+                : fallback,
+        ])
+    ) as NotificationPreferences;
 }
 
 export default function NotificationPreferencesClient() {
     const [mounted, setMounted] = useState(false);
     const [user, setUser] = useState<any>(null);
-    const [preferences, setPreferences] = useState<any>(defaultPreferences);
+    const [preferences, setPreferences] = useState<NotificationPreferences>({
+        ...defaultPreferences,
+    });
     const [success, setSuccess] = useState("");
+    const [error, setError] = useState("");
+    const [saving, setSaving] = useState(false);
 
     useEffect(() => {
         let active = true;
@@ -107,8 +113,11 @@ export default function NotificationPreferencesClient() {
                 const currentUser = await getCurrentUser();
                 if (!active) return;
 
-                setUser(currentUser?.user || currentUser?.data || currentUser);
-                setPreferences(loadPreferences());
+                const account = currentUser?.user || currentUser?.data || currentUser;
+                setUser(account);
+                setPreferences(
+                    normalizePreferences(account?.profile?.notification_preferences)
+                );
                 setMounted(true);
             } catch {
                 window.location.href = "/login?next=/account/settings";
@@ -122,27 +131,46 @@ export default function NotificationPreferencesClient() {
         };
     }, []);
 
-    function togglePreference(key: string) {
+    function togglePreference(key: keyof NotificationPreferences) {
         setSuccess("");
+        setError("");
 
-        setPreferences((current: any) => ({
+        setPreferences((current) => ({
             ...current,
             [key]: !current[key],
         }));
     }
 
-    function savePreferences() {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(preferences));
-        setSuccess("Notification preferences saved successfully.");
+    async function persistPreferences(nextPreferences: NotificationPreferences) {
+        setSaving(true);
+        setSuccess("");
+        setError("");
+
+        try {
+            await updateCurrentUser({
+                profile: {
+                    notification_preferences: nextPreferences,
+                },
+            });
+            setPreferences(nextPreferences);
+            setSuccess("Notification preferences saved to your QOT account.");
+        } catch (saveError) {
+            setError(
+                saveError instanceof Error
+                    ? saveError.message
+                    : "Failed to save notification preferences."
+            );
+        } finally {
+            setSaving(false);
+        }
     }
 
-    function resetPreferences() {
-        const confirmed = window.confirm("Reset notification preferences?");
-        if (!confirmed) return;
+    async function savePreferences() {
+        await persistPreferences(preferences);
+    }
 
-        setPreferences(defaultPreferences);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultPreferences));
-        setSuccess("Notification preferences reset.");
+    async function resetPreferences() {
+        await persistPreferences({ ...defaultPreferences });
     }
 
     if (!mounted || !user) {
@@ -192,6 +220,12 @@ export default function NotificationPreferencesClient() {
                         </div>
                     )}
 
+                    {error && (
+                        <div className="mb-6 rounded-[18px] border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700">
+                            {error}
+                        </div>
+                    )}
+
                     <div className="mb-6 flex items-center justify-between gap-4">
                         <div>
                             <p className="text-xs font-black uppercase tracking-[0.16em] text-orange-600">Notification Preferences</p>
@@ -227,9 +261,10 @@ export default function NotificationPreferencesClient() {
                                     <button
                                         type="button"
                                         onClick={() => togglePreference(item.key)}
+                                        disabled={saving}
                                         aria-pressed={enabled}
                                         aria-label={`${enabled ? "Disable" : "Enable"} ${item.title}`}
-                                        className={`relative h-8 w-14 shrink-0 rounded-full transition ${enabled ? "bg-orange-500" : "bg-slate-300"}`}
+                                        className={`relative h-8 w-14 shrink-0 rounded-full transition disabled:opacity-60 ${enabled ? "bg-orange-500" : "bg-slate-300"}`}
                                     >
                                         <span className={`absolute top-1 h-6 w-6 rounded-full bg-white shadow-md transition-all ${enabled ? "left-7" : "left-1"}`} />
                                     </button>
@@ -242,15 +277,17 @@ export default function NotificationPreferencesClient() {
                         <button
                             type="button"
                             onClick={savePreferences}
-                            className="rounded-[16px] bg-orange-500 px-6 py-3.5 text-sm font-black text-white shadow-[0_12px_28px_rgba(249,115,22,0.22)] hover:bg-orange-600"
+                            disabled={saving}
+                            className="rounded-[16px] bg-orange-500 px-6 py-3.5 text-sm font-black text-white shadow-[0_12px_28px_rgba(249,115,22,0.22)] hover:bg-orange-600 disabled:opacity-60"
                         >
-                            Save Preferences
+                            {saving ? "Saving..." : "Save Preferences"}
                         </button>
 
                         <button
                             type="button"
                             onClick={resetPreferences}
-                            className="rounded-[16px] bg-slate-50 px-6 py-3.5 text-sm font-black text-slate-700 ring-1 ring-slate-200 hover:bg-slate-100"
+                            disabled={saving}
+                            className="rounded-[16px] bg-slate-50 px-6 py-3.5 text-sm font-black text-slate-700 ring-1 ring-slate-200 hover:bg-slate-100 disabled:opacity-60"
                         >
                             Reset Defaults
                         </button>

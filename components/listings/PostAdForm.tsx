@@ -522,6 +522,7 @@ export default function PostAdForm() {
 
         setPhotosUploading(true);
         setUploadProgress(`Uploading 1 of ${selectedFiles.length} new photos...`);
+        const uploadedIds: number[] = [];
 
         try {
             for (let index = 0; index < selectedFiles.length; index += 1) {
@@ -532,13 +533,24 @@ export default function PostAdForm() {
                 const formData = new FormData();
                 formData.append("image", selectedFiles[index]);
                 const data = await clientApiPostForm("/listings/images/stage/", formData);
-                setStagedPhotoIds((current) => [...current, Number(data.id)]);
+                const stagedId = Number(data.id);
+                uploadedIds.push(stagedId);
+                setStagedPhotoIds((current) => [...current, stagedId]);
             }
 
             setUploadProgress("Photos uploaded. Continue filling in the advert details.");
         } catch (err: any) {
+            await Promise.allSettled(
+                uploadedIds.map((stagedId) =>
+                    clientApiDelete(`/listings/images/stage/${stagedId}/`)
+                )
+            );
+            setPhotos((current) => current.slice(0, current.length - selectedFiles.length));
+            setStagedPhotoIds((current) =>
+                current.filter((stagedId) => !uploadedIds.includes(stagedId))
+            );
             setError(err.message || "A photo failed to upload.");
-            setUploadProgress("Photo upload failed.");
+            setUploadProgress("Photo upload failed. Please choose those photos again.");
         } finally {
             setPhotosUploading(false);
         }
@@ -729,7 +741,7 @@ export default function PostAdForm() {
                     </p>
 
                     <p className="mt-1 text-sm font-semibold">
-                        Photos will be uploaded with this advert. The first photo will be used as the primary image.
+                        Photos are safely staged. The first photo will be used as the primary image when you submit.
                     </p>
                 </div>
 
@@ -846,7 +858,6 @@ export default function PostAdForm() {
                             >
                                 <option value="new">New</option>
                                 <option value="used">Used</option>
-                                <option value="refurbished">Refurbished</option>
                             </select>
                         </SelectWrap>
                     </Field>

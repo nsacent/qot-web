@@ -1,31 +1,3 @@
-export function getStoredToken() {
-    if (typeof window === "undefined") return "";
-
-    return (
-        localStorage.getItem("qot_access_token") ||
-        localStorage.getItem("access_token") ||
-        localStorage.getItem("access") ||
-        localStorage.getItem("token") ||
-        ""
-    );
-}
-
-export function decodeJwtPayload(token: string) {
-    try {
-        const parts = token.split(".");
-
-        if (parts.length < 2) return null;
-
-        const payload = parts[1];
-        const normalized = payload.replace(/-/g, "+").replace(/_/g, "/");
-        const decoded = atob(normalized);
-
-        return JSON.parse(decoded);
-    } catch {
-        return null;
-    }
-}
-
 export function getStoredUser() {
     if (typeof window === "undefined") return null;
 
@@ -36,11 +8,7 @@ export function getStoredUser() {
             return JSON.parse(rawUser);
         }
 
-        const token = getStoredToken();
-
-        if (!token) return null;
-
-        return decodeJwtPayload(token);
+        return null;
     } catch {
         return null;
     }

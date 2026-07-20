@@ -91,7 +91,7 @@ export default function ListingImageManager({
         }
 
         try {
-            const sellerListingsData = await apiGet("/my-ads/");
+            const sellerListingsData = await apiGet("/seller/listings/?page_size=1000");
             const sellerListings = getArray(sellerListingsData);
 
             const foundListing = findListingById(sellerListings, listingId);

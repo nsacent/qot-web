@@ -263,7 +263,7 @@ export default function ActivityHistoryClient() {
                 apiGet("/favorites/"),
                 apiGet("/reviews/me/"),
                 apiGet("/notifications/"),
-                apiGet("/my-ads/"),
+                apiGet("/seller/listings/?page_size=1000"),
             ]);
 
             const [favoritesResult, reviewsResult, notificationsResult, listingsResult] =

@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation"; import { apiPost } from "@/lib/apiClient";
-import { getStoredToken } from "@/lib/auth";
+import { useSearchParams } from "next/navigation";
+import { apiPost } from "@/lib/apiClient";
 
 const reasons = [
     {
@@ -61,13 +61,6 @@ export default function SafetyReportClient() {
 
         setError("");
         setSuccess("");
-
-        const token = getStoredToken();
-
-        if (!token) {
-            window.location.href = "/login?next=/safety/report";
-            return;
-        }
 
         if (!listingId.trim()) {
             setError("Please enter the listing ID.");

@@ -6,6 +6,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEnvelope, faLock, faShieldHalved, faStore, faTag } from "@/lib/faIcons";
 import { getCurrentUser, loginUser } from "@/lib/sessionClient";
 import QotLoader from "@/components/common/QotLoader";
+import GoogleSignInButton from "@/components/auth/GoogleSignInButton";
 
 function LoginForm() {
     const searchParams = useSearchParams();
@@ -13,6 +14,7 @@ function LoginForm() {
 
     const [identifier, setIdentifier] = useState("");
     const [password, setPassword] = useState("");
+    const [keepSignedIn, setKeepSignedIn] = useState(false);
 
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
@@ -46,6 +48,7 @@ function LoginForm() {
             await loginUser({
                 identifier: identifier.trim(),
                 password,
+                keep_signed_in: keepSignedIn,
             });
 
             try {
@@ -160,7 +163,40 @@ function LoginForm() {
                             </div>
                         )}
 
-                        <form onSubmit={handleLogin} className="mt-7 space-y-4">
+                        <label className="mt-6 flex cursor-pointer items-start gap-3 rounded-2xl bg-slate-50 px-4 py-3 ring-1 ring-slate-100">
+                            <input
+                                type="checkbox"
+                                checked={keepSignedIn}
+                                onChange={(event) => setKeepSignedIn(event.target.checked)}
+                                className="mt-0.5 h-4 w-4 shrink-0 accent-orange-500"
+                            />
+
+                            <span>
+                                <span className="block text-sm font-black text-slate-700">
+                                    Keep me signed in
+                                </span>
+                                <span className="mt-0.5 block text-xs font-semibold text-slate-400">
+                                    Stay signed in for one year on this device.
+                                </span>
+                            </span>
+                        </label>
+
+                        <div className="mt-5">
+                            <GoogleSignInButton
+                                keepSignedIn={keepSignedIn}
+                                nextUrl={nextUrl}
+                            />
+                        </div>
+
+                        <div className="my-6 flex items-center gap-4">
+                            <span className="h-px flex-1 bg-slate-200" />
+                            <span className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">
+                                Or use your password
+                            </span>
+                            <span className="h-px flex-1 bg-slate-200" />
+                        </div>
+
+                        <form onSubmit={handleLogin} className="space-y-4">
                             <label className="block">
                                 <span className="mb-2 block text-sm font-black text-slate-700">
                                     Phone or email
@@ -205,10 +241,10 @@ function LoginForm() {
                                 </div>
                             </label>
 
-                            <div className="flex items-center justify-between gap-4">
+                            <div className="flex justify-end">
                                 <a
                                     href="/forgot-password"
-                                    className="text-sm font-black text-orange-600 hover:text-orange-700"
+                                    className="shrink-0 text-sm font-black text-orange-600 hover:text-orange-700"
                                 >
                                     Forgot password?
                                 </a>

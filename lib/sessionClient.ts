@@ -49,8 +49,16 @@ export async function sessionGet(path: string) {
 export async function loginUser(body: {
     identifier: string;
     password: string;
+    keep_signed_in?: boolean;
 }) {
     return sessionPost("/login", body);
+}
+
+export async function loginWithGoogle(body: {
+    credential: string;
+    keep_signed_in?: boolean;
+}) {
+    return sessionPost("/google", body);
 }
 
 export async function registerUser(body: {

@@ -1,18 +1,41 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+    faBan,
+    faCalendar,
+    faCircleCheck,
+    faEnvelope,
+    faMagnifyingGlass,
+    faPhone,
+    faRotateLeft,
+    faShieldHalved,
+    faUserCheck,
+    faUsers,
+} from "@fortawesome/free-solid-svg-icons";
 import { apiGet, apiPost } from "@/lib/apiClient";
-
-const API_BASE_URL =
-    process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000/api/v1";
+import AdminActionModal, {
+    type AdminModalField,
+} from "@/components/admin/AdminActionModal";
+import {
+    AdminEmptyState,
+    AdminErrorState,
+    AdminLoadingState,
+    AdminPageHeader,
+    AdminRefreshButton,
+    AdminStatCard,
+} from "@/components/admin/AdminUi";
 
 const USERS_ENDPOINT = "/admin-panel/users/";
 
-const banUserEndpoint = (userId: number | string) =>
-    `/admin-panel/users/${userId}/ban/`;
-
-const unbanUserEndpoint = (userId: number | string) =>
-    `/admin-panel/users/${userId}/unban/`;
+type UserModal =
+    | {
+        type: "ban" | "unban";
+        id: string | number;
+        name: string;
+    }
+    | null;
 
 function getArray(data: any): any[] {
     if (Array.isArray(data)) return data;
@@ -23,30 +46,26 @@ function getArray(data: any): any[] {
 }
 
 function getUserName(user: any) {
-    return (
-        user.full_name ||
-        user.name ||
-        user.username ||
-        user.phone ||
-        user.email ||
-        "User"
-    );
+    return user?.full_name || user?.name || user?.phone || user?.email || "QOT user";
 }
 
-function getUserContact(user: any) {
-    return user.email || user.phone || "No contact";
+function formatDate(value: string) {
+    if (!value) return "Unknown";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "Unknown";
+
+    return date.toLocaleDateString("en-UG", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+    });
 }
 
-function getUserRole(user: any) {
-    return user.role || user.user_type || "user";
-}
-
-function isUserBanned(user: any) {
-    return Boolean(user.is_banned || user.banned);
-}
-
-function isUserVerified(user: any) {
-    return Boolean(user.is_verified || user.verified);
+function roleClass(role: string) {
+    const value = String(role || "user").toLowerCase();
+    if (value === "admin") return "bg-violet-50 text-violet-700";
+    if (value === "moderator") return "bg-blue-50 text-blue-700";
+    return "bg-slate-100 text-slate-700";
 }
 
 export default function AdminUsersClient() {
@@ -56,51 +75,20 @@ export default function AdminUsersClient() {
     const [isBanned, setIsBanned] = useState("");
     const [isVerified, setIsVerified] = useState("");
     const [loading, setLoading] = useState(true);
-    const [actionLoading, setActionLoading] = useState<string | null>(null);
+    const [actionLoading, setActionLoading] = useState("");
     const [error, setError] = useState("");
+    const [modal, setModal] = useState<UserModal>(null);
+    const [modalValues, setModalValues] = useState<Record<string, string>>({});
+    const [modalError, setModalError] = useState("");
 
-    async function apiRequest(path: string, options: RequestInit = {}) {
-        const token = localStorage.getItem("qot_access_token");
-
-        if (!token) {
-            window.location.href = "/login";
-            throw new Error("Login required.");
-        }
-
-        const response = await fetch(`${API_BASE_URL}${path}`, {
-            ...options,
-            headers: {
-                Authorization: `Bearer ${token}`,
-                "Content-Type": "application/json",
-                ...(options.headers || {}),
-            },
-        });
-
-        const data = await response.json().catch(() => null);
-
-        if (!response.ok) {
-            throw new Error(
-                data?.detail ||
-                data?.message ||
-                data?.error ||
-                JSON.stringify(data) ||
-                "Request failed."
-            );
-        }
-
-        return data;
-    }
-
-    function buildUsersEndpoint() {
+    function buildEndpoint() {
         const params = new URLSearchParams();
-
-        if (search) params.set("search", search);
+        if (search.trim()) params.set("search", search.trim());
         if (role) params.set("role", role);
         if (isBanned) params.set("is_banned", isBanned);
         if (isVerified) params.set("is_verified", isVerified);
 
         const query = params.toString();
-
         return query ? `${USERS_ENDPOINT}?${query}` : USERS_ENDPOINT;
     }
 
@@ -109,7 +97,7 @@ export default function AdminUsersClient() {
         setError("");
 
         try {
-            const data = await apiGet(buildUsersEndpoint());
+            const data = await apiGet(buildEndpoint());
             setUsers(getArray(data));
         } catch (error: any) {
             setError(error.message || "Failed to load users.");
@@ -123,259 +111,264 @@ export default function AdminUsersClient() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    async function banUser(userId: number | string) {
-        const reason = window.prompt("Enter reason for banning this user:");
+    function openUserModal(type: "ban" | "unban", user: any) {
+        setModal({
+            type,
+            id: user.id,
+            name: getUserName(user),
+        });
+        setModalValues({ reason: "" });
+        setModalError("");
+    }
 
-        if (!reason) return;
+    async function confirmUserModal() {
+        if (!modal) return;
 
-        setActionLoading(`ban-${userId}`);
+        if (modal.type === "ban" && !modalValues.reason?.trim()) {
+            setModalError("Please enter a reason for restricting this account.");
+            return;
+        }
+
+        const key = `${modal.type}-${modal.id}`;
+        setActionLoading(key);
+        setModalError("");
 
         try {
+            if (modal.type === "ban") {
+                await apiPost(`/admin-panel/users/${modal.id}/ban/`, {
+                    banned_reason: modalValues.reason.trim(),
+                });
+            } else {
+                await apiPost(`/admin-panel/users/${modal.id}/unban/`);
+            }
 
-            await apiPost(banUserEndpoint(userId), {
-                reason,
-            });
+            setModal(null);
             await loadUsers();
-
         } catch (error: any) {
-            alert(error.message || "Failed to ban user.");
+            setModalError(error.message || "The account action failed.");
         } finally {
-            setActionLoading(null);
+            setActionLoading("");
         }
     }
 
-    async function unbanUser(userId: number | string) {
-        const confirmed = window.confirm("Unban this user?");
-
-        if (!confirmed) return;
-
-        setActionLoading(`unban-${userId}`);
-
-        try {
-            await apiPost(unbanUserEndpoint(userId));
-            await loadUsers();
-        } catch (error: any) {
-            alert(error.message || "Failed to unban user.");
-        } finally {
-            setActionLoading(null);
-        }
+    function resetFilters() {
+        setSearch("");
+        setRole("");
+        setIsBanned("");
+        setIsVerified("");
+        window.setTimeout(loadUsers, 0);
     }
+
+    const verifiedCount = users.filter((user) => user?.is_verified).length;
+    const bannedCount = users.filter((user) => user?.is_banned).length;
+    const staffCount = users.filter((user) =>
+        ["admin", "moderator"].includes(String(user?.role || "").toLowerCase())
+    ).length;
+
+    const modalFields: AdminModalField[] =
+        modal?.type === "ban"
+            ? [
+                {
+                    key: "reason",
+                    label: "Restriction reason",
+                    type: "textarea",
+                    placeholder: "Explain why this account is being restricted…",
+                    helper: "This note is stored with the account for future review.",
+                    required: true,
+                },
+            ]
+            : [];
 
     return (
-        <section className="mx-auto max-w-7xl px-6 py-10">
-            <div className="mb-6 rounded-2xl border bg-white p-5 shadow-sm">
-                <div className="grid gap-4 md:grid-cols-5">
-                    <input
-                        value={search}
-                        onChange={(event) => setSearch(event.target.value)}
-                        placeholder="Search e.g. Brian"
-                        className="rounded-xl border px-4 py-3 outline-none focus:border-orange-500 md:col-span-2"
-                    />
+        <section>
+            <AdminPageHeader
+                eyebrow="Account administration"
+                title="Users"
+                description="Search registered accounts, review trust signals, and control access with clear account status information."
+                action={<AdminRefreshButton onClick={loadUsers} loading={loading} />}
+            />
 
-                    <select
-                        value={role}
-                        onChange={(event) => setRole(event.target.value)}
-                        className="rounded-xl border px-4 py-3 outline-none focus:border-orange-500"
-                    >
+            {!loading && !error && (
+                <div className="mb-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                    <AdminStatCard label="Loaded users" value={users.length.toLocaleString()} detail="Current result set" icon={faUsers} tone="blue" />
+                    <AdminStatCard label="Verified" value={verifiedCount.toLocaleString()} detail="Trusted accounts" icon={faUserCheck} tone="green" />
+                    <AdminStatCard label="Banned" value={bannedCount.toLocaleString()} detail="Access restricted" icon={faBan} tone="red" />
+                    <AdminStatCard label="Staff" value={staffCount.toLocaleString()} detail="Admins and moderators" icon={faShieldHalved} tone="violet" />
+                </div>
+            )}
+
+            <form
+                onSubmit={(event) => {
+                    event.preventDefault();
+                    loadUsers();
+                }}
+                className="mb-6 rounded-[28px] bg-white p-5 shadow-sm ring-1 ring-slate-200/70"
+            >
+                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+                    <label className="relative md:col-span-2">
+                        <span className="sr-only">Search users</span>
+                        <FontAwesomeIcon icon={faMagnifyingGlass} className="absolute left-4 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+                        <input
+                            value={search}
+                            onChange={(event) => setSearch(event.target.value)}
+                            placeholder="Search name, phone, or email…"
+                            className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 pl-10 pr-4 text-sm font-semibold outline-none focus:border-orange-400 focus:bg-white"
+                        />
+                    </label>
+                    <select value={role} onChange={(event) => setRole(event.target.value)} className="h-12 rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold outline-none focus:border-orange-400">
                         <option value="">All roles</option>
-                        <option value="user">User</option>
-                        <option value="admin">Admin</option>
-                        <option value="moderator">Moderator</option>
+                        <option value="user">Users</option>
+                        <option value="moderator">Moderators</option>
+                        <option value="admin">Administrators</option>
                     </select>
-
-                    <select
-                        value={isBanned}
-                        onChange={(event) => setIsBanned(event.target.value)}
-                        className="rounded-xl border px-4 py-3 outline-none focus:border-orange-500"
-                    >
-                        <option value="">Ban status</option>
-                        <option value="true">Banned</option>
-                        <option value="false">Not banned</option>
-                    </select>
-
-                    <select
-                        value={isVerified}
-                        onChange={(event) => setIsVerified(event.target.value)}
-                        className="rounded-xl border px-4 py-3 outline-none focus:border-orange-500"
-                    >
-                        <option value="">Verification</option>
+                    <select value={isVerified} onChange={(event) => setIsVerified(event.target.value)} className="h-12 rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold outline-none focus:border-orange-400">
+                        <option value="">Any verification</option>
                         <option value="true">Verified</option>
                         <option value="false">Not verified</option>
                     </select>
+                    <select value={isBanned} onChange={(event) => setIsBanned(event.target.value)} className="h-12 rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold outline-none focus:border-orange-400">
+                        <option value="">Any access status</option>
+                        <option value="false">Active</option>
+                        <option value="true">Banned</option>
+                    </select>
                 </div>
 
-                <div className="mt-4 flex flex-col gap-3 sm:flex-row">
-                    <button
-                        type="button"
-                        onClick={loadUsers}
-                        className="rounded-xl bg-orange-500 px-5 py-3 font-semibold text-white hover:bg-orange-600"
-                    >
-                        Apply Filters
+                <div className="mt-4 flex flex-wrap gap-3">
+                    <button type="submit" className="rounded-2xl bg-orange-500 px-5 py-3 text-xs font-black text-white shadow-lg shadow-orange-100 hover:bg-orange-600">
+                        Apply filters
                     </button>
-
-                    <button
-                        type="button"
-                        onClick={() => {
-                            setSearch("");
-                            setRole("");
-                            setIsBanned("");
-                            setIsVerified("");
-                            setTimeout(loadUsers, 0);
-                        }}
-                        className="rounded-xl border px-5 py-3 font-semibold hover:bg-slate-50"
-                    >Clear
+                    <button type="button" onClick={resetFilters} className="inline-flex items-center gap-2 rounded-2xl bg-slate-100 px-5 py-3 text-xs font-black text-slate-700 hover:bg-slate-200">
+                        <FontAwesomeIcon icon={faRotateLeft} className="h-3 w-3" />
+                        Reset
                     </button>
                 </div>
-            </div>
+            </form>
 
-            {loading && (
-                <div className="rounded-2xl border bg-white p-8 text-slate-600">
-                    Loading users...
-                </div>
-            )}
+            {loading ? (
+                <AdminLoadingState label="Loading users" />
+            ) : error ? (
+                <AdminErrorState message={error} onRetry={loadUsers} />
+            ) : users.length === 0 ? (
+                <AdminEmptyState title="No users found" description="Try a broader search or clear the selected status filters." />
+            ) : (
+                <div className="grid gap-3">
+                    {users.map((user) => {
+                        const name = getUserName(user);
+                        const banned = Boolean(user?.is_banned);
+                        const verified = Boolean(user?.is_verified);
+                        const roleName = String(user?.role || "user");
 
-            {!loading && error && (
-                <div className="rounded-2xl border border-red-200 bg-red-50 p-8 text-red-700">
-                    {error}
-                </div>
-            )}
+                        return (
+                            <article key={user.id} className="rounded-[24px] bg-white p-5 shadow-sm ring-1 ring-slate-200/70 sm:p-6">
+                                <div className="flex flex-col gap-5 lg:flex-row lg:items-center">
+                                    <div className="flex min-w-0 flex-1 items-start gap-4">
+                                        <span className="flex h-13 w-13 shrink-0 items-center justify-center rounded-2xl bg-slate-950 text-base font-black text-white">
+                                            {name.charAt(0).toUpperCase()}
+                                        </span>
 
-            {!loading && !error && (
-                <>
-                    <div className="mb-6 flex flex-col justify-between gap-4 md:flex-row md:items-center">
-                        <div>
-                            <h2 className="text-2xl font-bold text-slate-900">
-                                Users List
-                            </h2>
-                            <p className="mt-1 text-sm text-slate-600">
-                                {users.length} user{users.length === 1 ? "" : "s"} found.
-                            </p>
-                        </div>
+                                        <div className="min-w-0 flex-1">
+                                            <div className="flex flex-wrap items-center gap-2">
+                                                <span className={`rounded-full px-3 py-1 text-[9px] font-black uppercase tracking-wider ${roleClass(roleName)}`}>
+                                                    {roleName}
+                                                </span>
+                                                <span className={`rounded-full px-3 py-1 text-[9px] font-black uppercase tracking-wider ${verified ? "bg-emerald-50 text-emerald-700" : "bg-orange-50 text-orange-700"}`}>
+                                                    {verified ? "Verified" : "Unverified"}
+                                                </span>
+                                                <span className={`rounded-full px-3 py-1 text-[9px] font-black uppercase tracking-wider ${banned ? "bg-red-50 text-red-700" : "bg-blue-50 text-blue-700"}`}>
+                                                    {banned ? "Banned" : "Active"}
+                                                </span>
+                                            </div>
 
-                        <button
-                            type="button"
-                            onClick={loadUsers}
-                            className="rounded-xl border bg-white px-5 py-3 font-semibold hover:bg-slate-50"
-                        >
-                            Refresh
-                        </button>
-                    </div>
+                                            <h3 className="mt-2 truncate text-lg font-black tracking-tight text-slate-950">
+                                                {name}
+                                            </h3>
 
-                    {users.length === 0 ? (
-                        <div className="rounded-2xl border bg-white p-8 text-slate-600">
-                            No users found.
-                        </div>
-                    ) : (
-                        <div className="grid gap-5">
-                            {users.map((user: any) => {
-                                const banned = isUserBanned(user);
-                                const verified = isUserVerified(user);
-
-                                return (
-                                    <article
-                                        key={user.id}
-                                        className="rounded-2xl border bg-white p-6 shadow-sm"
-                                    >
-                                        <div className="flex flex-col justify-between gap-5 lg:flex-row lg:items-center">
-                                            <div className="min-w-0 flex-1">
-                                                <div className="flex flex-wrap items-center gap-2">
-                                                    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold capitalize text-slate-700">
-                                                        {getUserRole(user)}
+                                            <div className="mt-2 flex flex-wrap gap-x-5 gap-y-2 text-xs font-semibold text-slate-500">
+                                                {user.phone && (
+                                                    <span className="inline-flex items-center gap-1.5">
+                                                        <FontAwesomeIcon icon={faPhone} className="h-3 w-3 text-slate-300" />
+                                                        {user.phone}
                                                     </span>
-
-                                                    {verified ? (
-                                                        <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-bold text-green-700">
-                                                            Verified
-                                                        </span>
-                                                    ) : (
-                                                        <span className="rounded-full bg-orange-100 px-3 py-1 text-xs font-bold text-orange-700">
-                                                            Not verified
-                                                        </span>
-                                                    )}
-
-                                                    {banned ? (
-                                                        <span className="rounded-full bg-red-100 px-3 py-1 text-xs font-bold text-red-700">
-                                                            Banned
-                                                        </span>
-                                                    ) : (
-                                                        <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-bold text-blue-700">
-                                                            Active
-                                                        </span>
-                                                    )}
-                                                </div>
-
-                                                <h3 className="mt-4 text-xl font-bold text-slate-900">
-                                                    {getUserName(user)}
-                                                </h3>
-
-                                                <div className="mt-2 grid gap-1 text-sm text-slate-600">
-                                                    <p>
-                                                        <span className="font-semibold">Contact:</span>{" "}
-                                                        {getUserContact(user)}
-                                                    </p>
-
-                                                    <p>
-                                                        <span className="font-semibold">User ID:</span>{" "}
-                                                        {user.id}
-                                                    </p>
-
-                                                    {user.date_joined && (
-                                                        <p>
-                                                            <span className="font-semibold">Joined:</span>{" "}
-                                                            {new Date(user.date_joined).toLocaleDateString(
-                                                                "en-UG",
-                                                                {
-                                                                    year: "numeric",
-                                                                    month: "short",
-                                                                    day: "numeric",
-                                                                }
-                                                            )}
-                                                        </p>
-                                                    )}
-
-                                                    {user.ban_reason && (
-                                                        <p className="text-red-700">
-                                                            <span className="font-semibold">
-                                                                Ban reason:
-                                                            </span>{" "}
-                                                            {user.ban_reason}
-                                                        </p>
-                                                    )}
-                                                </div>
-                                            </div>
-
-                                            <div className="flex w-full flex-col gap-3 lg:w-48">
-                                                {banned ? (
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => unbanUser(user.id)}
-                                                        disabled={actionLoading === `unban-${user.id}`}
-                                                        className="rounded-xl bg-green-600 px-4 py-3 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-60"
-                                                    >
-                                                        {actionLoading === `unban-${user.id}`
-                                                            ? "Unbanning..."
-                                                            : "Unban User"}
-                                                    </button>
-                                                ) : (
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => banUser(user.id)}
-                                                        disabled={actionLoading === `ban-${user.id}`}
-                                                        className="rounded-xl bg-red-600 px-4 py-3 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-60"
-                                                    >
-                                                        {actionLoading === `ban-${user.id}`
-                                                            ? "Banning..."
-                                                            : "Ban User"}
-                                                    </button>
                                                 )}
+                                                {user.email && (
+                                                    <span className="inline-flex items-center gap-1.5">
+                                                        <FontAwesomeIcon icon={faEnvelope} className="h-3 w-3 text-slate-300" />
+                                                        {user.email}
+                                                    </span>
+                                                )}
+                                                <span className="inline-flex items-center gap-1.5">
+                                                    <FontAwesomeIcon icon={faCalendar} className="h-3 w-3 text-slate-300" />
+                                                    Joined {formatDate(user.date_joined)}
+                                                </span>
+                                                <span className="font-bold text-slate-400">ID #{user.id}</span>
                                             </div>
+
+                                            {user.banned_reason && (
+                                                <p className="mt-3 rounded-xl bg-red-50 px-3 py-2 text-xs font-semibold text-red-700">
+                                                    <span className="font-black">Reason:</span> {user.banned_reason}
+                                                </p>
+                                            )}
                                         </div>
-                                    </article>
-                                );
-                            })}
-                        </div>
-                    )}
-                </>
+                                    </div>
+
+                                    <div className="lg:w-40">
+                                        {banned ? (
+                                            <button
+                                                type="button"
+                                                onClick={() => openUserModal("unban", user)}
+                                                disabled={actionLoading === `unban-${user.id}`}
+                                                className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-4 py-3 text-xs font-black text-white hover:bg-emerald-700 disabled:opacity-60"
+                                            >
+                                                <FontAwesomeIcon icon={faCircleCheck} className="h-3 w-3" />
+                                                {actionLoading === `unban-${user.id}` ? "Restoring…" : "Restore access"}
+                                            </button>
+                                        ) : (
+                                            <button
+                                                type="button"
+                                                onClick={() => openUserModal("ban", user)}
+                                                disabled={actionLoading === `ban-${user.id}`}
+                                                className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-red-50 px-4 py-3 text-xs font-black text-red-700 hover:bg-red-100 disabled:opacity-60"
+                                            >
+                                                <FontAwesomeIcon icon={faBan} className="h-3 w-3" />
+                                                {actionLoading === `ban-${user.id}` ? "Restricting…" : "Ban user"}
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                            </article>
+                        );
+                    })}
+                </div>
+            )}
+
+            {modal && (
+                <AdminActionModal
+                    title={
+                        modal.type === "ban"
+                            ? "Restrict this account?"
+                            : "Restore account access?"
+                    }
+                    description={
+                        modal.type === "ban"
+                            ? `${modal.name} will no longer be able to use protected QOT features until an administrator restores access.`
+                            : `${modal.name} will regain access to their QOT account immediately.`
+                    }
+                    confirmLabel={modal.type === "ban" ? "Ban user" : "Restore access"}
+                    tone={modal.type === "ban" ? "red" : "green"}
+                    fields={modalFields}
+                    values={modalValues}
+                    error={modalError}
+                    loading={actionLoading === `${modal.type}-${modal.id}`}
+                    onChange={(key, value) => {
+                        setModalValues((current) => ({ ...current, [key]: value }));
+                        setModalError("");
+                    }}
+                    onConfirm={confirmUserModal}
+                    onClose={() => {
+                        setModal(null);
+                        setModalError("");
+                    }}
+                />
             )}
         </section>
     );
