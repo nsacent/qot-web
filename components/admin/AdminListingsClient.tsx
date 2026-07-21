@@ -484,11 +484,11 @@ export default function AdminListingsClient() {
 
                                         <div className="grid grid-cols-2 gap-2 border-t border-slate-100 p-4 sm:grid-cols-4 lg:w-44 lg:grid-cols-1 lg:border-l lg:border-t-0">
                                             <a
-                                                href={`/listings/${id}`}
+                                                href={`/admin/listings/${id}`}
                                                 className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-100 px-3 py-2.5 text-[11px] font-black text-slate-700 hover:bg-slate-200"
                                             >
                                                 <FontAwesomeIcon icon={faEye} className="h-3 w-3" />
-                                                Open
+                                                Review
                                             </a>
                                             <button
                                                 type="button"

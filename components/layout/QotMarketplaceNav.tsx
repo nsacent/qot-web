@@ -1,28 +1,21 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import UserProfileTab from "@/components/layout/UserProfileTab";
+import {
+    CategoryPickerModal,
+    LocationPickerModal,
+} from "@/components/listings/MarketplacePickerModals";
+import { fetchAllProxyPages } from "@/lib/marketplaceCatalog";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
     faBell,
-    faBriefcase,
-    faCar,
     faChevronDown,
-    faCouch,
     faEnvelope,
     faHeartRegular,
-    faHouse,
-    faLaptop,
     faLocationDot,
     faMagnifyingGlass,
-    faMobileScreen,
-    faPaw,
     faPlus,
-    faShirt,
-    faStore,
-    faTag,
-    faToolbox,
-    faWrench,
 } from "@/lib/faIcons";
 
 const API_BASE_URL =
@@ -55,6 +48,9 @@ type QotMarketplaceNavProps = {
     categories?: Category[];
     cities?: City[];
 };
+
+const EMPTY_CATEGORIES: Category[] = [];
+const EMPTY_CITIES: City[] = [];
 
 function getArray(data: any): any[] {
     if (Array.isArray(data)) return data;
@@ -171,10 +167,6 @@ async function firstWorking(paths: string[]) {
     return null;
 }
 
-function getCategoryName(category: Category) {
-    return category?.name || "Category";
-}
-
 function getCategorySlug(category: Category) {
     return (
         category?.slug ||
@@ -183,90 +175,14 @@ function getCategorySlug(category: Category) {
     );
 }
 
-function getCategoryIcon(category: Category) {
-    const text = `${category?.name || ""} ${category?.slug || ""}`.toLowerCase();
-
-    if (text.includes("phone") || text.includes("tablet")) return faMobileScreen;
-    if (
-        text.includes("computer") ||
-        text.includes("laptop") ||
-        text.includes("electronics") ||
-        text.includes("printer") ||
-        text.includes("gaming")
-    ) {
-        return faLaptop;
+function findCategoryBySlug(categories: Category[], value: string): Category | null {
+    for (const category of categories) {
+        if (getCategorySlug(category) === value) return category;
+        const child = findCategoryBySlug(category.children || [], value);
+        if (child) return child;
     }
 
-    if (
-        text.includes("vehicle") ||
-        text.includes("car") ||
-        text.includes("motor") ||
-        text.includes("truck") ||
-        text.includes("bus")
-    ) {
-        return faCar;
-    }
-
-    if (
-        text.includes("property") ||
-        text.includes("house") ||
-        text.includes("land") ||
-        text.includes("apartment") ||
-        text.includes("rental")
-    ) {
-        return faHouse;
-    }
-
-    if (
-        text.includes("fashion") ||
-        text.includes("clothing") ||
-        text.includes("shoes") ||
-        text.includes("wear") ||
-        text.includes("bags")
-    ) {
-        return faShirt;
-    }
-
-    if (
-        text.includes("furniture") ||
-        text.includes("home") ||
-        text.includes("sofa") ||
-        text.includes("bed") ||
-        text.includes("kitchen")
-    ) {
-        return faCouch;
-    }
-
-    if (text.includes("job")) return faBriefcase;
-
-    if (
-        text.includes("service") ||
-        text.includes("repair") ||
-        text.includes("cleaning") ||
-        text.includes("construction")
-    ) {
-        return faWrench;
-    }
-
-    if (
-        text.includes("agriculture") ||
-        text.includes("farm") ||
-        text.includes("tools")
-    ) {
-        return faToolbox;
-    }
-
-    if (text.includes("pet") || text.includes("dog") || text.includes("cat")) {
-        return faPaw;
-    }
-
-    if (text.includes("health") || text.includes("beauty")) return faHeartRegular;
-
-    return faStore;
-}
-
-function getCityName(city: City) {
-    return city?.name || "Location";
+    return null;
 }
 
 function getCitySlug(city: City) {
@@ -397,43 +313,9 @@ function NavDropdown({
     );
 }
 
-function OptionModal({
-    open,
-    title,
-    children,
-    onClose,
-}: {
-    open: boolean;
-    title: string;
-    children: React.ReactNode;
-    onClose: () => void;
-}) {
-    if (!open) return null;
-
-    return (
-        <div className="fixed inset-0 z-[100] flex items-end justify-center bg-slate-950/50 p-0 backdrop-blur-sm md:items-center md:p-6">
-            <div className="max-h-[88vh] w-full max-w-3xl overflow-hidden rounded-t-[30px] bg-white shadow-2xl md:rounded-[30px]">
-                <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
-                    <h2 className="text-lg font-black text-slate-950">{title}</h2>
-
-                    <button
-                        type="button"
-                        onClick={onClose}
-                        className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-xl font-black text-slate-700 hover:bg-orange-50 hover:text-orange-600"
-                    >
-                        ×
-                    </button>
-                </div>
-
-                <div className="max-h-[72vh] overflow-y-auto p-5">{children}</div>
-            </div>
-        </div>
-    );
-}
-
 export default function QotMarketplaceNav({
-    categories = [],
-    cities = [],
+    categories = EMPTY_CATEGORIES,
+    cities = EMPTY_CITIES,
 }: QotMarketplaceNavProps) {
     const [counts, setCounts] = useState<NavCounts>({
         favorites: 0,
@@ -460,24 +342,38 @@ export default function QotMarketplaceNav({
 
     const [locationModalOpen, setLocationModalOpen] = useState(false);
     const [categoryModalOpen, setCategoryModalOpen] = useState(false);
+    const [locationSearch, setLocationSearch] = useState("");
+    const [categorySearch, setCategorySearch] = useState("");
+    const [fetchedCategories, setFetchedCategories] = useState<Category[]>([]);
+    const [fetchedCities, setFetchedCities] = useState<City[]>([]);
+
+    const availableCategories = categories.length ? categories : fetchedCategories;
+    const availableCities = cities.length ? cities : fetchedCities;
 
     const searchBoxRef = useRef<HTMLFormElement | null>(null);
     const quickMenuRef = useRef<HTMLElement | null>(null);
 
-    const citiesByRegion = useMemo(() => {
-        const grouped: Record<string, City[]> = {};
+    useEffect(() => {
+        if (categories.length && cities.length) return;
+        let cancelled = false;
 
-        for (const city of cities) {
-            const region = city.region_name || "Other Locations";
+        Promise.all([
+            categories.length
+                ? Promise.resolve([])
+                : fetchAllProxyPages("/categories/"),
+            cities.length
+                ? Promise.resolve([])
+                : fetchAllProxyPages("/locations/cities/?page_size=50"),
+        ]).then(([categoryItems, cityItems]) => {
+            if (cancelled) return;
+            if (!categories.length) setFetchedCategories(categoryItems as Category[]);
+            if (!cities.length) setFetchedCities(cityItems as City[]);
+        }).catch(() => null);
 
-            if (!grouped[region]) grouped[region] = [];
-            grouped[region].push(city);
-        }
-
-        return grouped;
-    }, [cities]);
-
-    const regions = useMemo(() => Object.keys(citiesByRegion).sort(), [citiesByRegion]);
+        return () => {
+            cancelled = true;
+        };
+    }, [categories, cities]);
 
     async function loadNavData() {
         setNavDataLoading(true);
@@ -1123,128 +1019,39 @@ export default function QotMarketplaceNav({
                 </div>
             </header>
 
-            <OptionModal
+            <LocationPickerModal
                 open={locationModalOpen}
-                title="Choose location"
                 onClose={() => setLocationModalOpen(false)}
-            >
-                <div className="mb-5">
-                    <button
-                        type="button"
-                        onClick={() => selectCity(null)}
-                        className="flex w-full items-center gap-3 rounded-2xl bg-orange-500 px-4 py-3 text-left text-sm font-black text-white hover:bg-orange-600"
-                    >
-                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/20">
-                            <FontAwesomeIcon icon={faLocationDot} className="h-4 w-4" />
-                        </span>
+                cities={availableCities}
+                valueMode="slug"
+                selectedValue={selectedCity ? getCitySlug(selectedCity) : ""}
+                selectedRegionValue={selectedRegion}
+                search={locationSearch}
+                setSearch={setLocationSearch}
+                onSelect={(value) => {
+                    const city = availableCities.find(
+                        (item) => getCitySlug(item) === value
+                    );
+                    if (city) selectCity(city);
+                }}
+                onSelectRegion={selectRegion}
+                onSelectAll={() => selectCity(null)}
+            />
 
-                        <span>All Uganda</span>
-                    </button>
-                </div>
-
-                <div className="space-y-6">
-                    {regions.map((region) => (
-                        <div key={region}>
-                            <div className="mb-3 flex items-center justify-between">
-                                <h3 className="flex items-center gap-2 text-base font-black text-slate-950">
-                                    <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-orange-50 text-orange-600">
-                                        <FontAwesomeIcon icon={faLocationDot} className="h-4 w-4" />
-                                    </span>
-                                    {region}
-                                </h3>
-
-                                <button
-                                    type="button"
-                                    onClick={() => selectRegion(region.toLowerCase().replaceAll(" ", "-"))}
-                                    className="inline-flex items-center gap-2 rounded-xl bg-orange-50 px-3 py-2 text-xs font-black text-orange-600 hover:bg-orange-100"
-                                >
-                                    <FontAwesomeIcon icon={faLocationDot} className="h-3 w-3" />
-                                    All {region}
-                                </button>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
-                                {(citiesByRegion[region] || []).map((city) => (
-                                    <button
-                                        key={city.id || city.slug || city.name}
-                                        type="button"
-                                        onClick={() => selectCity(city)}
-                                        className="flex items-center gap-3 rounded-2xl bg-slate-50 px-3 py-3 text-left text-sm font-bold text-slate-700 hover:bg-orange-50 hover:text-orange-600"
-                                    >
-                                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-white text-orange-500 shadow-sm">
-                                            <FontAwesomeIcon icon={faLocationDot} className="h-3.5 w-3.5" />
-                                        </span>
-
-                                        <span className="truncate">{getCityName(city)}</span>
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            </OptionModal>
-
-            <OptionModal
+            <CategoryPickerModal
                 open={categoryModalOpen}
-                title="Choose category"
                 onClose={() => setCategoryModalOpen(false)}
-            >
-                <div className="mb-5">
-                    <button
-                        type="button"
-                        onClick={() => selectCategory(null)}
-                        className="flex w-full items-center gap-3 rounded-2xl bg-orange-500 px-4 py-3 text-left text-sm font-black text-white hover:bg-orange-600"
-                    >
-                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/20">
-                            <FontAwesomeIcon icon={faTag} className="h-4 w-4" />
-                        </span>
-
-                        <span>All Categories</span>
-                    </button>
-                </div>
-
-                <div className="space-y-5">
-                    {categories.map((category) => {
-                        const children = Array.isArray(category.children)
-                            ? category.children
-                            : [];
-
-                        return (
-                            <div key={category.id || category.slug || category.name}>
-                                <button
-                                    type="button"
-                                    onClick={() => selectCategory(category)}
-                                    className="mb-2 flex w-full items-center gap-3 rounded-2xl bg-slate-100 px-4 py-3 text-left text-sm font-black text-slate-950 hover:bg-orange-50 hover:text-orange-600"
-                                >
-                                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-orange-500 shadow-sm">
-                                        <FontAwesomeIcon icon={getCategoryIcon(category)} className="h-4 w-4" />
-                                    </span>
-
-                                    <span>All {getCategoryName(category)}</span>
-                                </button>
-                                {children.length > 0 && (
-                                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
-                                        {children.map((child) => (
-                                            <button
-                                                key={child.id || child.slug || child.name}
-                                                type="button"
-                                                onClick={() => selectCategory(child)}
-                                                className="flex items-center gap-3 rounded-2xl bg-slate-50 px-3 py-3 text-left text-sm font-bold text-slate-700 hover:bg-orange-50 hover:text-orange-600"
-                                            >
-                                                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-white text-orange-500 shadow-sm">
-                                                    <FontAwesomeIcon icon={getCategoryIcon(child)} className="h-3.5 w-3.5" />
-                                                </span>
-
-                                                <span className="truncate">{getCategoryName(child)}</span>
-                                            </button>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-                        );
-                    })}
-                </div>
-            </OptionModal>
+                categories={availableCategories}
+                valueMode="slug"
+                selectedValue={selectedCategory ? getCategorySlug(selectedCategory) : ""}
+                search={categorySearch}
+                setSearch={setCategorySearch}
+                onSelect={(value) => {
+                    const category = findCategoryBySlug(availableCategories, value);
+                    if (category) selectCategory(category);
+                }}
+                onSelectAll={() => selectCategory(null)}
+            />
         </>
     );
 }

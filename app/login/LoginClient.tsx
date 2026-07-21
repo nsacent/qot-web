@@ -158,7 +158,11 @@ function LoginForm() {
                         </p>
 
                         {error && (
-                            <div className="mt-5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
+                            <div
+                                role="alert"
+                                aria-live="polite"
+                                className="mt-5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700"
+                            >
                                 {error}
                             </div>
                         )}
@@ -211,7 +215,10 @@ function LoginForm() {
                                     <input
                                         type="text"
                                         value={identifier}
-                                        onChange={(event) => setIdentifier(event.target.value)}
+                                        onChange={(event) => {
+                                            setIdentifier(event.target.value);
+                                            setError("");
+                                        }}
                                         placeholder="+256700000001 or seller@example.com"
                                         required
                                         className="w-full bg-transparent text-sm font-bold text-slate-900 outline-none placeholder:text-slate-400"
@@ -233,7 +240,10 @@ function LoginForm() {
                                     <input
                                         type="password"
                                         value={password}
-                                        onChange={(event) => setPassword(event.target.value)}
+                                        onChange={(event) => {
+                                            setPassword(event.target.value);
+                                            setError("");
+                                        }}
                                         placeholder="Enter password"
                                         required
                                         className="w-full bg-transparent text-sm font-bold text-slate-900 outline-none placeholder:text-slate-400"

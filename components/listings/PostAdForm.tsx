@@ -9,15 +9,12 @@ import {
     type FormEvent,
     type ReactNode,
 } from "react";
-import { createPortal } from "react-dom";
-
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
     faArrowLeft,
     faArrowRight,
     faBullhorn,
     faCamera,
-    faCheck,
     faChevronDown,
     faCircleCheck,
     faFileLines,
@@ -28,9 +25,13 @@ import {
     faShieldHalved,
     faSliders,
     faTag,
-    faMagnifyingGlass,
     faXmark,
 } from "@fortawesome/free-solid-svg-icons";
+import {
+    CategoryPickerModal,
+    LocationPickerModal,
+} from "@/components/listings/MarketplacePickerModals";
+import { fetchAllProxyPages } from "@/lib/marketplaceCatalog";
 
 type CategoryFilterField = {
     id: number | string;
@@ -340,11 +341,11 @@ export default function PostAdForm() {
             try {
                 const [categoriesData, citiesData] = await Promise.all([
                     clientApiGet("/categories/"),
-                    clientApiGet("/locations/cities/?page_size=200"),
+                    fetchAllProxyPages("/locations/cities/?page_size=50"),
                 ]);
 
                 setCategories(getArray(categoriesData));
-                setCities(getArray(citiesData));
+                setCities(citiesData);
             } catch (err) {
                 console.error("Failed to load form data:", err);
                 setError("Failed to load form data. Please refresh the page.");
@@ -1225,310 +1226,5 @@ function ErrorBox({ message }: { message: string }) {
         <div className="rounded-[20px] border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700">
             {message}
         </div>
-    );
-}
-
-function ModalShell({
-    open,
-    title,
-    description,
-    search,
-    setSearch,
-    searchPlaceholder,
-    onClose,
-    children,
-}: {
-    open: boolean;
-    title: string;
-    description: string;
-    search: string;
-    setSearch: (value: string) => void;
-    searchPlaceholder: string;
-    onClose: () => void;
-    children: ReactNode;
-}) {
-    useEffect(() => {
-        if (!open) return;
-
-        function handleEscape(event: KeyboardEvent) {
-            if (event.key === "Escape") onClose();
-        }
-
-        document.addEventListener("keydown", handleEscape);
-        document.body.style.overflow = "hidden";
-
-        return () => {
-            document.removeEventListener("keydown", handleEscape);
-            document.body.style.overflow = "";
-        };
-    }, [open, onClose]);
-
-    if (!open) return null;
-
-    return createPortal(
-        <div className="fixed inset-0 z-[100] flex items-end justify-center bg-slate-950/60 px-4 pb-4 backdrop-blur-sm sm:items-center sm:pb-0">
-            <div className="w-full max-w-3xl overflow-hidden rounded-[32px] bg-white shadow-2xl ring-1 ring-black/10">
-                <div className="border-b border-slate-100 bg-gradient-to-br from-slate-950 via-slate-900 to-orange-950 p-5 text-white sm:p-6">
-                    <div className="flex items-start justify-between gap-4">
-                        <div>
-                            <p className="text-xs font-black uppercase tracking-wide text-orange-200">
-                                QOT Marketplace
-                            </p>
-
-                            <h3 className="mt-1 text-2xl font-black">{title}</h3>
-
-                            <p className="mt-1 text-sm font-semibold leading-6 text-white/65">
-                                {description}
-                            </p>
-                        </div>
-
-                        <button
-                            type="button"
-                            onClick={onClose}
-                            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/10 text-white ring-1 ring-white/10 hover:bg-white/20"
-                        >
-                            <FontAwesomeIcon icon={faXmark} className="h-4 w-4" />
-                        </button>
-                    </div>
-
-                    <div className="relative mt-5">
-                        <FontAwesomeIcon
-                            icon={faMagnifyingGlass}
-                            className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
-                        />
-
-                        <input
-                            value={search}
-                            onChange={(event) => setSearch(event.target.value)}
-                            placeholder={searchPlaceholder}
-                            className="w-full rounded-[18px] border-0 bg-white px-11 py-3 text-sm font-bold text-slate-900 outline-none ring-1 ring-white/20 placeholder:text-slate-400 focus:ring-2 focus:ring-orange-300"
-                            autoFocus
-                        />
-                    </div>
-                </div>
-
-                <div className="max-h-[60vh] overflow-y-auto p-4 sm:p-5">
-                    {children}
-                </div>
-            </div>
-        </div>,
-        document.body
-    );
-}
-
-function CategoryPickerModal({
-    open,
-    onClose,
-    categories,
-    selectedValue,
-    search,
-    setSearch,
-    onSelect,
-}: {
-    open: boolean;
-    onClose: () => void;
-    categories: any[];
-    selectedValue: string;
-    search: string;
-    setSearch: (value: string) => void;
-    onSelect: (value: string) => void;
-}) {
-    const normalizedSearch = search.trim().toLowerCase();
-
-    const filteredCategories = categories
-        .map((parent: any) => {
-            const children = getCategoryChildren(parent);
-            const parentLabel = getOptionLabel(parent);
-
-            const matchingChildren = children.filter((child: any) =>
-                getOptionLabel(child).toLowerCase().includes(normalizedSearch)
-            );
-
-            const parentMatches = parentLabel.toLowerCase().includes(normalizedSearch);
-
-            if (!normalizedSearch || parentMatches) {
-                return { parent, children };
-            }
-
-            if (matchingChildren.length > 0) {
-                return { parent, children: matchingChildren };
-            }
-
-            return null;
-        })
-        .filter(Boolean) as { parent: any; children: any[] }[];
-
-    return (
-        <ModalShell
-            open={open}
-            title="Choose category"
-            description="Select the most accurate category for your advert."
-            search={search}
-            setSearch={setSearch}
-            searchPlaceholder="Search categories..."
-            onClose={onClose}
-        >
-            <div className="grid gap-4 md:grid-cols-2">
-                {filteredCategories.map(({ parent, children }) => {
-                    const parentValue = getOptionValue(parent);
-                    const parentSelected = String(selectedValue) === String(parentValue);
-
-                    return (
-                        <div
-                            key={parentValue}
-                            className="overflow-hidden rounded-[24px] bg-slate-50 ring-1 ring-slate-100"
-                        >
-                            <button
-                                type="button"
-                                onClick={() => onSelect(parentValue)}
-                                className={`flex w-full items-center justify-between gap-3 px-4 py-4 text-left transition ${parentSelected
-                                        ? "bg-orange-500 text-white"
-                                        : "bg-white text-slate-900 hover:bg-orange-50"
-                                    }`}
-                            >
-                                <span className="font-black">
-                                    All in {getOptionLabel(parent)}
-                                </span>
-
-                                {parentSelected && (
-                                    <FontAwesomeIcon icon={faCheck} className="h-4 w-4" />
-                                )}
-                            </button>
-
-                            <div className="p-2">
-                                {children.map((child: any) => {
-                                    const childValue = getOptionValue(child);
-                                    const selected = String(selectedValue) === String(childValue);
-
-                                    return (
-                                        <button
-                                            key={childValue}
-                                            type="button"
-                                            onClick={() => onSelect(childValue)}
-                                            className={`mb-1 flex w-full items-center justify-between gap-3 rounded-[16px] px-3 py-3 text-left text-sm font-bold transition ${selected
-                                                    ? "bg-orange-500 text-white"
-                                                    : "text-slate-700 hover:bg-white"
-                                                }`}
-                                        >
-                                            <span>{getOptionLabel(child)}</span>
-
-                                            {selected && (
-                                                <FontAwesomeIcon icon={faCheck} className="h-3.5 w-3.5" />
-                                            )}
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                        </div>
-                    );
-                })}
-
-                {filteredCategories.length === 0 && (
-                    <div className="rounded-[22px] bg-slate-50 p-6 text-sm font-bold text-slate-500 md:col-span-2">
-                        No category found.
-                    </div>
-                )}
-            </div>
-        </ModalShell>
-    );
-}
-
-function LocationPickerModal({
-    open,
-    onClose,
-    cities,
-    selectedValue,
-    search,
-    setSearch,
-    onSelect,
-}: {
-    open: boolean;
-    onClose: () => void;
-    cities: any[];
-    selectedValue: string;
-    search: string;
-    setSearch: (value: string) => void;
-    onSelect: (value: string) => void;
-}) {
-    const normalizedSearch = search.trim().toLowerCase();
-
-    const filteredCities = cities.filter((cityItem: any) => {
-        if (!normalizedSearch) return true;
-
-        const cityName = getOptionLabel(cityItem).toLowerCase();
-        const regionName = String(
-            cityItem?.region?.name ||
-            cityItem?.region_name ||
-            cityItem?.region ||
-            ""
-        ).toLowerCase();
-
-        return cityName.includes(normalizedSearch) || regionName.includes(normalizedSearch);
-    });
-
-    return (
-        <ModalShell
-            open={open}
-            title="Choose location"
-            description="Select the city where the advert item or service is located."
-            search={search}
-            setSearch={setSearch}
-            searchPlaceholder="Search city or region..."
-            onClose={onClose}
-        >
-            <div className="grid gap-3 sm:grid-cols-2">
-                {filteredCities.map((cityItem: any) => {
-                    const value = getOptionValue(cityItem);
-                    const selected = String(selectedValue) === String(value);
-                    const regionName =
-                        cityItem?.region?.name ||
-                        cityItem?.region_name ||
-                        cityItem?.region ||
-                        "";
-
-                    return (
-                        <button
-                            key={value}
-                            type="button"
-                            onClick={() => onSelect(value)}
-                            className={`flex items-center justify-between gap-4 rounded-[20px] px-4 py-4 text-left transition ${selected
-                                    ? "bg-orange-500 text-white"
-                                    : "bg-slate-50 text-slate-900 ring-1 ring-slate-100 hover:bg-orange-50"
-                                }`}
-                        >
-                            <span>
-                                <span className="block text-sm font-black">
-                                    {getOptionLabel(cityItem)}
-                                </span>
-
-                                {regionName && (
-                                    <span
-                                        className={`mt-0.5 block text-xs font-semibold ${selected ? "text-white/75" : "text-slate-500"
-                                            }`}
-                                    >
-                                        {regionName}
-                                    </span>
-                                )}
-                            </span>
-
-                            {selected ? (
-                                <FontAwesomeIcon icon={faCheck} className="h-4 w-4" />
-                            ) : (
-                                <FontAwesomeIcon
-                                    icon={faLocationDot}
-                                    className="h-4 w-4 text-orange-500"
-                                />
-                            )}
-                        </button>
-                    );
-                })}
-
-                {filteredCities.length === 0 && (
-                    <div className="rounded-[22px] bg-slate-50 p-6 text-sm font-bold text-slate-500 sm:col-span-2">
-                        No location found.
-                    </div>
-                )}
-            </div>
-        </ModalShell>
     );
 }

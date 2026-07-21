@@ -3,6 +3,11 @@
 import { Suspense, useEffect, useMemo, useState } from "react";
 import QotLoader from "@/components/common/QotLoader";
 import { getCurrentUser } from "@/lib/sessionClient";
+import {
+    CategoryPickerModal,
+    LocationPickerModal,
+} from "@/components/listings/MarketplacePickerModals";
+import { fetchAllProxyPages } from "@/lib/marketplaceCatalog";
 
 const API_BASE_URL =
     process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000/api/v1";
@@ -14,6 +19,17 @@ function getArray(data: any) {
     if (Array.isArray(data?.results)) return data.results;
     if (Array.isArray(data?.data)) return data.data;
     return [];
+}
+
+function getCategoryChildren(item: any) {
+    return Array.isArray(item?.children) ? item.children : [];
+}
+
+function flattenCategories(items: any[]): any[] {
+    return items.flatMap((item) => [
+        item,
+        ...flattenCategories(getCategoryChildren(item)),
+    ]);
 }
 
 function getImageUrl(value: any) {
@@ -88,6 +104,20 @@ function EditAdForm({ id }: { id: string }) {
 
     const [message, setMessage] = useState("");
     const [error, setError] = useState("");
+    const [categoryModalOpen, setCategoryModalOpen] = useState(false);
+    const [locationModalOpen, setLocationModalOpen] = useState(false);
+    const [categorySearch, setCategorySearch] = useState("");
+    const [locationSearch, setLocationSearch] = useState("");
+
+    const flatCategories = useMemo(() => flattenCategories(categories), [categories]);
+    const selectedCategory = useMemo(
+        () => flatCategories.find((item: any) => String(item?.id) === category),
+        [flatCategories, category]
+    );
+    const selectedCity = useMemo(
+        () => cities.find((item: any) => String(item?.id) === city),
+        [cities, city]
+    );
 
     const existingImages = useMemo(() => {
         const images = ad?.images || ad?.photos || [];
@@ -158,22 +188,18 @@ function EditAdForm({ id }: { id: string }) {
     }
 
     async function loadCategoriesAndCities() {
-        const [categoriesResponse, citiesResponse] = await Promise.all([
+        const [categoriesResponse, allCities] = await Promise.all([
             fetch("/api/proxy/categories/", {
                 credentials: "include",
                 cache: "no-store",
             }),
-            fetch("/api/proxy/locations/cities/?page_size=1000", {
-                credentials: "include",
-                cache: "no-store",
-            }),
+            fetchAllProxyPages("/locations/cities/?page_size=50"),
         ]);
 
         const categoriesData = await categoriesResponse.json().catch(() => ({}));
-        const citiesData = await citiesResponse.json().catch(() => ({}));
 
         setCategories(getArray(categoriesData));
-        setCities(getArray(citiesData));
+        setCities(allCities);
     }
 
 
@@ -494,24 +520,23 @@ function EditAdForm({ id }: { id: string }) {
                             </label>
 
                             <div className="grid gap-4 md:grid-cols-2">
-                                <label className="block">
+                                <div>
                                     <span className="mb-2 block text-sm font-black text-slate-700">
                                         Category
                                     </span>
 
-                                    <select
-                                        value={category}
-                                        onChange={(event) => setCategory(event.target.value)}
-                                        className="w-full rounded-2xl bg-slate-50 px-4 py-3 text-sm font-bold text-slate-900 outline-none ring-1 ring-slate-100 focus:bg-white focus:ring-orange-200"
+                                    <button
+                                        type="button"
+                                        onClick={() => setCategoryModalOpen(true)}
+                                        className="flex min-h-12 w-full items-center justify-between gap-3 rounded-2xl bg-slate-50 px-4 py-3 text-left text-sm font-bold text-slate-900 ring-1 ring-slate-100 transition hover:bg-orange-50 hover:text-orange-600"
                                     >
-                                        <option value="">Select category</option>
-                                        {categories.map((item: any) => (
-                                            <option key={item.id || item.slug} value={item.id || item.slug}>
-                                                {item.name}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </label>
+                                        <span>
+                                            <span className="block">{selectedCategory?.name || "Select category"}</span>
+                                            <span className="mt-0.5 block text-[10px] font-semibold text-slate-400">Browse departments and subcategories</span>
+                                        </span>
+                                        <span aria-hidden="true">→</span>
+                                    </button>
+                                </div>
 
                                 <label className="block">
                                     <span className="mb-2 block text-sm font-black text-slate-700">
@@ -564,25 +589,23 @@ function EditAdForm({ id }: { id: string }) {
                                 />
                             </label>
 
-                            <label className="block">
+                            <div>
                                 <span className="mb-2 block text-sm font-black text-slate-700">
-                                    City
+                                    Region and city
                                 </span>
 
-                                <select
-                                    value={city}
-                                    onChange={(event) => setCity(event.target.value)}
-                                    className="w-full rounded-2xl bg-slate-50 px-4 py-3 text-sm font-bold text-slate-900 outline-none ring-1 ring-slate-100 focus:bg-white focus:ring-orange-200"
+                                <button
+                                    type="button"
+                                    onClick={() => setLocationModalOpen(true)}
+                                    className="flex min-h-12 w-full items-center justify-between gap-3 rounded-2xl bg-slate-50 px-4 py-3 text-left text-sm font-bold text-slate-900 ring-1 ring-slate-100 transition hover:bg-orange-50 hover:text-orange-600"
                                 >
-                                    <option value="">Select city</option>
-                                    {cities.map((item: any) => (
-                                        <option key={item.id || item.slug} value={item.id || item.slug}>
-                                            {item.name}
-                                            {item.region_name ? `, ${item.region_name}` : ""}
-                                        </option>
-                                    ))}
-                                </select>
-                            </label>
+                                    <span>
+                                        <span className="block">{selectedCity?.name || "Select city"}</span>
+                                        <span className="mt-0.5 block text-[10px] font-semibold text-slate-400">{selectedCity?.region_name || "Browse Uganda’s regions"}</span>
+                                    </span>
+                                    <span aria-hidden="true">→</span>
+                                </button>
+                            </div>
 
                             <label className="block">
                                 <span className="mb-2 block text-sm font-black text-slate-700">
@@ -718,6 +741,26 @@ function EditAdForm({ id }: { id: string }) {
                     </div>
                 </div>
             </form>
+
+            <CategoryPickerModal
+                open={categoryModalOpen}
+                onClose={() => setCategoryModalOpen(false)}
+                categories={categories}
+                selectedValue={category}
+                search={categorySearch}
+                setSearch={setCategorySearch}
+                onSelect={setCategory}
+            />
+
+            <LocationPickerModal
+                open={locationModalOpen}
+                onClose={() => setLocationModalOpen(false)}
+                cities={cities}
+                selectedValue={city}
+                search={locationSearch}
+                setSearch={setLocationSearch}
+                onSelect={setCity}
+            />
         </section>
     );
 }

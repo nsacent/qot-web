@@ -3,7 +3,10 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useRouter, useSearchParams } from "next/navigation";
-import { apiGet } from "@/lib/api";
+import {
+    CategoryPickerModal,
+    LocationPickerModal,
+} from "@/components/listings/MarketplacePickerModals";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
     faChevronDown,
@@ -1000,8 +1003,37 @@ export default function ListingFilters({
                 </div>
             </form>
 
-            <PickerModal
+            <CategoryPickerModal
                 open={categoryModalOpen}
+                onClose={() => setCategoryModalOpen(false)}
+                categories={categories}
+                valueMode="slug"
+                selectedValue={category}
+                search={categorySearch}
+                setSearch={setCategorySearch}
+                onSelect={selectCategory}
+                onSelectAll={() => selectCategory("")}
+            />
+
+            <LocationPickerModal
+                open={locationModalOpen}
+                onClose={() => setLocationModalOpen(false)}
+                cities={cities}
+                valueMode="slug"
+                selectedValue={city}
+                selectedRegionValue={region}
+                search={locationSearch}
+                setSearch={setLocationSearch}
+                onSelect={selectCity}
+                onSelectRegion={selectRegion}
+                onSelectAll={() => {
+                    selectRegion("");
+                    setCity("");
+                }}
+            />
+
+            <PickerModal
+                open={false}
                 title="Choose category"
                 subtitle="Select the category that best matches the ads you want to browse."
                 icon={faLayerGroup}
@@ -1179,7 +1211,7 @@ export default function ListingFilters({
             </PickerModal>
 
             <PickerModal
-                open={locationModalOpen}
+                open={false}
                 title="Choose location"
                 subtitle="Select a region first, then choose a city if needed."
                 icon={faLocationDot}

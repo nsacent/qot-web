@@ -1,24 +1,85 @@
+function firstErrorMessage(value: unknown): string {
+    if (typeof value === "string") {
+        return value.trim();
+    }
+
+    if (Array.isArray(value)) {
+        for (const item of value) {
+            const message = firstErrorMessage(item);
+
+            if (message) return message;
+        }
+
+        return "";
+    }
+
+    if (value && typeof value === "object") {
+        const record = value as Record<string, unknown>;
+        const preferredKeys = ["detail", "message", "error", "non_field_errors"];
+
+        for (const key of preferredKeys) {
+            const message = firstErrorMessage(record[key]);
+
+            if (message) return message;
+        }
+
+        for (const item of Object.values(record)) {
+            const message = firstErrorMessage(item);
+
+            if (message) return message;
+        }
+    }
+
+    return "";
+}
+
+function friendlyErrorMessage(response: Response, data: unknown) {
+    const serverMessage = firstErrorMessage(data);
+
+    if (/invalid login credentials|no active account/i.test(serverMessage)) {
+        return "The phone/email or password is incorrect.";
+    }
+
+    if (serverMessage) return serverMessage;
+
+    if (response.status === 429) {
+        return "Too many attempts. Please wait a moment and try again.";
+    }
+
+    if (response.status >= 500) {
+        return "The server is having trouble right now. Please try again shortly.";
+    }
+
+    return "We could not complete this request. Please check your details and try again.";
+}
+
 async function readResponse(response: Response) {
     const data = await response.json().catch(() => ({}));
 
     if (!response.ok) {
-        throw new Error(
-            data?.detail || data?.message || data?.error || "Request failed."
-        );
+        throw new Error(friendlyErrorMessage(response, data));
     }
 
     return data;
 }
 
 export async function sessionPost(path: string, body?: any) {
-    const response = await fetch(`/api/auth${path}`, {
-        method: "POST",
-        credentials: "include",
-        headers: {
-            "Content-Type": "application/json",
-        },
-        body: body ? JSON.stringify(body) : undefined,
-    });
+    let response: Response;
+
+    try {
+        response = await fetch(`/api/auth${path}`, {
+            method: "POST",
+            credentials: "include",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: body ? JSON.stringify(body) : undefined,
+        });
+    } catch {
+        throw new Error(
+            "We could not connect to QOT. Check your internet connection and try again."
+        );
+    }
 
     return readResponse(response);
 }
@@ -66,6 +127,7 @@ export async function registerUser(body: {
     email: string;
     full_name: string;
     password: string;
+    password_confirm: string;
 }) {
     return sessionPost("/register", body);
 }

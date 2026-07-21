@@ -14,6 +14,18 @@ import {
 } from "@/lib/faIcons";
 import { getCurrentUser, registerUser } from "@/lib/sessionClient";
 import QotLoader from "@/components/common/QotLoader";
+import GoogleSignInButton from "@/components/auth/GoogleSignInButton";
+
+function getUgandanNationalNumber(value: string) {
+    const digits = value.replace(/\D/g, "");
+    const nationalNumber = digits.startsWith("256")
+        ? digits.slice(3)
+        : digits.startsWith("0")
+            ? digits.slice(1)
+            : digits;
+
+    return nationalNumber.slice(0, 9);
+}
 
 function RegisterForm() {
     const searchParams = useSearchParams();
@@ -64,12 +76,19 @@ function RegisterForm() {
             return;
         }
 
+        if (!/^7\d{8}$/.test(phone)) {
+            setError("Enter a valid Ugandan mobile number, such as +256 700 000 001.");
+            setLoading(false);
+            return;
+        }
+
         try {
             await registerUser({
                 full_name: fullName.trim(),
-                phone: phone.trim(),
+                phone: `+256${phone}`,
                 email: email.trim(),
                 password,
+                password_confirm: confirmPassword,
             });
 
             try {
@@ -181,12 +200,32 @@ function RegisterForm() {
                         </p>
 
                         {error && (
-                            <div className="mt-5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
+                            <div
+                                role="alert"
+                                aria-live="polite"
+                                className="mt-5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700"
+                            >
                                 {error}
                             </div>
                         )}
 
-                        <form onSubmit={handleRegister} className="mt-7 space-y-4">
+                        <div className="mt-6">
+                            <GoogleSignInButton
+                                keepSignedIn={false}
+                                nextUrl={nextUrl}
+                                mode="sign-up"
+                            />
+                        </div>
+
+                        <div className="my-6 flex items-center gap-4">
+                            <span className="h-px flex-1 bg-slate-200" />
+                            <span className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">
+                                Or register with your details
+                            </span>
+                            <span className="h-px flex-1 bg-slate-200" />
+                        </div>
+
+                        <form onSubmit={handleRegister} className="space-y-4">
                             <label className="block">
                                 <span className="mb-2 block text-sm font-black text-slate-700">
                                     Full name
@@ -214,21 +253,40 @@ function RegisterForm() {
                                     Phone number
                                 </span>
 
-                                <div className="flex items-center gap-3 rounded-2xl bg-slate-50 px-4 py-3 ring-1 ring-slate-100 focus-within:bg-white focus-within:ring-orange-200">
+                                <div className="flex items-center rounded-2xl bg-slate-50 px-4 py-3 ring-1 ring-slate-100 focus-within:bg-white focus-within:ring-orange-200">
                                     <FontAwesomeIcon
                                         icon={faMobileScreen}
-                                        className="h-4 w-4 text-slate-400"
+                                        className="mr-3 h-4 w-4 text-slate-400"
                                     />
+
+                                    <span className="border-r border-slate-200 pr-3 text-sm font-black text-slate-700">
+                                        +256
+                                    </span>
 
                                     <input
                                         type="tel"
+                                        inputMode="numeric"
+                                        autoComplete="tel-national"
                                         value={phone}
-                                        onChange={(event) => setPhone(event.target.value)}
-                                        placeholder="+256700000001"
+                                        onChange={(event) => {
+                                            setPhone(getUgandanNationalNumber(event.target.value));
+                                            setError("");
+                                        }}
+                                        placeholder="700 000 001"
+                                        pattern="[0-9]{9}"
+                                        maxLength={16}
                                         required
-                                        className="w-full bg-transparent text-sm font-bold text-slate-900 outline-none placeholder:text-slate-400"
+                                        aria-describedby="phone-help"
+                                        className="w-full bg-transparent pl-3 text-sm font-bold text-slate-900 outline-none placeholder:text-slate-400"
                                     />
                                 </div>
+
+                                <span
+                                    id="phone-help"
+                                    className="mt-2 block text-xs font-semibold text-slate-400"
+                                >
+                                    Enter the 9 mobile digits after Uganda’s +256 country code.
+                                </span>
                             </label>
 
                             <label className="block">

@@ -21,7 +21,7 @@ type GoogleIdentityApi = {
             type: "standard";
             theme: "outline";
             size: "large";
-            text: "continue_with";
+            text: "continue_with" | "signup_with";
             shape: "pill";
             logo_alignment: "left";
             width: number;
@@ -42,6 +42,7 @@ declare global {
 type GoogleSignInButtonProps = {
     keepSignedIn: boolean;
     nextUrl: string;
+    mode?: "sign-in" | "sign-up";
 };
 
 function asRecord(value: unknown): Record<string, unknown> | null {
@@ -65,6 +66,7 @@ function getErrorMessage(error: unknown) {
 export default function GoogleSignInButton({
     keepSignedIn,
     nextUrl,
+    mode = "sign-in",
 }: GoogleSignInButtonProps) {
     const clientId = process.env.NEXT_PUBLIC_GOOGLE_OAUTH_CLIENT_ID || "";
     const buttonRef = useRef<HTMLDivElement>(null);
@@ -140,14 +142,14 @@ export default function GoogleSignInButton({
             type: "standard",
             theme: "outline",
             size: "large",
-            text: "continue_with",
+            text: mode === "sign-up" ? "signup_with" : "continue_with",
             shape: "pill",
             logo_alignment: "left",
             width: 320,
         });
 
         setReady(true);
-    }, [clientId, handleCredential]);
+    }, [clientId, handleCredential, mode]);
 
     if (!clientId) {
         return (
@@ -171,7 +173,10 @@ export default function GoogleSignInButton({
             />
 
             <div className="relative flex min-h-11 justify-center">
-                <div ref={buttonRef} aria-label="Continue with Google" />
+                <div
+                    ref={buttonRef}
+                    aria-label={mode === "sign-up" ? "Sign up with Google" : "Continue with Google"}
+                />
 
                 {!ready && !error && (
                     <div className="absolute inset-0 animate-pulse rounded-full bg-slate-100" />
@@ -179,7 +184,7 @@ export default function GoogleSignInButton({
 
                 {loading && (
                     <div className="absolute inset-0 flex items-center justify-center rounded-full bg-white/95 text-sm font-black text-slate-700 ring-1 ring-slate-200">
-                        Signing you in...
+                        {mode === "sign-up" ? "Creating your account..." : "Signing you in..."}
                     </div>
                 )}
             </div>

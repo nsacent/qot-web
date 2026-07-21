@@ -182,30 +182,14 @@ async function handleAuthRequest(
         const keepSignedIn =
             payload.keep_signed_in === true || payload.keepSignedIn === true;
 
-        const loginAttempts = identifier.includes("@")
-            ? [
-                { email: identifier, password, keep_signed_in: keepSignedIn },
-                { identifier, password, keep_signed_in: keepSignedIn },
-                { phone: identifier, password, keep_signed_in: keepSignedIn },
-            ]
-            : [
-                { phone: identifier, password, keep_signed_in: keepSignedIn },
-                { identifier, password, keep_signed_in: keepSignedIn },
-                { email: identifier, password, keep_signed_in: keepSignedIn },
-            ];
-
-        let result: any = null;
-
-        for (const loginBody of loginAttempts) {
-            result = await backendJson("/auth/login/", {
-                method: "POST",
-                body: JSON.stringify(loginBody),
-            });
-
-            if (result.ok) {
-                break;
-            }
-        }
+        const result = await backendJson("/auth/login/", {
+            method: "POST",
+            body: JSON.stringify({
+                identifier,
+                password,
+                keep_signed_in: keepSignedIn,
+            }),
+        });
 
         if (!result?.ok) {
             return json(result?.data || { detail: "Login failed." }, result?.status || 400);
