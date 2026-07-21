@@ -65,7 +65,9 @@ export default function LegalPageShell({
 }: LegalPageShellProps) {
     return (
         <main className="min-h-screen bg-[#f8fafc] text-slate-950">
-            <QotMarketplaceNav />
+            <div className="mx-auto max-w-[1500px] px-4 pt-4 sm:px-6">
+                <QotMarketplaceNav />
+            </div>
 
             <section className="border-b border-slate-200/80 bg-white">
                 <div className="mx-auto max-w-[1180px] px-4 py-12 sm:px-6 sm:py-16 lg:px-8 lg:py-20">

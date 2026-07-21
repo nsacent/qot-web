@@ -69,7 +69,7 @@ const trustItems = [
 
 export default function QotMarketplaceFooter() {
     return (
-        <footer className="mx-auto mt-10 max-w-[1500px] px-4 pb-4 sm:px-6 md:pb-8">
+        <footer className="mx-auto mt-10 hidden max-w-[1500px] px-4 pb-8 sm:px-6 md:block">
             <div className="relative overflow-hidden rounded-[36px] bg-slate-950 text-white shadow-[0_28px_80px_rgba(15,23,42,0.20)]">
                 <div className="absolute -right-24 -top-32 h-80 w-80 rounded-full bg-orange-500/15 blur-3xl" />
                 <div className="absolute -bottom-40 left-1/4 h-80 w-80 rounded-full bg-orange-400/8 blur-3xl" />
