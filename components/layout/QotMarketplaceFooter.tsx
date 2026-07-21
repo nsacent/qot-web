@@ -42,9 +42,9 @@ const footerGroups = [
         title: "Trust & support",
         links: [
             { label: "Safety center", href: "/safety/report" },
-            { label: "Verify account", href: "/account/verification" },
-            { label: "Account settings", href: "/account/settings" },
-            { label: "Login or register", href: "/login" },
+            { label: "Privacy Policy", href: "/privacy" },
+            { label: "Terms of Service", href: "/terms" },
+            { label: "Contact QOT", href: "mailto:info@qot.ug" },
         ],
     },
 ];
@@ -183,11 +183,19 @@ export default function QotMarketplaceFooter() {
                         ))}
                     </section>
 
-                    <div className="mt-6 flex flex-col justify-between gap-3 border-t border-white/10 px-2 pt-5 text-[11px] font-semibold text-slate-500 sm:flex-row sm:items-center sm:px-3">
+                    <div className="mt-6 flex flex-col justify-between gap-4 border-t border-white/10 px-2 pt-5 text-[11px] font-semibold text-slate-500 sm:flex-row sm:items-center sm:px-3">
                         <p>© {new Date().getFullYear()} QOT Uganda. All rights reserved.</p>
-                        <p className="font-black uppercase tracking-[0.16em] text-slate-400">
-                            Quality <span className="px-1.5 text-orange-500">•</span> Opportunities <span className="px-1.5 text-orange-500">•</span> Trust
-                        </p>
+                        <nav aria-label="Legal" className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                            <Link href="/privacy" className="font-black text-slate-400 transition hover:text-white">
+                                Privacy
+                            </Link>
+                            <Link href="/terms" className="font-black text-slate-400 transition hover:text-white">
+                                Terms
+                            </Link>
+                            <a href="tel:+256200911678" className="font-black text-slate-400 transition hover:text-white">
+                                0200 911 678
+                            </a>
+                        </nav>
                     </div>
                 </div>
             </div>

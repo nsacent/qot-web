@@ -199,6 +199,17 @@ function RegisterForm() {
                             Register with your phone number, email, and password.
                         </p>
 
+                        <p className="mt-3 text-xs font-semibold leading-5 text-slate-400">
+                            By creating an account, you agree to QOT Uganda&apos;s{" "}
+                            <a href="/terms" target="_blank" rel="noreferrer" className="font-black text-orange-600 hover:text-orange-700">
+                                Terms of Service
+                            </a>{" "}
+                            and acknowledge the{" "}
+                            <a href="/privacy" target="_blank" rel="noreferrer" className="font-black text-orange-600 hover:text-orange-700">
+                                Privacy Policy
+                            </a>.
+                        </p>
+
                         {error && (
                             <div
                                 role="alert"
