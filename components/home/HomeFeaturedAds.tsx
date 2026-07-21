@@ -141,7 +141,7 @@ export default function HomeFeaturedAds({ ads = [] }: HomeFeaturedAdsProps) {
                         key={getAdId(ad) || getAdTitle(ad)}
                         className="w-[210px] min-w-[210px] snap-start sm:w-[230px] sm:min-w-[230px] lg:w-[245px] lg:min-w-[245px]"
                     >
-                        <HomeAdCard ad={ad} favoriteIds={favoriteIds} />
+                        <HomeAdCard ad={ad} favoriteIds={favoriteIds} featured />
                     </div>
                 ))}
             </div>

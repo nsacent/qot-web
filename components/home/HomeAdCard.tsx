@@ -6,6 +6,7 @@ import ListingCardImage from "@/components/listings/ListingCardImage";
 type HomeAdCardProps = {
     ad: any;
     favoriteIds?: Set<string>;
+    featured?: boolean;
 };
 
 function formatPrice(value: any, currency = "UGX") {
@@ -62,6 +63,16 @@ function isVerifiedSeller(ad: any) {
         ad?.seller_is_verified ||
         ad?.is_seller_verified
     );
+}
+
+function isFeaturedAd(ad: any) {
+    if (ad?.is_featured === true || ad?.featured === true) return true;
+
+    if (!ad?.featured_until) return false;
+
+    const featuredUntil = new Date(ad.featured_until);
+
+    return !Number.isNaN(featuredUntil.getTime()) && featuredUntil.getTime() > Date.now();
 }
 
 function isGoodText(value: any) {
@@ -157,7 +168,7 @@ function formatDate(value: any) {
     return `${months[date.getUTCMonth()]} ${date.getUTCDate()}`;
 }
 
-export default function HomeAdCard({ ad, favoriteIds }: HomeAdCardProps) {
+export default function HomeAdCard({ ad, favoriteIds, featured }: HomeAdCardProps) {
     const id = getAdId(ad);
     const title = getAdTitle(ad);
     const category = getAdCategories(ad);
@@ -170,6 +181,7 @@ export default function HomeAdCard({ ad, favoriteIds }: HomeAdCardProps) {
         ad?.date_posted;
 
     const isFavorited = favoriteIds?.has(String(id)) === true;
+    const showFeatured = featured ?? isFeaturedAd(ad);
 
     return (
         <article className="group relative flex h-full flex-col overflow-hidden rounded-[20px] bg-white shadow-[0_8px_24px_rgba(15,23,42,0.08)] ring-1 ring-black/5 transition duration-300 hover:-translate-y-1 hover:shadow-[0_18px_38px_rgba(15,23,42,0.14)] hover:ring-orange-200">
@@ -185,6 +197,12 @@ export default function HomeAdCard({ ad, favoriteIds }: HomeAdCardProps) {
                     title={title}
                     className="h-full"
                 />
+
+                {showFeatured && (
+                    <span className="absolute left-3 top-3 z-20 rounded-lg bg-orange-500 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.08em] text-white shadow-[0_4px_12px_rgba(15,23,42,0.18)]">
+                        Featured
+                    </span>
+                )}
 
                 {id && (
                     <HomeAdFavoriteButton
@@ -234,7 +252,7 @@ export default function HomeAdCard({ ad, favoriteIds }: HomeAdCardProps) {
                     {title}
                 </h3>
 
-                <p className="mt-0.5 text-sm font-black tracking-[-0.02em] text-slate-950 sm:text-[15px]">
+                <p className="mt-0.5 text-sm font-black tracking-[-0.02em] text-orange-600 sm:text-[15px]">
                     {formatPrice(ad?.price, ad?.currency)}
                 </p>
 

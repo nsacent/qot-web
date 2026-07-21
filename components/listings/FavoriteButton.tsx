@@ -7,11 +7,13 @@ import {
     faHeart,
     faSpinner,
 } from "@fortawesome/free-solid-svg-icons";
+import { faHeartRegular } from "@/lib/faIcons";
 
 type FavoriteButtonProps = {
     listingId: number | string;
     small?: boolean;
     compact?: boolean;
+    overlay?: boolean;
     onChanged?: () => void;
 };
 
@@ -78,6 +80,7 @@ export default function FavoriteButton({
     listingId,
     small = false,
     compact = false,
+    overlay = false,
     onChanged,
 }: FavoriteButtonProps) {
     const [loading, setLoading] = useState(false);
@@ -199,7 +202,36 @@ export default function FavoriteButton({
                 ? "Saved"
                 : "Save Ad";
 
-    const icon = checking || loading ? faSpinner : saved ? faCheck : faHeart;
+    const icon = checking || loading
+        ? faSpinner
+        : saved
+            ? overlay
+                ? faHeart
+                : faCheck
+            : overlay
+                ? faHeartRegular
+                : faHeart;
+
+    if (overlay) {
+        return (
+            <button
+                type="button"
+                onClick={toggleFavorite}
+                disabled={loading || checking}
+                aria-label={saved ? "Remove from saved ads" : "Save ad"}
+                aria-pressed={saved}
+                className={`absolute right-3 top-3 z-20 flex h-9 w-9 items-center justify-center rounded-full backdrop-blur-[2px] transition hover:scale-105 disabled:cursor-not-allowed disabled:opacity-60 ${saved
+                        ? "bg-white text-orange-500 shadow-[0_5px_16px_rgba(15,23,42,0.18)] ring-1 ring-white"
+                        : "bg-slate-950/20 text-white shadow-[0_2px_8px_rgba(15,23,42,0.35)] ring-1 ring-white/40 hover:bg-white hover:text-orange-500"
+                    }`}
+            >
+                <FontAwesomeIcon
+                    icon={icon}
+                    className={`h-[18px] w-[18px] ${checking || loading ? "animate-spin" : ""}`}
+                />
+            </button>
+        );
+    }
 
     const sizeClass = small
         ? "h-10 rounded-xl px-3 text-xs"

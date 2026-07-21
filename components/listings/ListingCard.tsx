@@ -56,39 +56,43 @@ export default function ListingCard({ listing }: ListingCardProps) {
 
     return (
         <article className="group overflow-hidden rounded-2xl border bg-white shadow-sm transition hover:-translate-y-1 hover:border-orange-200 hover:shadow-md">
-            <a href={`/listings/${listing.id}`} className="block">
-                <div className="relative flex h-52 items-center justify-center bg-slate-200 text-slate-500">
-                    {image ? (
-                        <img
-                            src={image}
-                            alt={listing.title || "Listing image"}
-                            className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
-                        />
-                    ) : (
-                        <span>No image</span>
-                    )}
-
-                    <div className="absolute left-3 top-3 flex flex-wrap gap-2">
-                        {isFeatured && (
-                            <span className="rounded-full bg-orange-500 px-3 py-1 text-xs font-bold text-white shadow-sm">
-                                Featured
-                            </span>
+            <div className="relative">
+                <a href={`/listings/${listing.id}`} className="block">
+                    <div className="relative flex h-52 items-center justify-center bg-slate-200 text-slate-500">
+                        {image ? (
+                            <img
+                                src={image}
+                                alt={listing.title || "Listing image"}
+                                className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+                            />
+                        ) : (
+                            <span>No image</span>
                         )}
 
-                        {isVerifiedSeller && (
-                            <span className="rounded-full bg-green-600 px-3 py-1 text-xs font-bold text-white shadow-sm">
-                                Verified
+                        <div className="absolute left-3 top-3 flex flex-wrap gap-2">
+                            {isFeatured && (
+                                <span className="rounded-lg bg-orange-500 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.08em] text-white shadow-sm">
+                                    Featured
+                                </span>
+                            )}
+
+                            {isVerifiedSeller && (
+                                <span className="rounded-full bg-green-600 px-3 py-1 text-xs font-bold text-white shadow-sm">
+                                    Verified
+                                </span>
+                            )}
+                        </div>
+
+                        {listing.status && listing.status !== "active" && (
+                            <span className="absolute bottom-3 left-3 rounded-full bg-slate-900/80 px-3 py-1 text-xs font-bold uppercase text-white">
+                                {listing.status}
                             </span>
                         )}
                     </div>
+                </a>
 
-                    {listing.status && listing.status !== "active" && (
-                        <span className="absolute bottom-3 left-3 rounded-full bg-slate-900/80 px-3 py-1 text-xs font-bold uppercase text-white">
-                            {listing.status}
-                        </span>
-                    )}
-                </div>
-            </a>
+                <FavoriteButton listingId={listing.id} overlay />
+            </div>
 
             <div className="p-5">
                 <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-orange-600">
@@ -130,15 +134,13 @@ export default function ListingCard({ listing }: ListingCardProps) {
                     {listing.created_at && <span>{formatDate(listing.created_at)}</span>}
                 </div>
 
-                <div className="mt-5 flex items-center justify-between gap-3">
+                <div className="mt-5">
                     <a
                         href={`/listings/${listing.id}`}
                         className="text-sm font-semibold text-slate-900 hover:text-orange-600"
                     >
                         View details →
                     </a>
-
-                    <FavoriteButton listingId={listing.id} small />
                 </div>
             </div>
         </article>
