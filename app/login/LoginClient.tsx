@@ -7,6 +7,7 @@ import { faEnvelope, faLock, faShieldHalved, faStore, faTag } from "@/lib/faIcon
 import { getCurrentUser, loginUser } from "@/lib/sessionClient";
 import QotLoader from "@/components/common/QotLoader";
 import GoogleSignInButton from "@/components/auth/GoogleSignInButton";
+import QotLogo from "@/components/brand/QotLogo";
 
 function LoginForm() {
     const searchParams = useSearchParams();
@@ -80,14 +81,8 @@ function LoginForm() {
                         <div className="absolute -bottom-24 -left-20 h-64 w-64 rounded-full bg-white/10" />
 
                         <div className="relative">
-                            <a href="/" className="inline-flex items-center gap-3">
-                                <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-2xl font-black text-orange-600 shadow-sm">
-                                    Q
-                                </span>
-
-                                <span className="text-3xl font-black tracking-tight text-white">
-                                    QOT
-                                </span>
+                            <a href="/" aria-label="QOT Uganda home" className="inline-flex items-center">
+                                <QotLogo className="h-14 w-auto text-white" />
                             </a>
 
                             <h1 className="mt-10 text-4xl font-black leading-tight">
@@ -143,11 +138,8 @@ function LoginForm() {
 
                     <section className="p-6 sm:p-10">
                         <div className="mb-8 md:hidden">
-                            <a href="/" className="inline-flex items-center gap-2">
-                                <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-orange-500 text-lg font-black text-white">
-                                    Q
-                                </span>
-                                <span className="text-2xl font-black text-slate-950">QOT</span>
+                            <a href="/" aria-label="QOT Uganda home" className="inline-flex items-center">
+                                <QotLogo className="h-11 w-auto text-orange-500" />
                             </a>
                         </div>
 

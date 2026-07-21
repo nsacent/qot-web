@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
+import QotLogo from "@/components/brand/QotLogo";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
     faArrowUpRightFromSquare,
@@ -200,13 +201,11 @@ export default function AdminShell({ children }: AdminShellProps) {
     const sidebar = (
         <div className="flex h-full flex-col">
             <div className="flex items-center justify-between gap-3 px-2">
-                <a href="/admin" className="flex min-w-0 items-center gap-3">
-                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-orange-500 text-lg font-black text-white shadow-lg shadow-orange-950/30">
-                        Q
-                    </span>
+                <a href="/admin" aria-label="QOT Admin home" className="flex min-w-0 items-center gap-3">
+                    <QotLogo markOnly className="h-11 w-11 shrink-0 text-orange-500" />
                     <span className="min-w-0">
                         <span className="block truncate text-lg font-black tracking-tight text-white">
-                            QOT Admin
+                            Admin
                         </span>
                         <span className="block text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">
                             Control centre

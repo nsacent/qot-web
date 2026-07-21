@@ -1,4 +1,5 @@
 import Link from "next/link";
+import QotLogo from "@/components/brand/QotLogo";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
     faCircleCheck,
@@ -114,12 +115,9 @@ export default function QotMarketplaceFooter() {
 
                     <div className="grid gap-9 px-2 pb-3 pt-9 sm:px-3 lg:grid-cols-[1.35fr_repeat(4,minmax(0,0.72fr))] lg:gap-8 lg:pt-11">
                         <div className="lg:pr-6">
-                            <Link href="/" className="inline-flex items-center gap-3">
-                                <span className="flex h-14 w-14 items-center justify-center rounded-[18px] bg-gradient-to-br from-orange-500 to-orange-600 text-xl font-black text-white shadow-[0_12px_28px_rgba(249,115,22,0.26)]">
-                                    Q
-                                </span>
+                            <Link href="/" aria-label="QOT Uganda home" className="inline-flex items-center">
                                 <span>
-                                    <span className="block text-3xl font-black tracking-[-0.05em] text-white">QOT</span>
+                                    <QotLogo className="h-12 w-auto text-orange-400" />
                                     <span className="block text-[9px] font-black uppercase tracking-[0.18em] text-orange-300">
                                         Uganda marketplace
                                     </span>

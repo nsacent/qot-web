@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import QotLogo from "@/components/brand/QotLogo";
 import UserProfileTab from "@/components/layout/UserProfileTab";
 import {
     CategoryPickerModal,
@@ -589,14 +590,9 @@ export default function QotMarketplaceNav({
         <>
             <header className="sticky top-3 z-40 mb-4 rounded-[24px] border border-white/80 bg-white/95 px-3 py-2.5 shadow-[0_14px_40px_rgba(15,23,42,0.09)] backdrop-blur-xl md:px-4">
                 <div className="flex items-center gap-2 lg:gap-3">
-                    <a href="/" className="flex shrink-0 items-center gap-2">
-                        <span className="flex h-10 w-10 items-center justify-center rounded-[14px] bg-gradient-to-br from-orange-500 to-orange-600 text-lg font-black text-white shadow-[0_8px_20px_rgba(249,115,22,0.25)] md:h-11 md:w-11">
-                            Q
-                        </span>
-
-                        <span className="hidden text-xl font-black tracking-[-0.04em] text-slate-950 sm:inline xl:text-2xl">
-                            QOT
-                        </span>
+                    <a href="/" aria-label="QOT Uganda home" className="flex shrink-0 items-center">
+                        <QotLogo markOnly className="h-10 w-10 text-orange-500 sm:hidden md:h-11 md:w-11" />
+                        <QotLogo className="hidden h-9 w-auto text-orange-500 sm:block xl:h-10" />
                     </a>
 
                     <form
