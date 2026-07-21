@@ -93,14 +93,11 @@ export default function HomeAdFavoriteButton({
             disabled={loading}
             aria-label={favorited ? "Remove from saved ads" : "Save ad"}
             aria-pressed={favorited}
-            className={`absolute right-3 top-3 z-20 flex h-9 w-9 items-center justify-center rounded-full backdrop-blur-[2px] transition hover:scale-105 disabled:cursor-not-allowed disabled:opacity-60 ${favorited
-                    ? "bg-white text-orange-500 shadow-[0_5px_16px_rgba(15,23,42,0.18)] ring-1 ring-white"
-                    : "bg-slate-950/20 text-white shadow-[0_2px_8px_rgba(15,23,42,0.35)] ring-1 ring-white/40 hover:bg-white hover:text-orange-500"
-                }`}
+            className={`absolute right-3 top-3 z-20 flex h-9 w-9 items-center justify-center bg-transparent transition hover:scale-110 hover:text-orange-500 disabled:cursor-not-allowed disabled:opacity-60 ${favorited ? "text-orange-500" : "text-white"}`}
         >
             <FontAwesomeIcon
                 icon={favorited ? faHeart : faHeartRegular}
-                className="h-[18px] w-[18px]"
+                className="h-5 w-5"
             />
         </button>
     );
