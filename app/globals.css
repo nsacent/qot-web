@@ -41,3 +41,15 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/*
+ * Compact desktop density for lower-resolution laptops. Using the root font
+ * size keeps spacing, type, controls, and cards proportional while leaving
+ * touch-first phones/tablets and larger desktop displays unchanged.
+ */
+@media (min-width: 1024px) and (max-width: 1366px) and (hover: hover) and (pointer: fine),
+  (min-width: 1024px) and (max-width: 1600px) and (max-height: 800px) and (hover: hover) and (pointer: fine) {
+  html {
+    font-size: 87.5%;
+  }
+}
