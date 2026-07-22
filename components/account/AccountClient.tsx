@@ -117,12 +117,12 @@ export default function AccountClient() {
         },
         {
             label: "My Reviews",
-            href: "/my-reviews",
+            href: "/account/my-reviews",
             description: "Reviews you submitted",
         },
         {
             label: "Recently Viewed",
-            href: "/recently-viewed",
+            href: "/account/recently-viewed",
             description: "Adverts opened recently",
         },
 

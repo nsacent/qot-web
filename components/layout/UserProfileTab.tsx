@@ -73,13 +73,13 @@ const accountLinks = [
         icon: faGear,
     },
     {
-        href: "/recently-viewed",
+        href: "/account/recently-viewed",
         label: "Recently Viewed",
         description: "Browsing history",
         icon: faClock,
     },
     {
-        href: "/reset-password",
+        href: "/account/reset-password",
         label: "Reset Password",
         description: "Secure your account",
         icon: faLock,

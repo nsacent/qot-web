@@ -161,7 +161,7 @@ function buildReviewItems(reviews: any[]): ActivityItem[] {
                 review?.comment ||
                 review?.body ||
                 `You submitted a ${rating} seller review.`,
-            href: listingId ? `/ads/${listingId}` : "/my-reviews",
+            href: listingId ? `/ads/${listingId}` : "/account/my-reviews",
             date: safeDate(review?.created_at || review?.created || review?.updated_at),
             badge: rating,
         };
@@ -526,14 +526,14 @@ export default function ActivityHistoryClient() {
                             </a>
 
                             <a
-                                href="/recently-viewed"
+                                href="/account/recently-viewed"
                                 className="rounded-xl border px-5 py-3 text-center font-semibold hover:bg-slate-50"
                             >
                                 Recently Viewed
                             </a>
 
                             <a
-                                href="/my-reviews"
+                                href="/account/my-reviews"
                                 className="rounded-xl border px-5 py-3 text-center font-semibold hover:bg-slate-50"
                             >
                                 My Reviews

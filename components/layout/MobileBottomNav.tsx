@@ -17,6 +17,7 @@ const FOCUSED_ROUTES = [
     "/register",
     "/forgot-password",
     "/reset-password",
+    "/account/reset-password",
     "/verification",
 ];
 
