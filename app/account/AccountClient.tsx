@@ -4,10 +4,13 @@ import { Suspense, useEffect, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
     faCircleCheck,
+    faClock,
     faEnvelope,
+    faLock,
     faMobileScreen,
     faRightFromBracket,
     faShieldHalved,
+    faStar,
 } from "@/lib/faIcons";
 import QotLoader from "@/components/common/QotLoader";
 import SellerDashboardClient from "@/components/dashboard/SellerDashboardClient";
@@ -104,11 +107,32 @@ function AccountForm() {
         { id: "settings" as const, label: "Account Settings" },
     ];
 
+    const accountToolLinks = [
+        {
+            href: "/account/recently-viewed",
+            label: "Recently Viewed",
+            description: "Ads you opened recently",
+            icon: faClock,
+        },
+        {
+            href: "/account/my-reviews",
+            label: "My Reviews",
+            description: "Reviews you submitted",
+            icon: faStar,
+        },
+        {
+            href: "/account/reset-password",
+            label: "Reset Password",
+            description: "Secure your account",
+            icon: faLock,
+        },
+    ];
+
     return (
         <section className="text-slate-950">
             <div className="mx-auto max-w-[1500px]">
                 <div className="mx-auto grid max-w-[1400px] items-start gap-6 lg:grid-cols-[300px_minmax(0,1fr)]">
-                    <aside className="flex min-h-[560px] flex-col rounded-[34px] bg-white p-6 shadow-[0_18px_60px_rgba(15,23,42,0.10)] ring-1 ring-black/5 sm:min-h-[620px] lg:sticky lg:top-6 lg:min-h-[calc(100vh-160px)]">
+                    <aside className="flex min-h-[560px] flex-col rounded-[34px] bg-white p-6 shadow-[0_18px_60px_rgba(15,23,42,0.10)] ring-1 ring-black/5 sm:min-h-[620px] lg:sticky lg:top-6 lg:max-h-[calc(100vh-3rem)] lg:min-h-[calc(100vh-160px)] lg:overflow-hidden">
                         <div className="flex items-center gap-4">
                             <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-[28px] bg-orange-500 text-3xl font-black text-white shadow-[0_18px_40px_rgba(249,115,22,0.25)]">
                                 {user?.profile?.avatar ? (
@@ -206,32 +230,62 @@ function AccountForm() {
                             </div>
                         </div>
 
-                        <div className="mt-6 flex flex-1 flex-col">
-                            <div className="grid gap-2">
-                                {accountTabs.map((tab) => {
-                                    const active = activeTab === tab.id;
+                        <div className="mt-6 flex min-h-0 flex-1 flex-col">
+                            <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+                                <div className="grid gap-2">
+                                    {accountTabs.map((tab) => {
+                                        const active = activeTab === tab.id;
 
-                                    return (
-                                        <button
-                                            key={tab.id}
-                                            type="button"
-                                            onClick={() => setActiveTab(tab.id)}
-                                            className={`rounded-2xl px-4 py-3 text-left text-sm font-black transition ${active
-                                                ? "bg-orange-500 text-white shadow-[0_10px_24px_rgba(249,115,22,0.22)]"
-                                                : "bg-slate-50 text-slate-700 hover:bg-orange-50 hover:text-orange-600"
-                                            }`}
-                                        >
-                                            {tab.label}
-                                        </button>
-                                    );
-                                })}
+                                        return (
+                                            <button
+                                                key={tab.id}
+                                                type="button"
+                                                onClick={() => setActiveTab(tab.id)}
+                                                className={`rounded-2xl px-4 py-3 text-left text-sm font-black transition ${active
+                                                    ? "bg-orange-500 text-white shadow-[0_10px_24px_rgba(249,115,22,0.22)]"
+                                                    : "bg-slate-50 text-slate-700 hover:bg-orange-50 hover:text-orange-600"
+                                                }`}
+                                            >
+                                                {tab.label}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
 
+                                <div className="mt-5 border-t border-slate-100 pt-5">
+                                    <p className="px-1 text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">
+                                        More account tools
+                                    </p>
+
+                                    <div className="mt-3 grid gap-2">
+                                        {accountToolLinks.map((item) => (
+                                            <a
+                                                key={item.href}
+                                                href={item.href}
+                                                className="group flex items-center gap-3 rounded-2xl bg-slate-50 px-3 py-3 transition hover:bg-orange-50"
+                                            >
+                                                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-slate-500 ring-1 ring-slate-200 transition group-hover:text-orange-600 group-hover:ring-orange-200">
+                                                    <FontAwesomeIcon icon={item.icon} className="h-4 w-4" />
+                                                </span>
+
+                                                <span className="min-w-0">
+                                                    <span className="block text-sm font-black text-slate-800 transition group-hover:text-orange-600">
+                                                        {item.label}
+                                                    </span>
+                                                    <span className="block truncate text-[11px] font-semibold text-slate-500">
+                                                        {item.description}
+                                                    </span>
+                                                </span>
+                                            </a>
+                                        ))}
+                                    </div>
+                                </div>
                             </div>
 
                             <button
                                 type="button"
                                 onClick={handleLogout}
-                                className="mt-auto flex items-center justify-center gap-2 rounded-2xl bg-red-50 px-4 py-3 text-sm font-black text-red-600 hover:bg-red-100"
+                                className="mt-5 flex items-center justify-center gap-2 rounded-2xl bg-red-50 px-4 py-3 text-sm font-black text-red-600 hover:bg-red-100"
                             >
                                 <FontAwesomeIcon icon={faRightFromBracket} className="h-4 w-4" />
                                 Logout
