@@ -10,7 +10,7 @@ export default function ListingImageGallery({ listing }: ListingImageGalleryProp
     return (
         <ListingImageCarousel
             listing={listing}
-            title={listing?.title || "Listing image"}
+            title={listing?.title || "Ad image"}
         />
     );
 }

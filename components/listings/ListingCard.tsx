@@ -57,12 +57,12 @@ export default function ListingCard({ listing }: ListingCardProps) {
     return (
         <article className="group overflow-hidden rounded-2xl border bg-white shadow-sm transition hover:-translate-y-1 hover:border-orange-200 hover:shadow-md">
             <div className="relative">
-                <a href={`/listings/${listing.id}`} className="block">
+                <a href={`/ads/${listing.id}`} className="block">
                     <div className="relative flex h-52 items-center justify-center bg-slate-200 text-slate-500">
                         {image ? (
                             <img
                                 src={image}
-                                alt={listing.title || "Listing image"}
+                                alt={listing.title || "Ad image"}
                                 className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
                             />
                         ) : (
@@ -96,12 +96,12 @@ export default function ListingCard({ listing }: ListingCardProps) {
 
             <div className="p-5">
                 <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-orange-600">
-                    {listing.category?.name || listing.category_name || "Listing"}
+                    {listing.category?.name || listing.category_name || "Ad"}
                 </p>
 
-                <a href={`/listings/${listing.id}`}>
+                <a href={`/ads/${listing.id}`}>
                     <h3 className="line-clamp-2 text-lg font-semibold text-slate-900 hover:text-orange-600">
-                        {listing.title || "Untitled listing"}
+                        {listing.title || "Untitled ad"}
                     </h3>
                 </a>
 
@@ -136,7 +136,7 @@ export default function ListingCard({ listing }: ListingCardProps) {
 
                 <div className="mt-5">
                     <a
-                        href={`/listings/${listing.id}`}
+                        href={`/ads/${listing.id}`}
                         className="text-sm font-semibold text-slate-900 hover:text-orange-600"
                     >
                         View details →

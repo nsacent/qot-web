@@ -1,11 +1,6 @@
-import AdminListingEditClient from "@/components/admin/AdminListingEditClient";
+import { permanentRedirect } from "next/navigation";
 
-export default async function AdminListingEditPage({
-    params,
-}: {
-    params: Promise<{ id: string }>;
-}) {
+export default async function LegacyAdminListingEditRedirect({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params;
-
-    return <AdminListingEditClient listingId={id} />;
+    permanentRedirect(`/admin/ads/${id}/edit`);
 }

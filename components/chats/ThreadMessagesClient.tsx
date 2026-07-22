@@ -281,7 +281,7 @@ export default function ThreadMessagesClient({
                 </div>
 
                 <a
-                    href={`/listings/${thread?.listing?.id || ""}`}
+                    href={`/ads/${thread?.listing?.id || ""}`}
                     className="flex min-w-0 items-center gap-3 rounded-[16px] bg-slate-50 p-2.5 pr-4 ring-1 ring-slate-100 transition hover:bg-orange-50"
                 >
                     <span className="h-10 w-12 shrink-0 overflow-hidden rounded-[12px] bg-white">

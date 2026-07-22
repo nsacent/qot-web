@@ -25,7 +25,7 @@ export default function MyListingCard({
                 {image ? (
                     <img
                         src={image}
-                        alt={listing.title || "Listing image"}
+                        alt={listing.title || "Ad image"}
                         className="h-full w-full object-cover"
                     />
                 ) : (
@@ -43,7 +43,7 @@ export default function MyListingCard({
                 </div>
 
                 <h3 className="line-clamp-2 text-lg font-semibold text-slate-900">
-                    {listing.title || "Untitled listing"}
+                    {listing.title || "Untitled ad"}
                 </h3>
 
                 <p className="mt-2 text-sm text-slate-500">
@@ -61,11 +61,11 @@ export default function MyListingCard({
                         href={`/my-ads/${listing.id}/edit`}
                         className="rounded-xl border px-4 py-2 text-center text-sm font-semibold hover:bg-slate-50"
                     >
-                        Edit Listing
+                        Edit Ad
                     </a>
 
                     <a
-                        href={`/listings/${listing.id}`}
+                        href={`/ads/${listing.id}`}
                         className="rounded-xl border px-4 py-2 text-center text-sm font-semibold hover:bg-slate-50"
                     >
                         View Public Page

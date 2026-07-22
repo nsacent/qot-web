@@ -11,22 +11,13 @@ import {
     faTriangleExclamation,
     faXmark,
 } from "@fortawesome/free-solid-svg-icons";
+import { REPORT_REASONS } from "@/lib/reportReasons";
 
 type ReportListingButtonProps = {
     listingId: string | number;
     listing?: any;
     compact?: boolean;
 };
-
-const reportReasons = [
-    { value: "scam", label: "Scam or fraud" },
-    { value: "fake", label: "Fake or misleading advert" },
-    { value: "wrong_price", label: "Wrong or misleading price" },
-    { value: "sold", label: "Item already sold" },
-    { value: "duplicate", label: "Duplicate advert" },
-    { value: "offensive", label: "Offensive content" },
-    { value: "other", label: "Other issue" },
-];
 
 async function checkIfOwner(listingId: string | number) {
     try {
@@ -157,7 +148,7 @@ export default function ReportListingButton({
             });
 
             if (response.status === 401) {
-                window.location.href = `/login?next=/listings/${listingId}`;
+                window.location.href = `/login?next=/ads/${listingId}`;
                 return;
             }
 
@@ -293,7 +284,7 @@ export default function ReportListingButton({
                                             onChange={(event) => setReason(event.target.value)}
                                             className="h-12 w-full rounded-[18px] border-0 bg-slate-50 px-4 text-sm font-bold text-slate-800 outline-none ring-1 ring-slate-100 focus:ring-2 focus:ring-red-200"
                                         >
-                                            {reportReasons.map((item) => (
+                                            {REPORT_REASONS.map((item) => (
                                                 <option key={item.value} value={item.value}>
                                                     {item.label}
                                                 </option>

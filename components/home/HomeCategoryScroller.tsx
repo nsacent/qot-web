@@ -204,7 +204,7 @@ export default function HomeCategoryScroller({
                     return (
                         <Link
                             key={slug || name}
-                            href={slug ? `/listings?category=${encodeURIComponent(String(slug))}` : "/categories"}
+                            href={slug ? `/ads?category=${encodeURIComponent(String(slug))}` : "/categories"}
                             className={`group relative min-h-[152px] min-w-[142px] snap-start overflow-hidden rounded-[23px] bg-gradient-to-br ${visual.panel} p-px transition duration-300 hover:-translate-y-1 hover:shadow-[0_18px_38px_rgba(15,23,42,0.12)] sm:min-w-[154px]`}
                         >
                             <span className={`absolute -right-8 -top-8 h-24 w-24 rounded-full ${visual.glow} blur-2xl transition duration-500 group-hover:scale-125`} />

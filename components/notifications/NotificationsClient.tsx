@@ -37,7 +37,7 @@ function getType(notification: any) {
 
 function getLink(notification: any) {
     if (notification?.chat_thread) return `/account/messages/${notification.chat_thread}`;
-    if (notification?.listing) return `/listings/${notification.listing}`;
+    if (notification?.listing) return `/ads/${notification.listing}`;
 
     return notification?.link || notification?.url || "";
 }

@@ -30,7 +30,7 @@ const preferenceItems = [
     {
         key: "verification",
         title: "Verification OTP",
-        description: "Receive email OTPs for account verification.",
+        description: "Receive phone OTPs for account verification.",
         icon: faShieldHalved,
         iconTone: "bg-violet-100 text-violet-600",
     },
@@ -43,14 +43,14 @@ const preferenceItems = [
     },
     {
         key: "listing_approvals",
-        title: "Listing Approvals",
+        title: "Ad Approvals",
         description: "Know when your advert has been approved.",
         icon: faCircleCheck,
         iconTone: "bg-green-100 text-green-600",
     },
     {
         key: "listing_rejections",
-        title: "Listing Rejections",
+        title: "Ad Rejections",
         description: "Know when your advert has been rejected and why.",
         icon: faBell,
         iconTone: "bg-red-100 text-red-600",

@@ -51,13 +51,13 @@ function getThreadId(data: any) {
 
 function getLoginNext(listingId: string | number) {
     if (typeof window === "undefined") {
-        return `/login?next=/listings/${listingId}`;
+        return `/login?next=/ads/${listingId}`;
     }
 
     const currentPath = `${window.location.pathname}${window.location.search}`;
 
     return `/login?next=${encodeURIComponent(
-        currentPath || `/listings/${listingId}`
+        currentPath || `/ads/${listingId}`
     )}`;
 }
 

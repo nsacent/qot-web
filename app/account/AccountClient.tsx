@@ -5,11 +5,9 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
     faCircleCheck,
     faEnvelope,
-    faGear,
     faMobileScreen,
     faRightFromBracket,
     faShieldHalved,
-    faUser,
 } from "@/lib/faIcons";
 import QotLoader from "@/components/common/QotLoader";
 import SellerDashboardClient from "@/components/dashboard/SellerDashboardClient";
@@ -18,10 +16,10 @@ import SellerRenewalsClient from "@/components/dashboard/SellerRenewalsClient";
 import SavedAdsClient from "@/app/account/saved/SavedAdsClient";
 import MyListingsClient from "@/app/my-ads/MyListingsClient";
 import NotificationPreferencesClient from "@/components/notifications/NotificationPreferencesClient";
+import ProfileSettingsClient from "@/components/account/ProfileSettingsClient";
 import {
     getCurrentUser,
     logoutUser,
-    updateCurrentUser,
 } from "@/lib/sessionClient";
 
 function getUserObject(data: any) {
@@ -33,16 +31,8 @@ function AccountForm() {
         "profile" | "dashboard" | "analytics" | "renewals" | "saved" | "ads" | "settings"
     >("profile");
     const [checkingSession, setCheckingSession] = useState(true);
-    const [saving, setSaving] = useState(false);
 
     const [user, setUser] = useState<any>(null);
-
-    const [fullName, setFullName] = useState("");
-    const [email, setEmail] = useState("");
-    const [phone, setPhone] = useState("");
-
-    const [message, setMessage] = useState("");
-    const [error, setError] = useState("");
 
     async function loadUser() {
         try {
@@ -50,9 +40,6 @@ function AccountForm() {
             const currentUser = getUserObject(data);
 
             setUser(currentUser);
-            setFullName(currentUser?.full_name || "");
-            setEmail(currentUser?.email || "");
-            setPhone(currentUser?.phone || "");
 
             localStorage.setItem("qot_user", JSON.stringify(currentUser));
             localStorage.removeItem("qot_access_token");
@@ -69,37 +56,19 @@ function AccountForm() {
         loadUser();
     }, []);
 
-    async function handleSave(event: React.FormEvent<HTMLFormElement>) {
-        event.preventDefault();
-
-        setSaving(true);
-        setError("");
-        setMessage("");
-
-        try {
-            await updateCurrentUser({
-                full_name: fullName.trim(),
-                phone: phone.trim(),
-            });
-
-            const freshData = await getCurrentUser();
-            const currentUser = getUserObject(freshData);
-
-            setUser(currentUser);
-            setFullName(currentUser?.full_name || "");
-            setEmail(currentUser?.email || "");
-            setPhone(currentUser?.phone || "");
-
-            localStorage.setItem("qot_user", JSON.stringify(currentUser));
-            window.dispatchEvent(new Event("storage"));
-
-            setMessage("Profile updated successfully.");
-        } catch (err: any) {
-            setError(err.message || "Failed to update profile.");
-        } finally {
-            setSaving(false);
+    useEffect(() => {
+        function refreshLocalUser() {
+            try {
+                const localUser = JSON.parse(localStorage.getItem("qot_user") || "null");
+                if (localUser) setUser(localUser);
+            } catch {
+                // Ignore malformed legacy local data.
+            }
         }
-    }
+
+        window.addEventListener("storage", refreshLocalUser);
+        return () => window.removeEventListener("storage", refreshLocalUser);
+    }, []);
 
     async function handleLogout() {
         try {
@@ -120,10 +89,10 @@ function AccountForm() {
         return <QotLoader />;
     }
 
-    const isVerified =
-        user?.is_verified === true ||
-        user?.email_verified === true ||
-        user?.is_email_verified === true;
+    const isPhoneVerified =
+        user?.phone_verified === true || Boolean(user?.phone_verified_at);
+    const isEmailVerified =
+        user?.email_verified === true || Boolean(user?.email_verified_at);
 
     const accountTabs = [
         { id: "profile" as const, label: "Profile Details" },
@@ -141,10 +110,14 @@ function AccountForm() {
                 <div className="mx-auto grid max-w-[1400px] items-start gap-6 lg:grid-cols-[300px_minmax(0,1fr)]">
                     <aside className="flex min-h-[560px] flex-col rounded-[34px] bg-white p-6 shadow-[0_18px_60px_rgba(15,23,42,0.10)] ring-1 ring-black/5 sm:min-h-[620px] lg:sticky lg:top-6 lg:min-h-[calc(100vh-160px)]">
                         <div className="flex items-center gap-4">
-                            <div className="flex h-20 w-20 items-center justify-center rounded-[28px] bg-orange-500 text-3xl font-black text-white shadow-[0_18px_40px_rgba(249,115,22,0.25)]">
-                                {(user?.full_name || user?.email || user?.phone || "Q")
-                                    .charAt(0)
-                                    .toUpperCase()}
+                            <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-[28px] bg-orange-500 text-3xl font-black text-white shadow-[0_18px_40px_rgba(249,115,22,0.25)]">
+                                {user?.profile?.avatar ? (
+                                    <img src={user.profile.avatar} alt="Profile" className="h-full w-full object-cover" />
+                                ) : (
+                                    (user?.full_name || user?.email || user?.phone || "Q")
+                                        .charAt(0)
+                                        .toUpperCase()
+                                )}
                             </div>
 
                             <div className="min-w-0">
@@ -159,16 +132,16 @@ function AccountForm() {
                         </div>
 
                         <div className="mt-6 rounded-3xl bg-slate-50 p-4">
-                            {isVerified ? (
+                            {isPhoneVerified ? (
                                 <div className="flex items-center gap-3 text-green-700">
                                     <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-green-100">
                                         <FontAwesomeIcon icon={faCircleCheck} className="h-5 w-5" />
                                     </span>
 
                                     <div>
-                                        <p className="text-sm font-black">Verified account</p>
+                                        <p className="text-sm font-black">Phone verified</p>
                                         <p className="text-xs font-semibold text-green-700/80">
-                                            Your email is verified.
+                                            {user?.phone || "Your number is confirmed."}
                                         </p>
                                     </div>
                                 </div>
@@ -177,27 +150,60 @@ function AccountForm() {
                                     <div className="flex items-center gap-3 text-orange-700">
                                         <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-orange-100">
                                             <FontAwesomeIcon
-                                                icon={faShieldHalved}
+                                                icon={user?.phone ? faMobileScreen : faShieldHalved}
                                                 className="h-5 w-5"
                                             />
                                         </span>
 
                                         <div>
-                                            <p className="text-sm font-black">Not verified</p>
+                                            <p className="text-sm font-black">Phone not verified</p>
                                             <p className="text-xs font-semibold text-orange-700/80">
-                                                Verify your email to improve trust.
+                                                {user?.phone
+                                                    ? "Confirm your number with an SMS code."
+                                                    : "Add a phone number to your profile first."}
                                             </p>
                                         </div>
                                     </div>
 
                                     <a
-                                        href="/account/verification"
+                                        href={
+                                            user?.phone
+                                                ? "/account/verification?next=/account"
+                                                : "/account"
+                                        }
                                         className="block rounded-2xl bg-orange-500 px-4 py-3 text-center text-sm font-black text-white hover:bg-orange-600"
                                     >
-                                        Verify Account
+                                        {user?.phone ? "Verify Phone" : "Add Phone Number"}
                                     </a>
                                 </div>
                             )}
+
+                            <div className="mt-4 flex items-center gap-3 border-t border-slate-200 pt-4">
+                                <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${isEmailVerified ? "bg-green-100 text-green-700" : "bg-white text-slate-500"}`}>
+                                    <FontAwesomeIcon
+                                        icon={isEmailVerified ? faCircleCheck : faEnvelope}
+                                        className="h-4 w-4"
+                                    />
+                                </span>
+
+                                <div className="min-w-0 flex-1">
+                                    <p className="text-xs font-black text-slate-800">
+                                        {isEmailVerified ? "Email verified" : "Email not verified"}
+                                    </p>
+                                    <p className="truncate text-[11px] font-semibold text-slate-500">
+                                        {user?.email || "No email address added"}
+                                    </p>
+                                </div>
+
+                                {!isEmailVerified && user?.email && (
+                                    <a
+                                        href="/account/verification?channel=email&next=/account"
+                                        className="text-[11px] font-black text-orange-600 hover:text-orange-700"
+                                    >
+                                        Verify
+                                    </a>
+                                )}
+                            </div>
                         </div>
 
                         <div className="mt-6 flex flex-1 flex-col">
@@ -234,107 +240,7 @@ function AccountForm() {
                     </aside>
 
                     {activeTab === "profile" ? (
-                    <section className="rounded-[34px] bg-white p-6 shadow-[0_18px_60px_rgba(15,23,42,0.10)] ring-1 ring-black/5 sm:p-8">
-                        <div className="flex items-center gap-3">
-                            <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-orange-100 text-orange-600">
-                                <FontAwesomeIcon icon={faGear} className="h-5 w-5" />
-                            </span>
-
-                            <div>
-                                <h2 className="text-2xl font-black text-slate-950">
-                                    Profile details
-                                </h2>
-                                <p className="mt-1 text-sm font-semibold text-slate-500">
-                                    Update your public account information.
-                                </p>
-                            </div>
-                        </div>
-
-                        {error && (
-                            <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
-                                {error}
-                            </div>
-                        )}
-
-                        {message && (
-                            <div className="mt-6 rounded-2xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-bold text-green-700">
-                                {message}
-                            </div>
-                        )}
-
-                        <form onSubmit={handleSave} className="mt-7 space-y-4">
-                            <label className="block">
-                                <span className="mb-2 block text-sm font-black text-slate-700">
-                                    Full name
-                                </span>
-
-                                <div className="flex items-center gap-3 rounded-2xl bg-slate-50 px-4 py-3 ring-1 ring-slate-100 focus-within:bg-white focus-within:ring-orange-200">
-                                    <FontAwesomeIcon icon={faUser} className="h-4 w-4 text-slate-400" />
-
-                                    <input
-                                        type="text"
-                                        value={fullName}
-                                        onChange={(event) => setFullName(event.target.value)}
-                                        placeholder="Your full name"
-                                        className="w-full bg-transparent text-sm font-bold text-slate-900 outline-none placeholder:text-slate-400"
-                                    />
-                                </div>
-                            </label>
-
-                            <div className="block">
-                                <span className="mb-2 block text-sm font-black text-slate-700">
-                                    Email address
-                                </span>
-
-                                <div className="flex items-center gap-3 rounded-2xl bg-slate-100 px-4 py-3 ring-1 ring-slate-100">
-                                    <FontAwesomeIcon
-                                        icon={faEnvelope}
-                                        className="h-4 w-4 text-slate-400"
-                                    />
-
-                                    <p className="w-full truncate text-sm font-black text-slate-700">
-                                        {email || "No email available"}
-                                    </p>
-
-                                    <span className="rounded-full bg-slate-200 px-3 py-1 text-[11px] font-black uppercase tracking-wide text-slate-500">
-                                        Locked
-                                    </span>
-                                </div>
-
-                                <p className="mt-2 text-xs font-semibold text-slate-500">
-                                    Email cannot be edited because it is used for login, verification, and password reset.
-                                </p>
-                            </div>
-                            <label className="block">
-                                <span className="mb-2 block text-sm font-black text-slate-700">
-                                    Phone number
-                                </span>
-
-                                <div className="flex items-center gap-3 rounded-2xl bg-slate-50 px-4 py-3 ring-1 ring-slate-100 focus-within:bg-white focus-within:ring-orange-200">
-                                    <FontAwesomeIcon
-                                        icon={faMobileScreen}
-                                        className="h-4 w-4 text-slate-400"
-                                    />
-
-                                    <input
-                                        type="tel"
-                                        value={phone}
-                                        onChange={(event) => setPhone(event.target.value)}
-                                        placeholder="+256700000001"
-                                        className="w-full bg-transparent text-sm font-bold text-slate-900 outline-none placeholder:text-slate-400"
-                                    />
-                                </div>
-                            </label>
-
-                            <button
-                                type="submit"
-                                disabled={saving}
-                                className="w-full rounded-2xl bg-orange-500 px-5 py-3.5 text-sm font-black text-white shadow-sm hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto sm:px-8"
-                            >
-                                {saving ? "Saving..." : "Save Changes"}
-                            </button>
-                        </form>
-                    </section>
+                        <ProfileSettingsClient />
                     ) : (
                         <div className="min-w-0">
                             {activeTab === "dashboard" && <SellerDashboardClient />}

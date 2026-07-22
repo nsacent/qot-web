@@ -139,24 +139,17 @@ async function handleAuthRequest(
         }
 
         const code = String(payload.code || payload.otp || "").trim();
-
-        const attempts = [
-            { code },
-            { otp: code },
-        ];
-
-        let result: any = null;
-
-        for (const body of attempts) {
-            result = await backendJsonWithSession("/auth/verification/confirm/", {
+        const channel = payload.channel === "email" ? "email" : "phone";
+        const result = await backendJsonWithSession(
+            "/auth/verification/confirm/",
+            {
                 method: "POST",
-                body: JSON.stringify(body),
-            });
-
-            if (result.ok) {
-                break;
+                body: JSON.stringify({
+                    code,
+                    channel,
+                }),
             }
-        }
+        );
 
         return json(
             result?.data || { detail: "Verification failed." },

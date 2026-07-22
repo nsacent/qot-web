@@ -103,7 +103,7 @@ function getListingId(listing: any) {
 function getTitle(listing: any) {
     const item = listing?.listing || listing;
 
-    return item?.title || listing?.title || "Untitled listing";
+    return item?.title || listing?.title || "Untitled ad";
 }
 
 function getImage(listing: any) {
@@ -431,7 +431,7 @@ export default function SellerDashboardClient() {
 
     const stats = [
         {
-            label: "Total Listings",
+            label: "Total Ads",
             value: getNumber(
                 summary?.total_listings,
                 summary?.listings_count,
@@ -441,7 +441,7 @@ export default function SellerDashboardClient() {
             tone: "from-orange-500 to-orange-600 text-white",
         },
         {
-            label: "Active Listings",
+            label: "Active Ads",
             value: getNumber(summary?.active_listings, summary?.active_count),
             helper: "Visible to buyers",
             tone: "from-emerald-50 to-green-100 text-emerald-800",
@@ -543,7 +543,7 @@ export default function SellerDashboardClient() {
                     <div className="mt-8 grid gap-6 lg:grid-cols-2">
                         <div className="rounded-[30px] bg-white p-6 shadow-[0_18px_55px_rgba(15,23,42,0.08)] ring-1 ring-black/5">
                             <p className="text-sm font-semibold uppercase tracking-wide text-green-600">
-                                Best Listing
+                                Best Ad
                             </p>
 
                             {bestListing ? (
@@ -554,13 +554,13 @@ export default function SellerDashboardClient() {
                                     />
                                 </div>
                             ) : (
-                                <p className="mt-4 text-slate-600">No best listing yet.</p>
+                                <p className="mt-4 text-slate-600">No best ad yet.</p>
                             )}
                         </div>
 
                         <div className="rounded-[30px] bg-white p-6 shadow-[0_18px_55px_rgba(15,23,42,0.08)] ring-1 ring-black/5">
                             <p className="text-sm font-semibold uppercase tracking-wide text-red-600">
-                                Weakest Listing
+                                Weakest Ad
                             </p>
 
                             {weakestListing ? (
@@ -571,7 +571,7 @@ export default function SellerDashboardClient() {
                                     />
                                 </div>
                             ) : (
-                                <p className="mt-4 text-slate-600">No weak listing yet.</p>
+                                <p className="mt-4 text-slate-600">No weak ad yet.</p>
                             )}
                         </div>
                     </div>
@@ -579,7 +579,7 @@ export default function SellerDashboardClient() {
                     <div className="mt-8 rounded-[30px] bg-white p-6 shadow-[0_18px_55px_rgba(15,23,42,0.08)] ring-1 ring-black/5">
                         <div className="mb-5">
                             <p className="text-sm font-semibold uppercase tracking-wide text-orange-600">
-                                Listings Needing Renewal
+                                Ads Needing Renewal
                             </p>
 
                             <h2 className="mt-2 text-2xl font-bold text-slate-900">
@@ -589,7 +589,7 @@ export default function SellerDashboardClient() {
 
                         {renewalListings.length === 0 ? (
                             <div className="rounded-2xl bg-slate-50 p-6 text-slate-600">
-                                No listings need renewal right now.
+                                No ads need renewal right now.
                             </div>
                         ) : (
                             <div className="grid gap-4">
@@ -610,7 +610,7 @@ export default function SellerDashboardClient() {
                         <div className="rounded-[30px] bg-white p-6 shadow-[0_18px_55px_rgba(15,23,42,0.08)] ring-1 ring-black/5">
                             <div className="mb-5">
                                 <p className="text-sm font-semibold uppercase tracking-wide text-orange-600">
-                                    Recent Listings
+                                    Recent Ads
                                 </p>
 
                                 <h2 className="mt-2 text-2xl font-bold text-slate-900">
@@ -620,7 +620,7 @@ export default function SellerDashboardClient() {
 
                             {recentListings.length === 0 ? (
                                 <div className="rounded-2xl bg-slate-50 p-6 text-slate-600">
-                                    No recent listing data available.
+                                    No recent ad data available.
                                 </div>
                             ) : (
                                 <div className="grid gap-4">
@@ -638,7 +638,7 @@ export default function SellerDashboardClient() {
                         <div className="rounded-[30px] bg-white p-6 shadow-[0_18px_55px_rgba(15,23,42,0.08)] ring-1 ring-black/5">
                             <div className="mb-5">
                                 <p className="text-sm font-semibold uppercase tracking-wide text-orange-600">
-                                    Active Featured Listings
+                                    Active Featured Ads
                                 </p>
 
                                 <h2 className="mt-2 text-2xl font-bold text-slate-900">
@@ -648,7 +648,7 @@ export default function SellerDashboardClient() {
 
                             {featuredListings.length === 0 ? (
                                 <div className="rounded-2xl bg-slate-50 p-6 text-slate-600">
-                                    No active featured listings right now.
+                                    No active featured ads right now.
                                 </div>
                             ) : (
                                 <div className="grid gap-4">

@@ -353,7 +353,7 @@ export default function HomeFloatingSearch({
 
         const text = params.toString();
 
-        return text ? `/listings?${text}` : "/listings";
+        return text ? `/ads?${text}` : "/ads";
     }
 
     function submitSearch(event: React.FormEvent<HTMLFormElement>) {
@@ -477,7 +477,7 @@ export default function HomeFloatingSearch({
                                         return (
                                             <a
                                                 key={id || getListingTitle(ad)}
-                                                href={`/listings/${id}`}
+                                                href={`/ads/${id}`}
                                                 className="flex gap-3 rounded-2xl p-3 hover:bg-orange-50"
                                             >
                                                 <div className="h-14 w-14 shrink-0 overflow-hidden rounded-2xl bg-slate-100">

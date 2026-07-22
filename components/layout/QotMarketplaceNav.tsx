@@ -136,7 +136,7 @@ function getNotificationMessage(notification: any) {
 
 function getNotificationLink(notification: any) {
     if (notification?.chat_thread) return `/account/messages/${notification.chat_thread}`;
-    if (notification?.listing) return `/listings/${notification.listing}`;
+    if (notification?.listing) return `/ads/${notification.listing}`;
 
     return notification?.link || notification?.url || "/account/notifications";
 }
@@ -553,7 +553,7 @@ export default function QotMarketplaceNav({
 
         const text = params.toString();
 
-        return text ? `/listings?${text}` : "/listings";
+        return text ? `/ads?${text}` : "/ads";
     }
 
     function submitSearch(event: React.FormEvent<HTMLFormElement>) {
@@ -565,26 +565,23 @@ export default function QotMarketplaceNav({
         setSelectedCity(city);
         setSelectedRegion("");
         setLocationModalOpen(false);
-        window.location.href = buildListingUrl({ city, region: "" });
     }
 
     function selectRegion(region: string) {
         setSelectedRegion(region);
         setSelectedCity(null);
         setLocationModalOpen(false);
-        window.location.href = buildListingUrl({ city: null, region });
     }
 
     function selectCategory(category: Category | null) {
         setSelectedCategory(category);
         setCategoryModalOpen(false);
-        window.location.href = buildListingUrl({ category });
     }
 
     const locationLabel =
         selectedCity?.name || selectedRegion || "Uganda";
 
-    const categoryLabel = selectedCategory?.name || "Category";
+    const categoryLabel = selectedCategory?.name || "All Categories";
 
     return (
         <>
@@ -595,48 +592,59 @@ export default function QotMarketplaceNav({
                         <QotLogo className="hidden h-9 w-auto text-orange-500 sm:block xl:h-10" />
                     </a>
 
+                    <button
+                        type="button"
+                        onClick={() => setLocationModalOpen(true)}
+                        className={`hidden h-12 max-w-[175px] shrink-0 items-center gap-2.5 rounded-[18px] px-4 text-sm font-black shadow-sm ring-1 transition lg:inline-flex ${selectedCity || selectedRegion
+                            ? "bg-orange-50 text-orange-700 ring-orange-100"
+                            : "bg-slate-50 text-slate-800 ring-slate-200/70 hover:bg-white hover:ring-orange-200"
+                        }`}
+                    >
+                        <FontAwesomeIcon icon={faLocationDot} className="h-4 w-4 shrink-0 text-orange-500" />
+                        <span className="truncate">{locationLabel}</span>
+                        <FontAwesomeIcon icon={faChevronDown} className="h-3 w-3 shrink-0 text-slate-400" />
+                    </button>
+
                     <form
                         ref={searchBoxRef}
                         onSubmit={submitSearch}
-                        className="relative flex min-w-0 flex-1 items-center rounded-[16px] bg-slate-100/70 px-3 py-2.5 ring-1 ring-slate-200/70 transition focus-within:bg-white focus-within:ring-2 focus-within:ring-orange-200 md:px-4"
+                        className="relative flex h-12 min-w-0 flex-1 items-center overflow-visible rounded-[18px] bg-white shadow-sm ring-1 ring-slate-200 transition focus-within:ring-2 focus-within:ring-orange-200"
                     >
-                        <FontAwesomeIcon
-                            icon={faMagnifyingGlass}
-                            className="mr-2 h-4 w-4 shrink-0 text-slate-400"
-                        />
+                        <div className="flex min-w-0 flex-1 items-center px-3.5 sm:px-4">
+                            <FontAwesomeIcon
+                                icon={faMagnifyingGlass}
+                                className="mr-3 h-4 w-4 shrink-0 text-slate-400"
+                            />
 
-                        <input
-                            name="q"
-                            type="search"
-                            value={query}
-                            onChange={(event) => {
-                                setQuery(event.target.value);
-                                setShowSuggestions(true);
-                            }}
-                            onFocus={() => setShowSuggestions(true)}
-                            placeholder="Search ads..."
-                            className="min-w-0 flex-1 bg-transparent text-sm font-semibold text-slate-900 outline-none placeholder:text-slate-400"
-                        />
-
-                        <button
-                            type="button"
-                            onClick={() => setLocationModalOpen(true)}
-                            className="ml-2 hidden max-w-[150px] items-center gap-2 truncate rounded-xl px-2 py-1.5 text-sm font-black text-slate-700 hover:bg-orange-50 hover:text-orange-600 lg:inline-flex"
-                        >
-                            <FontAwesomeIcon icon={faLocationDot} className="h-3.5 w-3.5" />
-                            <span className="truncate">{locationLabel}</span>
-                            <FontAwesomeIcon icon={faChevronDown} className="h-3 w-3" />
-                        </button>
-
-                        <span className="mx-2 hidden h-5 w-px bg-slate-200 lg:block" />
+                            <input
+                                name="q"
+                                type="search"
+                                value={query}
+                                onChange={(event) => {
+                                    setQuery(event.target.value);
+                                    setShowSuggestions(true);
+                                }}
+                                onFocus={() => setShowSuggestions(true)}
+                                placeholder="What are you looking for?"
+                                className="min-w-0 flex-1 bg-transparent text-sm font-semibold text-slate-900 outline-none placeholder:text-slate-400"
+                            />
+                        </div>
 
                         <button
                             type="button"
                             onClick={() => setCategoryModalOpen(true)}
-                            className="hidden max-w-[170px] items-center gap-2 truncate rounded-xl px-2 py-1.5 text-sm font-black text-slate-700 hover:bg-orange-50 hover:text-orange-600 lg:inline-flex"
+                            className={`hidden h-8 max-w-[190px] shrink-0 items-center gap-3 border-l border-slate-200 px-4 text-sm font-black transition lg:inline-flex ${selectedCategory ? "text-orange-700" : "text-slate-700 hover:text-orange-600"}`}
                         >
                             <span className="truncate">{categoryLabel}</span>
-                            <FontAwesomeIcon icon={faChevronDown} className="h-3 w-3" />
+                            <FontAwesomeIcon icon={faChevronDown} className="h-3 w-3 shrink-0 text-slate-400" />
+                        </button>
+
+                        <button
+                            type="submit"
+                            aria-label="Search ads"
+                            className="ml-1 flex h-12 w-12 shrink-0 items-center justify-center rounded-r-[18px] bg-gradient-to-br from-orange-500 to-orange-600 text-white shadow-[0_8px_20px_rgba(249,115,22,0.24)] transition hover:from-orange-600 hover:to-orange-600 sm:w-14"
+                        >
+                            <FontAwesomeIcon icon={faMagnifyingGlass} className="h-4 w-4" />
                         </button>
 
                         {showSuggestions && (
@@ -676,7 +684,7 @@ export default function QotMarketplaceNav({
                                             return (
                                                 <a
                                                     key={id || getListingTitle(ad)}
-                                                    href={`/listings/${id}`}
+                                                    href={`/ads/${id}`}
                                                     className="flex gap-3 rounded-2xl p-3 hover:bg-orange-50"
                                                 >
                                                     <div className="h-14 w-14 shrink-0 overflow-hidden rounded-2xl bg-slate-100">
@@ -863,7 +871,7 @@ export default function QotMarketplaceNav({
                                     return (
                                         <a
                                             key={item?.id || id}
-                                            href={`/listings/${id}`}
+                                            href={`/ads/${id}`}
                                             className="flex gap-3 rounded-[18px] p-3 transition hover:bg-orange-50"
                                         >
                                             <span className="h-12 w-14 shrink-0 overflow-hidden rounded-[13px] bg-slate-100">

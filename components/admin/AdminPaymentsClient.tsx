@@ -266,7 +266,7 @@ export default function AdminPaymentsClient() {
                     <label className="relative md:col-span-2">
                         <span className="sr-only">Search payments</span>
                         <FontAwesomeIcon icon={faMagnifyingGlass} className="absolute left-4 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
-                        <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Reference, customer, phone, listing…" className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 pl-10 pr-4 text-sm font-semibold outline-none focus:border-orange-400 focus:bg-white" />
+                        <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Reference, customer, phone, ad…" className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 pl-10 pr-4 text-sm font-semibold outline-none focus:border-orange-400 focus:bg-white" />
                     </label>
                     <select value={status} onChange={(event) => setStatus(event.target.value)} className="h-12 rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold outline-none focus:border-orange-400">
                         <option value="">All statuses</option>
@@ -277,8 +277,8 @@ export default function AdminPaymentsClient() {
                     </select>
                     <select value={purpose} onChange={(event) => setPurpose(event.target.value)} className="h-12 rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold outline-none focus:border-orange-400">
                         <option value="">All purposes</option>
-                        <option value="featured_listing">Featured listing</option>
-                        <option value="boost_listing">Boost listing</option>
+                        <option value="featured_listing">Featured ad</option>
+                        <option value="boost_listing">Boost ad</option>
                         <option value="subscription">Subscription</option>
                     </select>
                     <select value={method} onChange={(event) => setMethod(event.target.value)} className="h-12 rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold outline-none focus:border-orange-400">

@@ -9,11 +9,11 @@ type ShareListingButtonProps = {
 function getListingUrl(listingId: number | string) {
     if (typeof window === "undefined") return "";
 
-    return `${window.location.origin}/listings/${listingId}`;
+    return `${window.location.origin}/ads/${listingId}`;
 }
 
 function getShareText(listing: any, url: string) {
-    const title = listing?.title || "QOT listing";
+    const title = listing?.title || "QOT ad";
     const price = listing?.price
         ? `UGX ${Number(listing.price).toLocaleString()}`
         : "Contact seller";
@@ -46,7 +46,7 @@ export default function ShareListingButton({ listing }: ShareListingButtonProps)
         if (navigator.share) {
             try {
                 await navigator.share({
-                    title: listing?.title || "QOT listing",
+                    title: listing?.title || "QOT ad",
                     text,
                     url,
                 });
@@ -73,7 +73,7 @@ export default function ShareListingButton({ listing }: ShareListingButtonProps)
             <h2 className="text-xl font-bold">Share this Advert</h2>
 
             <p className="mt-2 text-sm text-slate-600">
-                Send this listing to someone who may be interested.
+                Send this ad to someone who may be interested.
             </p>
 
             <div className="mt-5 grid gap-3">

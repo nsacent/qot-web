@@ -29,7 +29,7 @@ export default function HeroSection({
                             </p>
 
                             <form
-                                action="/listings"
+                                action="/ads"
                                 className="mt-8 rounded-2xl bg-white p-3 shadow-xl shadow-orange-100/70"
                             >
                                 <div className="grid gap-3 md:grid-cols-[1fr_190px_190px_140px]">
@@ -93,7 +93,7 @@ export default function HeroSection({
                                 ].map((item) => (
                                     <a
                                         key={item}
-                                        href={`/listings?q=${encodeURIComponent(item)}`}
+                                        href={`/ads?q=${encodeURIComponent(item)}`}
                                         className="rounded-full bg-white px-4 py-2 font-semibold text-slate-700 shadow-sm hover:bg-orange-50 hover:text-orange-700"
                                     >
                                         {item}
@@ -146,7 +146,7 @@ export default function HeroSection({
                                     <div>
                                         <p className="font-bold text-slate-950">Cars in Kampala</p>
                                         <p className="text-sm font-bold text-orange-600">
-                                            Fresh listings today
+                                            Fresh ads today
                                         </p>
                                     </div>
 

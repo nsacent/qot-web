@@ -86,7 +86,7 @@ export default function AccountClient() {
         },
 
         {
-            label: "My Listings",
+            label: "My Ads",
             href: "/my-ads",
             description: "Manage your adverts",
         },
@@ -103,7 +103,7 @@ export default function AccountClient() {
         {
             label: "Saved Adverts",
             href: "/account/saved",
-            description: "Listings you saved",
+            description: "Ads you saved",
         },
         {
             label: "Messages",
@@ -149,7 +149,7 @@ export default function AccountClient() {
         quickLinks.unshift({
             label: "Admin Panel",
             href: "/admin",
-            description: "Moderate users, listings, and reports",
+            description: "Moderate users, ads, and reports",
         });
     }
 
@@ -275,7 +275,7 @@ export default function AccountClient() {
                                 href="/my-ads"
                                 className="rounded-xl border px-5 py-3 text-center font-semibold hover:bg-slate-50"
                             >
-                                Manage Listings
+                                Manage Ads
                             </a>
                         </div>
                     </div>

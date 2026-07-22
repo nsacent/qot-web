@@ -5,10 +5,12 @@ import { useEffect, useRef, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
     faChevronDown,
+    faClock,
     faEnvelope,
     faGear,
     faHeartRegular,
     faList,
+    faLock,
     faRightFromBracket,
     faShieldHalved,
     faStore,
@@ -49,7 +51,7 @@ const accountLinks = [
     {
         href: "/my-ads",
         label: "My Ads",
-        description: "Manage listings",
+        description: "Manage ads",
         icon: faList,
     },
     {
@@ -69,6 +71,18 @@ const accountLinks = [
         label: "Settings",
         description: "Account preferences",
         icon: faGear,
+    },
+    {
+        href: "/recently-viewed",
+        label: "Recently Viewed",
+        description: "Browsing history",
+        icon: faClock,
+    },
+    {
+        href: "/reset-password",
+        label: "Reset Password",
+        description: "Secure your account",
+        icon: faLock,
     },
 ];
 

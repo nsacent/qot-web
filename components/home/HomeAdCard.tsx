@@ -172,7 +172,7 @@ export default function HomeAdCard({ ad, favoriteIds, featured }: HomeAdCardProp
     const id = getAdId(ad);
     const title = getAdTitle(ad);
     const category = getAdCategories(ad);
-    const href = id ? `/listings/${id}` : "/listings";
+    const href = id ? `/ads/${id}` : "/ads";
 
     const date =
         ad?.updated_at ||
@@ -215,13 +215,13 @@ export default function HomeAdCard({ ad, favoriteIds, featured }: HomeAdCardProp
             <div className="flex flex-1 flex-col px-3 pb-3 pt-2.5">
                 <div className="flex min-w-0 items-center justify-between gap-2">
                     <nav
-                        aria-label="Listing category"
+                        aria-label="Ad category"
                         className="flex min-w-0 items-center gap-1 truncate text-[9px] font-extrabold uppercase tracking-[0.1em] text-orange-600 sm:text-[10px]"
                     >
                         {category.parent && (
                             <>
                                 <a
-                                    href={`/listings?category=${encodeURIComponent(category.parent)}`}
+                                    href={`/ads?category=${encodeURIComponent(category.parent)}`}
                                     className="relative z-20 truncate hover:text-orange-700 hover:underline"
                                 >
                                     {category.parent}
@@ -233,7 +233,7 @@ export default function HomeAdCard({ ad, favoriteIds, featured }: HomeAdCardProp
                         )}
 
                         <a
-                            href={`/listings?category=${encodeURIComponent(category.name)}`}
+                            href={`/ads?category=${encodeURIComponent(category.name)}`}
                             className="relative z-20 truncate hover:text-orange-700 hover:underline"
                         >
                             {category.name}

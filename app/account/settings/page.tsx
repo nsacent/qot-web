@@ -13,9 +13,11 @@ export default function AccountSettingsPage() {
 
                 <VerifiedAccountGuard
                     title="Account settings require verification"
-                    description="Your account must be verified before you can manage seller notification preferences."
+                    description="Your account must be verified before you can manage notification preferences."
                 >
-                    <NotificationPreferencesClient />
+                    <div className="space-y-6 py-6">
+                        <NotificationPreferencesClient />
+                    </div>
                 </VerifiedAccountGuard>
             </div>
 

@@ -11,13 +11,9 @@ type VerifiedAccountGuardProps = {
 
 function isVerifiedUser(user: any) {
     return (
-        user?.is_verified === true ||
-        user?.verified === true ||
-        user?.account_verified === true ||
         user?.phone_verified === true ||
-        user?.email_verified === true ||
-        user?.profile?.is_verified === true ||
-        user?.profile?.verified === true
+        Boolean(user?.phone_verified_at) ||
+        (!user?.phone && user?.is_verified === true)
     );
 }
 
@@ -28,14 +24,14 @@ function getVerificationText(user: any) {
         user?.verification_status ||
         user?.status ||
         user?.profile?.verification_status ||
-        "Your account is not yet verified."
+        "Your phone number is not yet verified."
     );
 }
 
 export default function VerifiedAccountGuard({
     children,
-    title = "Account verification required",
-    description = "This feature is available only to verified QOT users.",
+    title = "Phone verification required",
+    description = "Verify your phone number before using this QOT feature.",
 }: VerifiedAccountGuardProps) {
     const [mounted, setMounted] = useState(false);
     const [user, setUser] = useState<any>(null);
@@ -125,7 +121,7 @@ export default function VerifiedAccountGuard({
                             href="/account/verification"
                             className="rounded-xl bg-orange-500 px-5 py-3 text-center font-semibold text-white hover:bg-orange-600"
                         >
-                            Request Verification
+                            Verify Phone Number
                         </a>
                         <a
                             href="/account"

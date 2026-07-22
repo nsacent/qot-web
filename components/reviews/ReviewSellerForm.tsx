@@ -128,7 +128,7 @@ export default function ReviewSellerForm({
         setSuccess("");
 
         if (!listingId) {
-            setError("Listing ID is missing. Review cannot be submitted.");
+            setError("Ad ID is missing. Review cannot be submitted.");
             return;
         }
 
@@ -160,7 +160,7 @@ export default function ReviewSellerForm({
             });
 
             if (response.status === 401) {
-                window.location.href = `/login?next=/listings/${listingId}`;
+                window.location.href = `/login?next=/ads/${listingId}`;
                 return;
             }
 

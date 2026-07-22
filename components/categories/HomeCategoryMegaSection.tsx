@@ -84,7 +84,7 @@ export default function HomeCategoryMegaSection({
                                 className="rounded-2xl border bg-white p-6 shadow-sm"
                             >
                                 <a
-                                    href={`/listings?category=${getCategorySlug(parent)}`}
+                                    href={`/ads?category=${getCategorySlug(parent)}`}
                                     className="group block"
                                 >
                                     <div className="flex items-center gap-4">
@@ -98,7 +98,7 @@ export default function HomeCategoryMegaSection({
                                             </h3>
 
                                             <p className="text-sm text-slate-500">
-                                                {parent.listings_count || parent.count || 0} listings
+                                                {parent.listings_count || parent.count || 0} ads
                                             </p>
                                         </div>
                                     </div>
@@ -109,7 +109,7 @@ export default function HomeCategoryMegaSection({
                                         {children.slice(0, 8).map((child: any) => (
                                             <a
                                                 key={child.id || child.slug}
-                                                href={`/listings?category=${getCategorySlug(child)}`}
+                                                href={`/ads?category=${getCategorySlug(child)}`}
                                                 className="rounded-full bg-slate-100 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-orange-50 hover:text-orange-700"
                                             >
                                                 {child.name || child.title}

@@ -134,7 +134,7 @@ function SavedAdsContent() {
                     </div>
 
                     <a
-                        href="/listings"
+                        href="/ads"
                         className="inline-flex items-center justify-center gap-2 rounded-2xl bg-orange-500 px-5 py-3 text-sm font-black text-white hover:bg-orange-600"
                     >
                         <FontAwesomeIcon icon={faMagnifyingGlass} className="h-4 w-4" />
@@ -177,7 +177,7 @@ function SavedAdsContent() {
                         </p>
 
                         <a
-                            href="/listings"
+                            href="/ads"
                             className="mt-6 inline-flex rounded-2xl bg-orange-500 px-5 py-3 text-sm font-black text-white hover:bg-orange-600"
                         >
                             Explore Ads

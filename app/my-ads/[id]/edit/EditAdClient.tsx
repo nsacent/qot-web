@@ -8,6 +8,10 @@ import {
     LocationPickerModal,
 } from "@/components/listings/MarketplacePickerModals";
 import { fetchAllProxyPages } from "@/lib/marketplaceCatalog";
+import {
+    getUgandanNationalNumber,
+    toUgandanPhone,
+} from "@/lib/ugandanPhone";
 
 const API_BASE_URL =
     process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000/api/v1";
@@ -77,6 +81,19 @@ function normalizeListing(data: any) {
 function getValue(value: any) {
     if (value === null || value === undefined) return "";
     return String(value);
+}
+
+function getApiErrorMessage(data: any, fallback: string) {
+    if (typeof data?.detail === "string") return data.detail;
+    if (typeof data?.message === "string") return data.message;
+    if (typeof data?.error === "string") return data.error;
+
+    for (const value of Object.values(data || {})) {
+        if (Array.isArray(value) && value[0]) return String(value[0]);
+        if (typeof value === "string") return value;
+    }
+
+    return fallback;
 }
 
 function EditAdForm({ id }: { id: string }) {
@@ -239,7 +256,7 @@ function EditAdForm({ id }: { id: string }) {
                 getValue(listing?.category?.id || listing?.category_id || listing?.category)
             );
             setCity(getValue(listing?.city?.id || listing?.city_id || listing?.city));
-            setPhone(getValue(listing?.contact_phone || listing?.phone));
+            setPhone(toUgandanPhone(getValue(listing?.contact_phone || listing?.phone)));
             setLocationDetails(
                 getValue(listing?.location_details || listing?.address || listing?.location)
             );
@@ -303,9 +320,7 @@ function EditAdForm({ id }: { id: string }) {
             const data = await response.json().catch(() => ({}));
 
             if (!response.ok) {
-                throw new Error(
-                    data?.detail || data?.message || `Failed to upload ${file.name}.`
-                );
+                throw new Error(getApiErrorMessage(data, `Failed to upload ${file.name}.`));
             }
         }
     }
@@ -491,7 +506,7 @@ function EditAdForm({ id }: { id: string }) {
                         </button>
 
                         <a
-                            href={`/listings/${id}`}
+                            href={`/ads/${id}`}
                             className="rounded-2xl bg-slate-50 px-5 py-3 text-center text-sm font-black text-slate-700 hover:bg-orange-50 hover:text-orange-600"
                         >
                             View Public Page
@@ -612,12 +627,19 @@ function EditAdForm({ id }: { id: string }) {
                                     Contact phone
                                 </span>
 
-                                <input
-                                    value={phone}
-                                    onChange={(event) => setPhone(event.target.value)}
-                                    placeholder="+256700000001"
-                                    className="w-full rounded-2xl bg-slate-50 px-4 py-3 text-sm font-bold text-slate-900 outline-none ring-1 ring-slate-100 focus:bg-white focus:ring-orange-200"
-                                />
+                                <span className="flex items-center rounded-2xl bg-slate-50 px-4 py-3 ring-1 ring-slate-100 focus-within:bg-white focus-within:ring-orange-200">
+                                    <span className="border-r border-slate-200 pr-3 text-sm font-black text-slate-700">+256</span>
+                                    <input
+                                        type="tel"
+                                        inputMode="numeric"
+                                        value={getUgandanNationalNumber(phone)}
+                                        onChange={(event) => setPhone(toUgandanPhone(event.target.value))}
+                                        placeholder="700 000 001"
+                                        pattern="[0-9]{9}"
+                                        maxLength={16}
+                                        className="min-w-0 flex-1 bg-transparent pl-3 text-sm font-bold text-slate-900 outline-none"
+                                    />
+                                </span>
                             </label>
 
                             <label className="block">

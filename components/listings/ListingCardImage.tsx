@@ -10,7 +10,7 @@ type ListingCardImageProps = {
 
 export default function ListingCardImage({
     listing,
-    title = "Listing image",
+    title = "Ad image",
     href = "#",
     className = "",
 }: ListingCardImageProps) {

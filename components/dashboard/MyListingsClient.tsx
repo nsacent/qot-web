@@ -29,7 +29,7 @@ function cleanErrorMessage(error: any) {
     const message = String(error?.message || "").trim();
 
     if (!message || message === "null" || message === "undefined") {
-        return "Failed to load your listings. Please make sure you are logged in and your seller account is verified.";
+        return "Failed to load your ads. Please make sure you are logged in and your seller account is verified.";
     }
 
     if (
@@ -37,7 +37,7 @@ function cleanErrorMessage(error: any) {
         message.toLowerCase().includes("verification") ||
         message.toLowerCase().includes("verified")
     ) {
-        return "Your account must be verified before you can access seller listings.";
+        return "Your account must be verified before you can access seller ads.";
     }
 
     return message;
@@ -84,7 +84,7 @@ export default function MyListingsClient() {
 
             setError(
                 !message || message === "null" || message === "undefined"
-                    ? "Failed to load your listings. Please make sure you are logged in and your seller account is verified."
+                    ? "Failed to load your ads. Please make sure you are logged in and your seller account is verified."
                     : message
             );
         } finally {
@@ -136,7 +136,7 @@ export default function MyListingsClient() {
                     </p>
 
                     <h1 className="mt-2 text-3xl font-bold text-slate-900">
-                        My Listings
+                        My Ads
                     </h1>
 
                     <p className="mt-2 text-slate-600">
@@ -236,7 +236,7 @@ export default function MyListingsClient() {
 
             {loading ? (
                 <div className="mt-6 rounded-2xl border bg-white p-8 text-slate-600">
-                    Loading your listings...
+                    Loading your ads...
                 </div>
             ) : error ? (
                 <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 p-8 text-red-700">
@@ -244,7 +244,7 @@ export default function MyListingsClient() {
                 </div>
             ) : filteredListings.length === 0 ? (
                 <div className="mt-6 rounded-2xl border bg-white p-8 text-slate-600">
-                    No listings found. Try changing the filters or post a new advert.
+                    No ads found. Try changing the filters or post a new advert.
                 </div>
             ) : (
                 <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">

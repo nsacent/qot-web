@@ -296,7 +296,7 @@ export function CategoryPickerModal({
             open={open}
             eyebrow="Marketplace classification"
             title="Choose a category"
-            description="Start with a department, then choose the most accurate category for this listing."
+            description="Start with a department, then choose the most accurate category for this ad."
             search={search}
             setSearch={setSearch}
             searchPlaceholder="Search categories or departments…"

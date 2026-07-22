@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import {
     useEffect,
     useMemo,
+    useRef,
     useState,
     type ChangeEvent,
     type FormEvent,
@@ -40,6 +41,13 @@ type CategoryFilterField = {
     type: string;
     placeholder: string;
     options: any[];
+};
+
+type DraftPhoto = {
+    id: number;
+    name: string;
+    url: string;
+    file?: File;
 };
 
 function getArray(data: any): any[] {
@@ -146,7 +154,7 @@ async function clientApiPostForm(path: string, payload: FormData) {
     }
 
     if (!response.ok) {
-        const fieldError = data?.image;
+        const fieldError = data?.image || data?.images;
         throw new Error(
             data?.detail ||
             data?.message ||
@@ -154,6 +162,26 @@ async function clientApiPostForm(path: string, payload: FormData) {
             (Array.isArray(fieldError) ? fieldError[0] : fieldError) ||
             "Failed to submit advert."
         );
+    }
+
+    return data;
+}
+
+async function clientApiPut(path: string, payload: any) {
+    const response = await fetch(`/api/proxy${path}`, {
+        method: "PUT",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+    });
+    const data = await response.json().catch(() => null);
+
+    if (response.status === 401 || response.status === 403) {
+        throw new Error("__AUTH__");
+    }
+
+    if (!response.ok) {
+        throw new Error(data?.detail || data?.message || data?.error || "Failed to save draft.");
     }
 
     return data;
@@ -288,8 +316,7 @@ export default function PostAdForm() {
     const [city, setCity] = useState("");
     const [condition, setCondition] = useState("used");
     const [isNegotiable, setIsNegotiable] = useState(false);
-    const [photos, setPhotos] = useState<File[]>([]);
-    const [stagedPhotoIds, setStagedPhotoIds] = useState<number[]>([]);
+    const [photos, setPhotos] = useState<DraftPhoto[]>([]);
     const [photosUploading, setPhotosUploading] = useState(false);
 
     const [categories, setCategories] = useState<any[]>([]);
@@ -303,6 +330,10 @@ export default function PostAdForm() {
     const [filtersLoading, setFiltersLoading] = useState(false);
     const [uploadProgress, setUploadProgress] = useState("");
     const [error, setError] = useState("");
+    const [draftReady, setDraftReady] = useState(false);
+    const [draftSaving, setDraftSaving] = useState(false);
+    const [draftMessage, setDraftMessage] = useState("");
+    const pendingDraftFilterValues = useRef<Record<string, string>>({});
 
     const [categoryModalOpen, setCategoryModalOpen] = useState(false);
     const [locationModalOpen, setLocationModalOpen] = useState(false);
@@ -325,31 +356,71 @@ export default function PostAdForm() {
         );
     }, [cities, city]);
 
+    const stagedPhotoIds = useMemo(() => photos.map((photo) => photo.id), [photos]);
     const photoPreviews = useMemo(
-        () => photos.map((file) => ({ file, url: URL.createObjectURL(file) })),
+        () => photos.map((photo) => ({
+            ...photo,
+            url: photo.file ? URL.createObjectURL(photo.file) : photo.url,
+        })),
         [photos]
     );
 
     useEffect(() => {
         return () => {
-            photoPreviews.forEach((photo) => URL.revokeObjectURL(photo.url));
+            photoPreviews.forEach((photo) => {
+                if (photo.file && photo.url.startsWith("blob:")) {
+                    URL.revokeObjectURL(photo.url);
+                }
+            });
         };
     }, [photoPreviews]);
 
     useEffect(() => {
         async function loadFormData() {
             try {
-                const [categoriesData, citiesData] = await Promise.all([
+                const [categoriesData, citiesData, userData, draftPayload] = await Promise.all([
                     clientApiGet("/categories/"),
                     fetchAllProxyPages("/locations/cities/?page_size=50"),
+                    clientApiGet("/auth/me/"),
+                    clientApiGet("/listings/draft/"),
                 ]);
 
                 setCategories(getArray(categoriesData));
                 setCities(citiesData);
+
+                const draft = draftPayload?.draft;
+                const draftData = draft?.data || {};
+                const currentUser = userData?.user || userData?.data || userData;
+
+                if (draft) {
+                    setTitle(String(draftData.title || ""));
+                    setDescription(String(draftData.description || ""));
+                    setPrice(String(draftData.price || ""));
+                    setCategory(String(draftData.category || ""));
+                    setCity(String(draftData.city || ""));
+                    setCondition(String(draftData.condition || "used"));
+                    setIsNegotiable(draftData.is_negotiable === true);
+                    pendingDraftFilterValues.current = Object.fromEntries(
+                        Object.entries(draftData.category_filter_values || {}).map(
+                            ([key, value]) => [key, String(value || "")]
+                        )
+                    );
+                    setPhotos(
+                        getArray(draft.staged_images).map((photo: any) => ({
+                            id: Number(photo.id),
+                            name: String(photo.image_url || "draft-photo").split("/").pop() || "draft-photo",
+                            url: photo.image_url,
+                        }))
+                    );
+                    setDraftMessage("Your saved draft has been restored.");
+                } else if (currentUser?.profile?.default_city) {
+                    setCity(String(currentUser.profile.default_city));
+                }
             } catch (err) {
                 console.error("Failed to load form data:", err);
                 setError("Failed to load form data. Please refresh the page.");
             } finally {
+                setDraftReady(true);
                 setPageLoading(false);
             }
         }
@@ -386,8 +457,14 @@ export default function PostAdForm() {
 
                 setCategoryFilters(normalized);
                 setCategoryFilterValues(
-                    Object.fromEntries(normalized.map((field) => [field.key, ""]))
+                    Object.fromEntries(
+                        normalized.map((field) => [
+                            field.key,
+                            pendingDraftFilterValues.current[field.key] || "",
+                        ])
+                    )
                 );
+                pendingDraftFilterValues.current = {};
             } catch (err) {
                 console.error("Failed to load category filters:", err);
                 if (isActive) setCategoryFilters([]);
@@ -463,6 +540,98 @@ export default function PostAdForm() {
             .filter(Boolean);
     }
 
+    function getDraftPayload(photoIds = stagedPhotoIds) {
+        return {
+            data: {
+                title,
+                description,
+                price,
+                category,
+                city,
+                condition,
+                is_negotiable: isNegotiable,
+                category_filter_values: categoryFilterValues,
+            },
+            staged_image_ids: photoIds,
+        };
+    }
+
+    async function saveDraft() {
+        const hasContent = Boolean(
+            title.trim() || description.trim() || price || category || photos.length
+        );
+
+        if (!hasContent) {
+            setError("Add at least one detail before saving a draft.");
+            return;
+        }
+
+        setDraftSaving(true);
+        setError("");
+
+        try {
+            await clientApiPut("/listings/draft/", getDraftPayload());
+            setDraftMessage("Draft saved. You can safely come back to it later.");
+        } catch (err: any) {
+            if (err?.message === "__AUTH__") {
+                router.push("/login?next=/post-ad");
+                return;
+            }
+            setError(err.message || "Failed to save draft.");
+        } finally {
+            setDraftSaving(false);
+        }
+    }
+
+    useEffect(() => {
+        const hasContent = Boolean(
+            title.trim() || description.trim() || price || category || photos.length
+        );
+
+        if (!draftReady || !hasContent || photosUploading || loading) return;
+
+        const payload = {
+            data: {
+                title,
+                description,
+                price,
+                category,
+                city,
+                condition,
+                is_negotiable: isNegotiable,
+                category_filter_values: categoryFilterValues,
+            },
+            staged_image_ids: stagedPhotoIds,
+        };
+
+        const timeout = window.setTimeout(async () => {
+            try {
+                await clientApiPut("/listings/draft/", payload);
+                setDraftMessage("Draft saved automatically.");
+            } catch (err: any) {
+                if (err?.message !== "__AUTH__") {
+                    setError(err.message || "Failed to save draft.");
+                }
+            }
+        }, 1200);
+
+        return () => window.clearTimeout(timeout);
+    }, [
+        category,
+        categoryFilterValues,
+        city,
+        condition,
+        description,
+        draftReady,
+        isNegotiable,
+        loading,
+        photos.length,
+        photosUploading,
+        price,
+        stagedPhotoIds,
+        title,
+    ]);
+
     function validateForm() {
         if (!title.trim()) return "Please enter advert title.";
         if (!description.trim()) return "Please enter advert description.";
@@ -472,10 +641,6 @@ export default function PostAdForm() {
         if (!condition) return "Please select condition.";
         if (!photos.length) return "Please add at least one advert photo.";
         if (photosUploading) return "Please wait for your photos to finish uploading.";
-        if (stagedPhotoIds.length !== photos.length) {
-            return "One or more photos failed to upload. Remove them and choose them again.";
-        }
-
         return "";
     }
 
@@ -519,11 +684,9 @@ export default function PostAdForm() {
         }
 
         setError("");
-        setPhotos((current) => [...current, ...selectedFiles]);
-
         setPhotosUploading(true);
         setUploadProgress(`Uploading 1 of ${selectedFiles.length} new photos...`);
-        const uploadedIds: number[] = [];
+        const uploadedPhotos: DraftPhoto[] = [];
 
         try {
             for (let index = 0; index < selectedFiles.length; index += 1) {
@@ -535,20 +698,21 @@ export default function PostAdForm() {
                 formData.append("image", selectedFiles[index]);
                 const data = await clientApiPostForm("/listings/images/stage/", formData);
                 const stagedId = Number(data.id);
-                uploadedIds.push(stagedId);
-                setStagedPhotoIds((current) => [...current, stagedId]);
+                uploadedPhotos.push({
+                    id: stagedId,
+                    name: selectedFiles[index].name,
+                    url: data.image_url || "",
+                    file: selectedFiles[index],
+                });
             }
 
+            setPhotos((current) => [...current, ...uploadedPhotos]);
             setUploadProgress("Photos uploaded. Continue filling in the advert details.");
         } catch (err: any) {
             await Promise.allSettled(
-                uploadedIds.map((stagedId) =>
-                    clientApiDelete(`/listings/images/stage/${stagedId}/`)
+                uploadedPhotos.map((photo) =>
+                    clientApiDelete(`/listings/images/stage/${photo.id}/`)
                 )
-            );
-            setPhotos((current) => current.slice(0, current.length - selectedFiles.length));
-            setStagedPhotoIds((current) =>
-                current.filter((stagedId) => !uploadedIds.includes(stagedId))
             );
             setError(err.message || "A photo failed to upload.");
             setUploadProgress("Photo upload failed. Please choose those photos again.");
@@ -558,7 +722,7 @@ export default function PostAdForm() {
     }
 
     async function removePhoto(index: number) {
-        const stagedId = stagedPhotoIds[index];
+        const stagedId = photos[index]?.id;
 
         if (stagedId) {
             try {
@@ -570,7 +734,6 @@ export default function PostAdForm() {
         }
 
         setPhotos((current) => current.filter((_, itemIndex) => itemIndex !== index));
-        setStagedPhotoIds((current) => current.filter((_, itemIndex) => itemIndex !== index));
     }
 
     function handlePreview(event: FormEvent<HTMLFormElement>) {
@@ -612,9 +775,11 @@ export default function PostAdForm() {
             const listingId = String(getCreatedListingId(data));
 
             if (!listingId) {
-                throw new Error("Advert was created, but its listing ID was not returned.");
+                throw new Error("Advert was created, but its ad ID was not returned.");
             }
 
+            setDraftReady(false);
+            await clientApiDelete("/listings/draft/").catch(() => undefined);
             setUploadProgress("Advert submitted successfully.");
             router.push(`/my-ads/${listingId}`);
         } catch (err: any) {
@@ -654,7 +819,7 @@ export default function PostAdForm() {
                         <div className="grid grid-cols-2 gap-2 bg-slate-100 p-2 md:grid-cols-4">
                             {photoPreviews.map((photo, index) => (
                                 <div
-                                    key={`${photo.file.name}-${photo.file.lastModified}-${index}`}
+                                    key={`${photo.id}-${index}`}
                                     className="relative aspect-[4/3] overflow-hidden rounded-[18px] bg-white"
                                 >
                                     <img
@@ -783,6 +948,13 @@ export default function PostAdForm() {
     return (
         <form onSubmit={handlePreview} className="flex flex-col gap-6">
             {error && <ErrorBox message={error} />}
+
+            {draftMessage && (
+                <div className="order-0 flex items-center gap-3 rounded-[20px] bg-green-50 px-4 py-3 text-sm font-black text-green-700 ring-1 ring-green-100">
+                    <FontAwesomeIcon icon={faCircleCheck} className="h-4 w-4" />
+                    {draftMessage}
+                </div>
+            )}
 
             <FormCard
                 className="order-1"
@@ -1065,7 +1237,7 @@ export default function PostAdForm() {
                     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-5">
                         {photoPreviews.map((photo, index) => (
                             <div
-                                key={`${photo.file.name}-${photo.file.lastModified}-${index}`}
+                                key={`${photo.id}-${index}`}
                                 className="group relative aspect-square overflow-hidden rounded-[20px] bg-slate-100 ring-1 ring-slate-200"
                             >
                                 <img
@@ -1082,7 +1254,7 @@ export default function PostAdForm() {
                                     type="button"
                                     onClick={() => removePhoto(index)}
                                     disabled={photosUploading}
-                                    aria-label={`Remove ${photo.file.name}`}
+                                    aria-label={`Remove ${photo.name}`}
                                     className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-slate-950/80 text-white shadow-sm transition hover:bg-red-600"
                                 >
                                     <FontAwesomeIcon icon={faXmark} className="h-4 w-4" />
@@ -1113,13 +1285,24 @@ export default function PostAdForm() {
                 </p>
             </div>
 
-            <button
-                type="submit"
-                className="order-7 inline-flex h-12 w-full items-center justify-center gap-2 rounded-[18px] bg-orange-500 px-5 text-sm font-black text-white hover:bg-orange-600"
-            >
-                Preview Advert
-                <FontAwesomeIcon icon={faArrowRight} className="h-4 w-4" />
-            </button>
+            <div className="order-7 grid gap-3 sm:grid-cols-[auto_1fr]">
+                <button
+                    type="button"
+                    onClick={saveDraft}
+                    disabled={draftSaving || photosUploading}
+                    className="inline-flex h-12 items-center justify-center gap-2 rounded-[18px] bg-white px-5 text-sm font-black text-slate-700 ring-1 ring-slate-200 hover:bg-slate-50 disabled:opacity-60"
+                >
+                    <FontAwesomeIcon icon={faFileLines} className="h-4 w-4 text-orange-500" />
+                    {draftSaving ? "Saving draft..." : "Save Draft"}
+                </button>
+                <button
+                    type="submit"
+                    className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-[18px] bg-orange-500 px-5 text-sm font-black text-white hover:bg-orange-600"
+                >
+                    Preview Advert
+                    <FontAwesomeIcon icon={faArrowRight} className="h-4 w-4" />
+                </button>
+            </div>
         </form>
     );
 }

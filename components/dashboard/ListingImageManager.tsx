@@ -98,14 +98,14 @@ export default function ListingImageManager({
 
             if (!foundListing) {
                 throw new Error(
-                    "This listing was not found in your seller listings. Make sure you are logged in as the owner."
+                    "This ad was not found in your seller ads. Make sure you are logged in as the owner."
                 );
             }
 
             setImages(getImages(foundListing));
         } catch (error: any) {
             setImages([]);
-            setError(error.message || "Failed to load listing images.");
+            setError(error.message || "Failed to load ad images.");
         } finally {
             setLoading(false);
         }
@@ -185,7 +185,7 @@ export default function ListingImageManager({
             await loadListing({ keepMessages: true });
 
             setSuccess(
-                "Images uploaded successfully. You can upload more images, edit the advert, or return to your listings."
+                "Images uploaded successfully. You can upload more images, edit the advert, or return to your ads."
             );
             setTimeout(() => {
                 router.push("/my-ads");
@@ -248,7 +248,7 @@ export default function ListingImageManager({
                 </p>
 
                 <h2 className="mt-2 text-2xl font-bold text-slate-900">
-                    Upload listing images
+                    Upload ad images
                 </h2>
 
                 <p className="mt-2 text-sm text-slate-600">
@@ -274,7 +274,7 @@ export default function ListingImageManager({
                             href="/my-ads"
                             className="rounded-xl bg-green-600 px-5 py-3 text-center text-sm font-semibold text-white hover:bg-green-700"
                         >
-                            Go to My Listings
+                            Go to My Ads
                         </a>
 
                         <a
@@ -369,7 +369,7 @@ export default function ListingImageManager({
                                     {image.url ? (
                                         <img
                                             src={image.url}
-                                            alt={`Listing image ${index + 1}`}
+                                            alt={`Ad image ${index + 1}`}
                                             className="h-full w-full object-cover"
                                         />
                                     ) : (

@@ -15,7 +15,7 @@ const footerGroups = [
     {
         title: "Marketplace",
         links: [
-            { label: "Browse adverts", href: "/listings" },
+            { label: "Browse adverts", href: "/ads" },
             { label: "Explore categories", href: "/categories" },
             { label: "Meet sellers", href: "/sellers" },
             { label: "Post an advert", href: "/post-ad" },
@@ -105,7 +105,7 @@ export default function QotMarketplaceFooter() {
                                 Post an advert
                             </Link>
                             <Link
-                                href="/listings"
+                                href="/ads"
                                 className="inline-flex items-center justify-center rounded-[16px] bg-white/15 px-6 py-3.5 text-sm font-black text-white ring-1 ring-white/30 backdrop-blur transition hover:bg-white hover:text-orange-600"
                             >
                                 Browse marketplace

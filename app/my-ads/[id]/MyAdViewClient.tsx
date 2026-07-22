@@ -538,7 +538,7 @@ function MyAdViewContent({ id }: { id: string }) {
                                     </a>
 
                                     <a
-                                        href={`/listings/${id}`}
+                                        href={`/ads/${id}`}
                                         className="rounded-2xl bg-slate-50 px-5 py-3 text-center text-sm font-black text-slate-700 hover:bg-orange-50 hover:text-orange-600"
                                     >
                                         View Public Page

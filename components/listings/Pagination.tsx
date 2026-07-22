@@ -24,7 +24,7 @@ function buildPageUrl(
         params.delete("page");
     }
 
-    return `/listings?${params.toString()}`;
+    return `/ads?${params.toString()}`;
 }
 
 export default function Pagination({

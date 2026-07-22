@@ -84,10 +84,10 @@ export default function AdminDashboardClient() {
             tone: "blue" as const,
         },
         {
-            label: "All listings",
+            label: "All ads",
             value: number(getValue(dashboard, ["total_listings", "listings_count"])),
             detail: `${number(getValue(dashboard, ["active_listings"]))} active adverts`,
-            href: "/admin/listings",
+            href: "/admin/ads",
             icon: faStore,
             tone: "orange" as const,
         },
@@ -111,16 +111,16 @@ export default function AdminDashboardClient() {
 
     const queueItems = [
         {
-            label: "Pending listings",
+            label: "Pending ads",
             value: getValue(dashboard, ["pending_listings"]),
-            href: "/admin/listings",
+            href: "/admin/ads",
             icon: faClock,
             tone: "bg-orange-50 text-orange-600",
         },
         {
-            label: "Rejected listings",
+            label: "Rejected ads",
             value: getValue(dashboard, ["rejected_listings"]),
-            href: "/admin/listings",
+            href: "/admin/ads",
             icon: faTriangleExclamation,
             tone: "bg-red-50 text-red-600",
         },
@@ -145,7 +145,7 @@ export default function AdminDashboardClient() {
             <AdminPageHeader
                 eyebrow="Command centre"
                 title="Platform overview"
-                description="Monitor QOT activity, moderation queues, users, listings, and revenue from one focused workspace."
+                description="Monitor QOT activity, moderation queues, users, ads, and revenue from one focused workspace."
                 action={<AdminRefreshButton onClick={loadDashboard} loading={loading} />}
             />
 
@@ -243,7 +243,7 @@ export default function AdminDashboardClient() {
                         <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
                             <div>
                                 <p className="text-[10px] font-black uppercase tracking-[0.16em] text-orange-600">
-                                    Listing health
+                                    Ad health
                                 </p>
                                 <h3 className="mt-1 text-xl font-black text-slate-950">
                                     Marketplace status

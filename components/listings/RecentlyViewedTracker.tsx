@@ -23,7 +23,7 @@ function getImage(listing: any) {
 function getItem(listing: any) {
     return {
         id: listing?.id,
-        title: listing?.title || "Untitled listing",
+        title: listing?.title || "Untitled ad",
         price: listing?.price || "",
         image: getImage(listing),
         category: listing?.category?.name || listing?.category_name || "",

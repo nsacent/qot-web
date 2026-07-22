@@ -12,25 +12,27 @@ import {
     faTag,
     faUser,
 } from "@/lib/faIcons";
-import { getCurrentUser, registerUser } from "@/lib/sessionClient";
+import {
+    getCurrentUser,
+    registerUser,
+    sendVerification,
+} from "@/lib/sessionClient";
 import QotLoader from "@/components/common/QotLoader";
 import GoogleSignInButton from "@/components/auth/GoogleSignInButton";
 import QotLogo from "@/components/brand/QotLogo";
-
-function getUgandanNationalNumber(value: string) {
-    const digits = value.replace(/\D/g, "");
-    const nationalNumber = digits.startsWith("256")
-        ? digits.slice(3)
-        : digits.startsWith("0")
-            ? digits.slice(1)
-            : digits;
-
-    return nationalNumber.slice(0, 9);
-}
+import {
+    getUgandanNationalNumber,
+    isValidUgandanMobile,
+    toUgandanPhone,
+} from "@/lib/ugandanPhone";
 
 function RegisterForm() {
     const searchParams = useSearchParams();
-    const nextUrl = searchParams.get("next") || "/";
+    const requestedNextUrl = searchParams.get("next") || "/";
+    const nextUrl =
+        requestedNextUrl.startsWith("/") && !requestedNextUrl.startsWith("//")
+            ? requestedNextUrl
+            : "/";
 
     const [fullName, setFullName] = useState("");
     const [phone, setPhone] = useState("");
@@ -77,7 +79,7 @@ function RegisterForm() {
             return;
         }
 
-        if (!/^7\d{8}$/.test(phone)) {
+        if (!isValidUgandanMobile(phone)) {
             setError("Enter a valid Ugandan mobile number, such as +256 700 000 001.");
             setLoading(false);
             return;
@@ -86,7 +88,7 @@ function RegisterForm() {
         try {
             await registerUser({
                 full_name: fullName.trim(),
-                phone: `+256${phone}`,
+                phone: toUgandanPhone(phone),
                 email: email.trim(),
                 password,
                 password_confirm: confirmPassword,
@@ -101,9 +103,28 @@ function RegisterForm() {
 
                 window.dispatchEvent(new Event("storage"));
 
-                window.location.href = nextUrl;
+                let sent = false;
+
+                try {
+                    await sendVerification("phone");
+                    sent = true;
+                } catch {
+                    // The account remains valid and the user can retry on the next screen.
+                }
+
+                const verificationParams = new URLSearchParams({
+                    next: nextUrl,
+                });
+
+                if (sent) {
+                    verificationParams.set("sent", "1");
+                }
+
+                window.location.href = `/account/verification?${verificationParams.toString()}`;
             } catch {
-                window.location.href = "/login?registered=1&next=/";
+                window.location.href = `/login?registered=1&next=${encodeURIComponent(
+                    "/account/verification"
+                )}`;
             }
         } catch (err: any) {
             setError(err.message || "Registration failed. Please try again.");

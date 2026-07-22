@@ -1,12 +1,14 @@
 "use client";
 
 import { useState } from "react";
-
-const STORAGE_KEY = "qot_saved_searches";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faBookmark, faCheck } from "@fortawesome/free-solid-svg-icons";
 
 type SaveSearchButtonProps = {
     searchParams?: Record<string, any>;
 };
+
+const OMITTED_PARAMS = new Set(["page"]);
 
 function getCurrentSearchParams() {
     if (typeof window === "undefined") return {};
@@ -15,120 +17,148 @@ function getCurrentSearchParams() {
     const result: Record<string, string> = {};
 
     params.forEach((value, key) => {
-        if (value) result[key] = value;
+        if (value && !OMITTED_PARAMS.has(key)) result[key] = value;
     });
 
     return result;
 }
 
-function buildSearchUrl(params: Record<string, any>) {
-    const query = new URLSearchParams();
+function cleanSearchParams(params: Record<string, any>) {
+    const cleanParams: Record<string, string> = {};
 
-    Object.entries(params).forEach(([key, value]) => {
-        if (value !== undefined && value !== null && String(value).trim() !== "") {
-            query.set(key, String(value));
-        }
+    Object.entries(params || {}).forEach(([key, value]) => {
+        if (OMITTED_PARAMS.has(key)) return;
+        if (value === undefined || value === null || String(value).trim() === "") return;
+        cleanParams[key] = String(value).trim();
     });
 
-    const queryString = query.toString();
-
-    return queryString ? `/listings?${queryString}` : "/listings";
+    return cleanParams;
 }
 
-function getSearchTitle(params: Record<string, any>) {
-    const parts: string[] = [];
+function getParamLabel(key: string) {
+    const labels: Record<string, string> = {
+        q: "Search",
+        category: "Category",
+        city: "City",
+        region: "Region",
+        brand: "Brand",
+        condition: "Condition",
+        ram: "RAM",
+        bedrooms: "Bedrooms",
+        min_price: "Min price",
+        max_price: "Max price",
+        sort: "Sort",
+    };
 
-    if (params.q) parts.push(`Search: ${params.q}`);
-    if (params.category) parts.push(`Category: ${params.category}`);
-    if (params.city) parts.push(`City: ${params.city}`);
-    if (params.region) parts.push(`Region: ${params.region}`);
-    if (params.brand) parts.push(`Brand: ${params.brand}`);
-    if (params.condition) parts.push(`Condition: ${params.condition}`);
-    if (params.ram) parts.push(`RAM: ${params.ram}`);
-    if (params.bedrooms) parts.push(`${params.bedrooms} bedroom(s)`);
-
-    if (params.min_price || params.max_price) {
-        parts.push(
-            `Price: ${params.min_price || "0"} - ${params.max_price || "Any"}`
-        );
-    }
-
-    if (parts.length === 0) return "All listings";
-
-    return parts.join(" · ");
+    return labels[key] || key.replaceAll("_", " ");
 }
 
-function getSavedSearches() {
-    try {
-        const saved = localStorage.getItem(STORAGE_KEY);
-        return saved ? JSON.parse(saved) : [];
-    } catch {
-        return [];
+function getSearchTitle(params: Record<string, string>) {
+    const parts = Object.entries(params)
+        .filter(([key]) => key !== "sort")
+        .map(([key, value]) => `${getParamLabel(key)}: ${value}`);
+
+    return (parts.length ? parts.join(" · ") : "All ads").slice(0, 255);
+}
+
+function getErrorMessage(data: any) {
+    if (typeof data?.detail === "string") return data.detail;
+    if (typeof data?.message === "string") return data.message;
+
+    for (const value of Object.values(data || {})) {
+        if (Array.isArray(value) && value[0]) return String(value[0]);
+        if (typeof value === "string") return value;
     }
+
+    return "Failed to save this search.";
 }
 
 export default function SaveSearchButton({
     searchParams = {},
 }: SaveSearchButtonProps) {
-    const [saved, setSaved] = useState(false);
+    const [status, setStatus] = useState<"idle" | "saving" | "saved">("idle");
+    const [error, setError] = useState("");
 
-    function saveSearch() {
-        const params =
-            Object.keys(searchParams || {}).length > 0
-                ? searchParams
-                : getCurrentSearchParams();
+    async function saveSearch() {
+        if (status === "saving" || status === "saved") return;
 
-        const cleanParams: Record<string, string> = {};
+        const rawParams = Object.keys(searchParams).length
+            ? searchParams
+            : getCurrentSearchParams();
+        const params = cleanSearchParams(rawParams);
+        const query = params.q || "";
+        const filters = Object.fromEntries(
+            Object.entries(params).filter(([key]) => key !== "q")
+        );
 
-        Object.entries(params).forEach(([key, value]) => {
-            if (value !== undefined && value !== null && String(value).trim() !== "") {
-                cleanParams[key] = String(value);
+        setStatus("saving");
+        setError("");
+
+        try {
+            const response = await fetch("/api/proxy/searches/saved/", {
+                method: "POST",
+                credentials: "include",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    name: getSearchTitle(params),
+                    query,
+                    filters,
+                    notify_user: false,
+                }),
+            });
+            const data = await response.json().catch(() => ({}));
+
+            if (response.status === 401 || response.status === 403) {
+                const next = encodeURIComponent(
+                    window.location.pathname + window.location.search
+                );
+                window.location.href = `/login?next=${next}`;
+                return;
             }
-        });
 
-        const url = buildSearchUrl(cleanParams);
-        const title = getSearchTitle(cleanParams);
+            if (!response.ok) {
+                const message = getErrorMessage(data);
 
-        const existing = getSavedSearches();
+                if (message.toLowerCase().includes("already saved")) {
+                    setStatus("saved");
+                    return;
+                }
 
-        const alreadyExists = existing.some((item: any) => item.url === url);
+                throw new Error(message);
+            }
 
-        if (alreadyExists) {
-            setSaved(true);
-
-            setTimeout(() => {
-                setSaved(false);
-            }, 1800);
-
-            return;
+            setStatus("saved");
+            window.dispatchEvent(new Event("qot_saved_searches_updated"));
+        } catch (err: any) {
+            setStatus("idle");
+            setError(err.message || "Failed to save this search.");
         }
-
-        const item = {
-            id: Date.now(),
-            title,
-            url,
-            params: cleanParams,
-            created_at: new Date().toISOString(),
-        };
-
-        const updated = [item, ...existing].slice(0, 20);
-
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-
-        setSaved(true);
-
-        setTimeout(() => {
-            setSaved(false);
-        }, 1800);
     }
 
     return (
-        <button
-            type="button"
-            onClick={saveSearch}
-            className="rounded-xl border bg-white px-5 py-3 text-sm font-semibold text-slate-900 hover:bg-slate-50"
-        >
-            {saved ? "Search Saved ✓" : "Save Search"}
-        </button>
+        <div className="flex flex-col items-start gap-1.5 md:items-end">
+            <button
+                type="button"
+                onClick={saveSearch}
+                disabled={status === "saving"}
+                className={`inline-flex h-11 items-center justify-center gap-2 rounded-2xl px-4 text-sm font-black transition disabled:cursor-wait disabled:opacity-70 ${
+                    status === "saved"
+                        ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100"
+                        : "bg-slate-950 text-white shadow-[0_8px_20px_rgba(15,23,42,0.12)] hover:bg-slate-800"
+                }`}
+            >
+                <FontAwesomeIcon
+                    icon={status === "saved" ? faCheck : faBookmark}
+                    className="h-3.5 w-3.5"
+                />
+                {status === "saving"
+                    ? "Saving..."
+                    : status === "saved"
+                      ? "Search saved"
+                      : "Save search"}
+            </button>
+
+            {error && <p className="max-w-xs text-xs font-bold text-red-600">{error}</p>}
+        </div>
     );
 }

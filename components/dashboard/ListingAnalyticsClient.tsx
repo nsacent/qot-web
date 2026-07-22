@@ -12,7 +12,7 @@ async function apiGet(path: string) {
 
     if (!response.ok) {
         throw new Error(
-            data?.detail || data?.message || "Failed to load listing analytics."
+            data?.detail || data?.message || "Failed to load ad analytics."
         );
     }
 
@@ -76,7 +76,7 @@ function getImage(listing: any) {
 }
 
 function getTitle(listing: any) {
-    return listing?.title || "Untitled listing";
+    return listing?.title || "Untitled ad";
 }
 
 function getPrice(listing: any) {
@@ -89,7 +89,7 @@ function getLocation(listing: any) {
 }
 
 function getCategory(listing: any) {
-    return listing?.category?.name || listing?.category_name || "Listing";
+    return listing?.category?.name || listing?.category_name || "Ad";
 }
 
 function getViews(analytics: any, listing: any) {
@@ -129,7 +129,7 @@ function cleanErrorMessage(error: any) {
     const message = String(error?.message || "").trim();
 
     if (!message || message === "null" || message === "undefined") {
-        return "Failed to load listing analytics.";
+        return "Failed to load ad analytics.";
     }
 
     return message;
@@ -164,7 +164,7 @@ export default function ListingAnalyticsClient({
             );
 
             if (!foundListing) {
-                throw new Error("This advert was not found among your seller listings.");
+                throw new Error("This advert was not found among your seller ads.");
             }
 
             let analyticsData: any = null;
@@ -211,7 +211,7 @@ export default function ListingAnalyticsClient({
                             See how this advert performs
                         </h1>
                         <p className="mt-3 max-w-2xl text-sm font-semibold leading-6 text-slate-300 sm:text-base">
-                            Follow buyer interest, engagement, and activity for one listing in detail.
+                            Follow buyer interest, engagement, and activity for one ad in detail.
                         </p>
                     </div>
 
@@ -276,7 +276,7 @@ export default function ListingAnalyticsClient({
 
                                 <div className="mt-5 grid gap-3">
                                     <a
-                                        href={`/listings/${listingId}`}
+                                        href={`/ads/${listingId}`}
                                         className="rounded-xl bg-slate-50 px-4 py-3 text-center text-sm font-black text-slate-700 ring-1 ring-slate-200 hover:bg-slate-100"
                                     >
                                         View Public Advert

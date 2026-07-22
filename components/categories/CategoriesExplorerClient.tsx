@@ -280,7 +280,7 @@ export default function CategoriesExplorerClient({
                                 {categories.slice(0, 4).map((category) => (
                                     <Link
                                         key={category.id || category.slug}
-                                        href={`/listings?category=${encodeURIComponent(getCategorySlug(category))}`}
+                                        href={`/ads?category=${encodeURIComponent(getCategorySlug(category))}`}
                                         className="rounded-full bg-orange-50 px-3 py-1.5 text-[11px] font-black text-orange-700 ring-1 ring-orange-100 transition hover:bg-orange-500 hover:text-white"
                                     >
                                         {getCategoryName(category)}
@@ -335,7 +335,7 @@ export default function CategoriesExplorerClient({
                                             </div>
                                         </div>
 
-                                        <Link href={`/listings?category=${encodeURIComponent(slug)}`} className="mt-4 block">
+                                        <Link href={`/ads?category=${encodeURIComponent(slug)}`} className="mt-4 block">
                                             <h3 className="text-xl font-black tracking-tight text-slate-950 transition group-hover:text-orange-600">
                                                 {getCategoryName(category)}
                                             </h3>
@@ -349,7 +349,7 @@ export default function CategoriesExplorerClient({
                                                 {children.slice(0, query ? 6 : 4).map((child) => (
                                                     <Link
                                                         key={child.id || child.slug}
-                                                        href={`/listings?category=${encodeURIComponent(getCategorySlug(child))}`}
+                                                        href={`/ads?category=${encodeURIComponent(getCategorySlug(child))}`}
                                                         className="inline-flex items-center gap-1.5 rounded-full bg-slate-50 px-2.5 py-1.5 text-[11px] font-bold text-slate-600 ring-1 ring-slate-200 transition hover:bg-orange-50 hover:text-orange-700 hover:ring-orange-200"
                                                     >
                                                         {getCategoryName(child)}
@@ -371,7 +371,7 @@ export default function CategoriesExplorerClient({
                                         )}
 
                                         <Link
-                                            href={`/listings?category=${encodeURIComponent(slug)}`}
+                                            href={`/ads?category=${encodeURIComponent(slug)}`}
                                             className={`mt-auto flex items-center justify-between border-t border-slate-100 pt-4 text-xs font-black ${visual.accent}`}
                                         >
                                             Browse {getCategoryName(category)}
@@ -409,7 +409,7 @@ export default function CategoriesExplorerClient({
                             Please check back shortly, or explore all available marketplace adverts now.
                         </p>
                         <Link
-                            href="/listings"
+                            href="/ads"
                             className="mt-6 inline-flex rounded-[16px] bg-orange-500 px-6 py-3 text-sm font-black text-white shadow-[0_12px_26px_rgba(249,115,22,0.24)] hover:bg-orange-600"
                         >
                             Browse all adverts
@@ -442,7 +442,7 @@ export default function CategoriesExplorerClient({
                             Post an advert
                         </Link>
                         <Link
-                            href="/listings"
+                            href="/ads"
                             className="rounded-[16px] bg-white/15 px-6 py-3.5 text-center text-sm font-black text-white ring-1 ring-white/30 backdrop-blur transition hover:bg-white hover:text-orange-600"
                         >
                             Browse all adverts

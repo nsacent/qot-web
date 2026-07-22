@@ -16,7 +16,7 @@ function getListingId(listing: any, fallback?: string | number) {
 }
 
 function getListingTitle(listing: any, fallback?: string) {
-    return fallback || listing?.title || listing?.name || "QOT listing";
+    return fallback || listing?.title || listing?.name || "QOT ad";
 }
 
 export default function ListingShareActions({
@@ -33,7 +33,7 @@ export default function ListingShareActions({
     const shareUrl = useMemo(() => {
         if (typeof window === "undefined") return "";
 
-        return `${window.location.origin}/listings/${id}`;
+        return `${window.location.origin}/ads/${id}`;
     }, [id]);
 
     async function handleCopyLink() {

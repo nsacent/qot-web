@@ -42,7 +42,7 @@ function FeaturedAdMiniCard({ ad }: { ad: HeroListing }) {
 
     return (
         <Link
-            href={id ? `/listings/${id}` : "/listings"}
+            href={id ? `/ads/${id}` : "/ads"}
             className="group flex snap-start gap-3 border-t border-slate-100 py-2.5 first:border-t-0"
         >
             <div className="relative h-12 w-14 shrink-0 overflow-hidden rounded-lg bg-slate-100">
@@ -89,7 +89,7 @@ export default function HomeHero({ featuredAds = [] }: HomeHeroProps) {
                     </h1>
                     <div className="mt-5 flex flex-col gap-3 sm:flex-row">
                         <Link
-                            href="/listings"
+                            href="/ads"
                             className="rounded-2xl bg-orange-500 px-7 py-3.5 text-center text-sm font-black text-white shadow-sm hover:bg-orange-600"
                         >
                             Browse Ads →
@@ -123,7 +123,7 @@ export default function HomeHero({ featuredAds = [] }: HomeHeroProps) {
                             </span>
 
                             <Link
-                                href="/listings?sort=featured"
+                                href="/ads?sort=featured"
                                 className="text-xs font-black text-orange-600 hover:text-orange-700"
                             >
                                 View all
@@ -132,7 +132,7 @@ export default function HomeHero({ featuredAds = [] }: HomeHeroProps) {
 
                         {featuredAds.slice(0, 5).length > 0 ? (
                             <div
-                                aria-label="Featured listings"
+                                aria-label="Featured ads"
                                 className="mt-1 flex-1 snap-y snap-mandatory overflow-y-auto overscroll-contain pr-1 [scrollbar-color:#fdba74_transparent] [scrollbar-width:thin]"
                             >
                                 {featuredAds

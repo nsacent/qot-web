@@ -13,6 +13,7 @@ import {
     faTriangleExclamation,
 } from "@fortawesome/free-solid-svg-icons";
 import { apiGet, apiPost, buildQuery } from "@/lib/apiClient";
+import { REPORT_REASONS } from "@/lib/reportReasons";
 import AdminActionModal, {
     type AdminModalField,
 } from "@/components/admin/AdminActionModal";
@@ -27,14 +28,7 @@ import {
 
 const reportReasons = [
     { value: "", label: "All reasons" },
-    { value: "scam", label: "Scam or fraud" },
-    { value: "fake", label: "Fake or misleading advert" },
-    { value: "wrong_price", label: "Wrong or misleading price" },
-    { value: "sold", label: "Item already sold" },
-    { value: "suspicious_seller", label: "Suspicious seller" },
-    { value: "duplicate", label: "Duplicate advert" },
-    { value: "offensive", label: "Offensive content" },
-    { value: "other", label: "Other issue" },
+    ...REPORT_REASONS,
 ];
 
 type ReportModal =
@@ -69,7 +63,7 @@ function getListingId(report: any) {
 
 function getListingTitle(report: any) {
     const listing = getListing(report);
-    return listing?.title || report?.listing_title || report?.advert_title || "Reported listing";
+    return listing?.title || report?.listing_title || report?.advert_title || "Reported ad";
 }
 
 function getReporter(report: any) {
@@ -188,7 +182,7 @@ export default function ReportModerationClient() {
         setModalValues({
             reason:
                 type === "reject"
-                    ? "Reported listing contains suspicious or misleading content."
+                    ? "Reported ad contains suspicious or misleading content."
                     : "",
         });
         setModalError("");
@@ -211,10 +205,10 @@ export default function ReportModerationClient() {
                 await apiPost(`/moderation/reports/${modal.id}/reject-listing/`, {
                     rejection_reason: modalValues.reason.trim(),
                 });
-                setSuccess("Listing rejected successfully.");
+                setSuccess("Ad rejected successfully.");
             } else {
                 await apiPost(`/moderation/reports/${modal.id}/delete-listing/`);
-                setSuccess("Listing deleted successfully.");
+                setSuccess("Ad deleted successfully.");
             }
 
             setModal(null);
@@ -280,7 +274,7 @@ export default function ReportModerationClient() {
                         <input
                             value={search}
                             onChange={(event) => setSearch(event.target.value)}
-                            placeholder="Search listing, reporter, or description…"
+                            placeholder="Search ad, reporter, or description…"
                             className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 pl-10 pr-4 text-sm font-semibold outline-none focus:border-orange-400 focus:bg-white"
                         />
                     </label>
@@ -348,8 +342,8 @@ export default function ReportModerationClient() {
                                         </p>
 
                                         {listingId && (
-                                            <a href={`/listings/${listingId}`} target="_blank" rel="noreferrer" className="mt-4 inline-flex items-center gap-2 text-xs font-black text-orange-600 hover:text-orange-700">
-                                                Open reported listing
+                                            <a href={`/ads/${listingId}`} target="_blank" rel="noreferrer" className="mt-4 inline-flex items-center gap-2 text-xs font-black text-orange-600 hover:text-orange-700">
+                                                Open reported ad
                                                 <FontAwesomeIcon icon={faArrowUpRightFromSquare} className="h-3 w-3" />
                                             </a>
                                         )}
@@ -385,15 +379,15 @@ export default function ReportModerationClient() {
                 <AdminActionModal
                     title={
                         modal.type === "reject"
-                            ? "Reject reported listing"
-                            : "Delete reported listing?"
+                            ? "Reject reported ad"
+                            : "Delete reported ad?"
                     }
                     description={
                         modal.type === "reject"
                             ? `Add a clear moderation reason before rejecting “${modal.title}”.`
                             : `“${modal.title}” will be removed from QOT. This is a serious moderation action.`
                     }
-                    confirmLabel={modal.type === "reject" ? "Reject listing" : "Delete listing"}
+                    confirmLabel={modal.type === "reject" ? "Reject ad" : "Delete ad"}
                     tone="red"
                     fields={modalFields}
                     values={modalValues}

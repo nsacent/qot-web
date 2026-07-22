@@ -52,7 +52,7 @@ function buildMoreLink(category: string, city: string) {
     if (category) query.set("category", category);
     if (city) query.set("city", city);
 
-    return query.toString() ? `/listings?${query.toString()}` : "/listings";
+    return query.toString() ? `/ads?${query.toString()}` : "/ads";
 }
 
 async function fetchSimilarListings(listing: any) {
@@ -145,7 +145,7 @@ export default async function SimilarListings({ listing }: SimilarListingsProps)
                     </h2>
 
                     <p className="mt-2 max-w-2xl text-sm font-bold leading-6 text-slate-500">
-                        More ads related to this listing, based on category and location.
+                        More ads related to this ad, based on category and location.
                     </p>
                 </div>
 

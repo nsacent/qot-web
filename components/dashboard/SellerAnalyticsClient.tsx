@@ -50,7 +50,7 @@ function getListingId(listing: any) {
 }
 
 function getTitle(listing: any) {
-    return listing?.title || listing?.listing?.title || "Untitled listing";
+    return listing?.title || listing?.listing?.title || "Untitled ad";
 }
 
 function getImage(listing: any) {
@@ -175,7 +175,7 @@ export default function SellerAnalyticsClient() {
     );
 
     const stats = [
-        { label: "Total Listings", value: listings.length, helper: "All your adverts", tone: "from-orange-500 to-orange-600 text-white" },
+        { label: "Total Ads", value: listings.length, helper: "All your adverts", tone: "from-orange-500 to-orange-600 text-white" },
         { label: "Total Views", value: totalViews, helper: "Buyer visits", tone: "from-blue-50 to-cyan-100 text-blue-800" },
         { label: "Total Saves", value: totalSaves, helper: "Buyer interest", tone: "from-rose-50 to-pink-100 text-rose-800" },
         { label: "Messages", value: totalMessages, helper: "Buyer enquiries", tone: "from-violet-50 to-purple-100 text-violet-800" },
@@ -192,7 +192,7 @@ export default function SellerAnalyticsClient() {
                         <p className="mt-3 max-w-2xl text-sm font-semibold leading-6 text-slate-300 sm:text-base">Compare advert performance and turn buyer activity into better selling decisions.</p>
                     </div>
 
-                    <a href="/my-ads" className="rounded-[16px] bg-white/10 px-5 py-3 text-center text-sm font-black text-white ring-1 ring-white/15 hover:bg-white/15">My Listings</a>
+                    <a href="/my-ads" className="rounded-[16px] bg-white/10 px-5 py-3 text-center text-sm font-black text-white ring-1 ring-white/15 hover:bg-white/15">My Ads</a>
                 </div>
             </div>
 
@@ -226,7 +226,7 @@ export default function SellerAnalyticsClient() {
                     <div className="mt-8 rounded-[30px] bg-white p-6 shadow-[0_18px_55px_rgba(15,23,42,0.08)] ring-1 ring-black/5 sm:p-7">
                         <div className="mb-5">
                             <p className="text-sm font-semibold uppercase tracking-wide text-orange-600">
-                                Listing Performance
+                                Ad Performance
                             </p>
                             <h2 className="mt-2 text-2xl font-bold text-slate-900">
                                 Performance by advert
@@ -235,7 +235,7 @@ export default function SellerAnalyticsClient() {
 
                         {listings.length === 0 ? (
                             <div className="rounded-2xl bg-slate-50 p-6 text-slate-600">
-                                No seller listings found.
+                                No seller ads found.
                             </div>
                         ) : (
                             <div className="grid gap-5">

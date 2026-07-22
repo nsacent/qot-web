@@ -222,7 +222,7 @@ export default function MessagesClient() {
                         Open an advert and message the seller. Your conversation will appear here.
                     </p>
                     <a
-                        href="/listings"
+                        href="/ads"
                         className="mt-5 inline-flex items-center gap-2 rounded-[14px] bg-orange-500 px-5 py-3 text-sm font-black text-white"
                     >
                         <FontAwesomeIcon icon={faMagnifyingGlass} className="h-4 w-4" />

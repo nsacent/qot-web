@@ -1,5 +1,5 @@
-import AdminListingsClient from "@/components/admin/AdminListingsClient";
+import { permanentRedirect } from "next/navigation";
 
-export default function AdminListingsPage() {
-    return <AdminListingsClient />;
+export default function LegacyAdminListingsRedirect() {
+    permanentRedirect("/admin/ads");
 }

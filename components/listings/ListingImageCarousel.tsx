@@ -11,7 +11,7 @@ type ListingImageCarouselProps = {
 
 export default function ListingImageCarousel({
     listing,
-    title = "Listing image",
+    title = "Ad image",
     className = "",
 }: ListingImageCarouselProps) {
     const [activeIndex, setActiveIndex] = useState(0);

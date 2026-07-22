@@ -343,7 +343,7 @@ export default function AdminListingEditClient({
             })
             .catch((requestError: unknown) => {
                 if (!cancelled) {
-                    setError(errorMessage(requestError, "Failed to load the listing editor."));
+                    setError(errorMessage(requestError, "Failed to load the ad editor."));
                 }
             })
             .finally(() => {
@@ -398,8 +398,8 @@ export default function AdminListingEditClient({
     }
 
     function validateForm() {
-        if (!form.title.trim()) return "Enter a listing title.";
-        if (!form.description.trim()) return "Enter a listing description.";
+        if (!form.title.trim()) return "Enter an ad title.";
+        if (!form.description.trim()) return "Enter an ad description.";
         if (!form.category) return "Select a category.";
         if (!form.city) return "Select a city.";
         if (!form.condition) return "Select the item condition.";
@@ -448,17 +448,17 @@ export default function AdminListingEditClient({
 
             setListing(updated);
             setForm(formFromListing(updated));
-            setMessage("Listing details updated successfully.");
+            setMessage("Ad details updated successfully.");
             window.scrollTo({ top: 0, behavior: "smooth" });
         } catch (requestError: unknown) {
-            setError(errorMessage(requestError, "Failed to update this listing."));
+            setError(errorMessage(requestError, "Failed to update this ad."));
         } finally {
             setSaving(false);
         }
     }
 
     if (loading) {
-        return <AdminLoadingState label="Loading listing editor" />;
+        return <AdminLoadingState label="Loading ad editor" />;
     }
 
     if (error && !listing) {
@@ -466,12 +466,12 @@ export default function AdminListingEditClient({
     }
 
     if (!listing) {
-        return <AdminErrorState message="This listing could not be found." />;
+        return <AdminErrorState message="This ad could not be found." />;
     }
 
     if (listing.status === "deleted") {
         return (
-            <AdminErrorState message="Deleted listings cannot be edited. Return to the listing detail page to review its moderation history." />
+            <AdminErrorState message="Deleted ads cannot be edited. Return to the ad detail page to review its moderation history." />
         );
     }
 
@@ -480,11 +480,11 @@ export default function AdminListingEditClient({
             <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                 <div>
                     <Link
-                        href={`/admin/listings/${listing.id}`}
+                        href={`/admin/ads/${listing.id}`}
                         className="inline-flex items-center gap-2 text-xs font-black text-slate-500 transition hover:text-orange-600"
                     >
                         <FontAwesomeIcon icon={faArrowLeft} className="h-3 w-3" />
-                        Back to listing review
+                        Back to ad review
                     </Link>
                     <p className="mt-4 text-[10px] font-black uppercase tracking-[0.18em] text-orange-600">
                         Admin content editor
@@ -493,12 +493,12 @@ export default function AdminListingEditClient({
                         Edit listing #{listing.id}
                     </h1>
                     <p className="mt-2 max-w-2xl text-sm font-medium leading-6 text-slate-500">
-                        Correct the seller’s listing content while preserving its current moderation status.
+                        Correct the seller’s ad content while preserving its current moderation status.
                     </p>
                 </div>
 
                 <Link
-                    href={`/listings/${listing.id}`}
+                    href={`/ads/${listing.id}`}
                     target="_blank"
                     className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-4 py-3 text-xs font-black text-slate-700 shadow-sm ring-1 ring-slate-200 transition hover:text-orange-600"
                 >
@@ -528,11 +528,11 @@ export default function AdminListingEditClient({
                 <div className="space-y-6">
                     <FormSection
                         eyebrow="Core content"
-                        title="Basic listing details"
+                        title="Basic ad details"
                         icon={faPenToSquare}
                     >
                         <label className="block">
-                            <FieldLabel label="Listing title" required />
+                            <FieldLabel label="Ad title" required />
                             <input
                                 value={form.title}
                                 onChange={(event) => updateForm("title", event.target.value)}
@@ -685,7 +685,7 @@ export default function AdminListingEditClient({
 
                     <FormSection
                         eyebrow="Category data"
-                        title="Listing specifications"
+                        title="Ad specifications"
                         icon={faTag}
                     >
                         {filtersLoading ? (
@@ -738,7 +738,7 @@ export default function AdminListingEditClient({
                         </div>
 
                         <p className="mt-4 text-xs font-semibold leading-5 text-slate-400">
-                            Saving changes will not approve, reject, feature, or delete this listing.
+                            Saving changes will not approve, reject, feature, or delete this ad.
                         </p>
 
                         <button
@@ -747,7 +747,7 @@ export default function AdminListingEditClient({
                             className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-orange-500 px-4 py-3.5 text-xs font-black text-white shadow-lg shadow-orange-950/20 transition hover:bg-orange-400 disabled:cursor-wait disabled:opacity-60"
                         >
                             <FontAwesomeIcon icon={faFloppyDisk} className="h-3.5 w-3.5" />
-                            {saving ? "Saving changes…" : "Save listing changes"}
+                            {saving ? "Saving changes…" : "Save ad changes"}
                         </button>
                     </section>
 

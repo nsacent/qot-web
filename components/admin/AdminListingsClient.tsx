@@ -133,7 +133,7 @@ export default function AdminListingsClient() {
             const data = await apiGet(buildEndpoint());
             setListings(getArray(data));
         } catch (error: any) {
-            setError(error.message || "Failed to load listings.");
+            setError(error.message || "Failed to load ads.");
         } finally {
             setLoading(false);
         }
@@ -152,7 +152,7 @@ export default function AdminListingsClient() {
             await callback();
             await loadListings();
         } catch (error: any) {
-            setActionError(error.message || "The listing action failed.");
+            setActionError(error.message || "The ad action failed.");
         } finally {
             setActionLoading("");
         }
@@ -171,7 +171,7 @@ export default function AdminListingsClient() {
         setModal({
             type,
             id: listing.id,
-            title: listing.title || "this listing",
+            title: listing.title || "this ad",
         });
         setModalValues(type === "feature" ? { days: "7" } : { reason: "" });
         setModalError("");
@@ -215,7 +215,7 @@ export default function AdminListingsClient() {
             setModal(null);
             await loadListings();
         } catch (error: any) {
-            setModalError(error.message || "The listing action failed.");
+            setModalError(error.message || "The ad action failed.");
         } finally {
             setActionLoading("");
         }
@@ -240,9 +240,9 @@ export default function AdminListingsClient() {
     let modalTone: "orange" | "green" | "red" = "orange";
 
     if (modal?.type === "reject") {
-        modalTitle = "Reject listing";
+        modalTitle = "Reject ad";
         modalDescription = `Explain why “${modal.title}” cannot be published. The seller may see this reason.`;
-        modalConfirmLabel = "Reject listing";
+        modalConfirmLabel = "Reject ad";
         modalTone = "red";
         modalFields = [
             {
@@ -254,9 +254,9 @@ export default function AdminListingsClient() {
             },
         ];
     } else if (modal?.type === "feature") {
-        modalTitle = "Feature listing";
+        modalTitle = "Feature ad";
         modalDescription = `Choose how long “${modal.title}” should receive featured placement.`;
-        modalConfirmLabel = "Feature listing";
+        modalConfirmLabel = "Feature ad";
         modalFields = [
             {
                 key: "days",
@@ -279,7 +279,7 @@ export default function AdminListingsClient() {
         <section>
             <AdminPageHeader
                 eyebrow="Marketplace moderation"
-                title="Listings"
+                title="Ads"
                 description="Review new adverts, search the catalogue, and manage approval or featured status without leaving the queue."
                 action={<AdminRefreshButton onClick={loadListings} loading={loading} />}
             />
@@ -293,7 +293,7 @@ export default function AdminListingsClient() {
             >
                 <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                     <label className="relative md:col-span-2">
-                        <span className="sr-only">Search listings</span>
+                        <span className="sr-only">Search ads</span>
                         <FontAwesomeIcon
                             icon={faMagnifyingGlass}
                             className="absolute left-4 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400"
@@ -312,7 +312,7 @@ export default function AdminListingsClient() {
                         className="h-12 rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold outline-none focus:border-orange-400"
                     >
                         <option value="pending_only">Pending queue</option>
-                        <option value="all">All listings</option>
+                        <option value="all">All ads</option>
                         <option value="active">Active</option>
                         <option value="pending">Pending</option>
                         <option value="rejected">Rejected</option>
@@ -391,12 +391,12 @@ export default function AdminListingsClient() {
             )}
 
             {loading ? (
-                <AdminLoadingState label="Loading listings" />
+                <AdminLoadingState label="Loading ads" />
             ) : error ? (
                 <AdminErrorState message={error} onRetry={loadListings} />
             ) : listings.length === 0 ? (
                 <AdminEmptyState
-                    title="No listings found"
+                    title="No ads found"
                     description="Try changing the filters or check back when sellers submit new adverts."
                 />
             ) : (
@@ -421,13 +421,13 @@ export default function AdminListingsClient() {
                                 >
                                     <div className="grid lg:grid-cols-[190px_1fr_auto]">
                                         <a
-                                            href={`/listings/${id}`}
+                                            href={`/ads/${id}`}
                                             className="relative min-h-44 overflow-hidden bg-slate-100 lg:min-h-full"
                                         >
                                             {image ? (
                                                 <img
                                                     src={image}
-                                                    alt={listing.title || "Listing"}
+                                                    alt={listing.title || "Ad"}
                                                     className="absolute inset-0 h-full w-full object-cover transition duration-300 hover:scale-105"
                                                 />
                                             ) : (
@@ -453,7 +453,7 @@ export default function AdminListingsClient() {
                                             </div>
 
                                             <h3 className="mt-3 truncate text-lg font-black tracking-tight text-slate-950 sm:text-xl">
-                                                {listing.title || "Untitled listing"}
+                                                {listing.title || "Untitled ad"}
                                             </h3>
                                             <p className="mt-1 text-base font-black text-orange-600">
                                                 {formatPrice(listing)}
@@ -484,7 +484,7 @@ export default function AdminListingsClient() {
 
                                         <div className="grid grid-cols-2 gap-2 border-t border-slate-100 p-4 sm:grid-cols-4 lg:w-44 lg:grid-cols-1 lg:border-l lg:border-t-0">
                                             <a
-                                                href={`/admin/listings/${id}`}
+                                                href={`/admin/ads/${id}`}
                                                 className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-100 px-3 py-2.5 text-[11px] font-black text-slate-700 hover:bg-slate-200"
                                             >
                                                 <FontAwesomeIcon icon={faEye} className="h-3 w-3" />

@@ -652,7 +652,7 @@ export default function ListingFilters({
         const params = buildParams();
         const queryString = params.toString();
 
-        router.push(queryString ? `/listings?${queryString}` : "/listings");
+        router.push(queryString ? `/ads?${queryString}` : "/ads");
     }
 
     function clearFilters() {
@@ -668,7 +668,7 @@ export default function ListingFilters({
         setIsNegotiable(false);
         setCategoryFilterValues({});
 
-        router.push("/listings");
+        router.push("/ads");
     }
 
     function selectCategory(value: string) {

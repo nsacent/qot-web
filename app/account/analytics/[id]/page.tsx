@@ -20,7 +20,7 @@ export default async function SingleListingAnalyticsPage({
                 <Navbar />
 
                 <VerifiedAccountGuard
-                    title="Listing analytics requires verification"
+                    title="Ad analytics requires verification"
                     description="Your account must be verified before you can view advert analytics."
                 >
                     <ListingAnalyticsClient listingId={id} />

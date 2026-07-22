@@ -3,17 +3,25 @@
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faEnvelope, faLock, faShieldHalved, faStore, faTag } from "@/lib/faIcons";
+import { faEnvelope, faLock, faMobileScreen, faShieldHalved, faStore, faTag } from "@/lib/faIcons";
 import { getCurrentUser, loginUser } from "@/lib/sessionClient";
 import QotLoader from "@/components/common/QotLoader";
 import GoogleSignInButton from "@/components/auth/GoogleSignInButton";
 import QotLogo from "@/components/brand/QotLogo";
+import {
+    getUgandanNationalNumber,
+    isValidUgandanMobile,
+    toUgandanPhone,
+} from "@/lib/ugandanPhone";
 
 function LoginForm() {
     const searchParams = useSearchParams();
     const nextUrl = searchParams.get("next") || "/";
+    const passwordWasReset = searchParams.get("reset") === "1";
 
-    const [identifier, setIdentifier] = useState("");
+    const [loginMethod, setLoginMethod] = useState<"phone" | "email">("phone");
+    const [phone, setPhone] = useState("");
+    const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [keepSignedIn, setKeepSignedIn] = useState(false);
 
@@ -42,12 +50,21 @@ function LoginForm() {
     async function handleLogin(event: React.FormEvent<HTMLFormElement>) {
         event.preventDefault();
 
-        setLoading(true);
         setError("");
+
+        if (loginMethod === "phone" && !isValidUgandanMobile(phone)) {
+            setError("Enter a valid Ugandan mobile number, such as +256 700 000 001.");
+            return;
+        }
+
+        setLoading(true);
 
         try {
             await loginUser({
-                identifier: identifier.trim(),
+                identifier:
+                    loginMethod === "phone"
+                        ? toUgandanPhone(phone)
+                        : email.trim(),
                 password,
                 keep_signed_in: keepSignedIn,
             });
@@ -146,7 +163,9 @@ function LoginForm() {
                         <h2 className="text-3xl font-black text-slate-950">Login</h2>
 
                         <p className="mt-2 text-sm font-semibold text-slate-500">
-                            Enter your phone number or email address to continue.
+                            {loginMethod === "phone"
+                                ? "Enter your Ugandan phone number to continue."
+                                : "Enter your email address to continue."}
                         </p>
 
                         {error && (
@@ -156,6 +175,12 @@ function LoginForm() {
                                 className="mt-5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700"
                             >
                                 {error}
+                            </div>
+                        )}
+
+                        {passwordWasReset && !error && (
+                            <div className="mt-5 rounded-2xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-bold text-green-700">
+                                Password reset successfully. You can now log in with your new password.
                             </div>
                         )}
 
@@ -193,30 +218,78 @@ function LoginForm() {
                         </div>
 
                         <form onSubmit={handleLogin} className="space-y-4">
-                            <label className="block">
-                                <span className="mb-2 block text-sm font-black text-slate-700">
-                                    Phone or email
-                                </span>
+                            <div className="block">
+                                <label htmlFor="login-identifier" className="mb-2 block text-sm font-black text-slate-700">
+                                    {loginMethod === "phone" ? "Phone number" : "Email address"}
+                                </label>
 
-                                <div className="flex items-center gap-3 rounded-2xl bg-slate-50 px-4 py-3 ring-1 ring-slate-100 focus-within:bg-white focus-within:ring-orange-200">
-                                    <FontAwesomeIcon
-                                        icon={faEnvelope}
-                                        className="h-4 w-4 text-slate-400"
-                                    />
+                                {loginMethod === "phone" ? (
+                                    <div className="flex items-center rounded-2xl bg-slate-50 px-4 py-3 ring-1 ring-slate-100 focus-within:bg-white focus-within:ring-orange-200">
+                                        <FontAwesomeIcon
+                                            icon={faMobileScreen}
+                                            className="mr-3 h-4 w-4 text-slate-400"
+                                        />
 
-                                    <input
-                                        type="text"
-                                        value={identifier}
-                                        onChange={(event) => {
-                                            setIdentifier(event.target.value);
+                                        <span className="border-r border-slate-200 pr-3 text-sm font-black text-slate-700">
+                                            +256
+                                        </span>
+
+                                        <input
+                                            id="login-identifier"
+                                            type="tel"
+                                            inputMode="numeric"
+                                            autoComplete="tel-national"
+                                            value={phone}
+                                            onChange={(event) => {
+                                                setPhone(getUgandanNationalNumber(event.target.value));
+                                                setError("");
+                                            }}
+                                            placeholder="700 000 001"
+                                            pattern="[0-9]{9}"
+                                            maxLength={16}
+                                            required
+                                            className="w-full bg-transparent pl-3 text-sm font-bold text-slate-900 outline-none placeholder:text-slate-400"
+                                        />
+                                    </div>
+                                ) : (
+                                    <div className="flex items-center gap-3 rounded-2xl bg-slate-50 px-4 py-3 ring-1 ring-slate-100 focus-within:bg-white focus-within:ring-orange-200">
+                                        <FontAwesomeIcon
+                                            icon={faEnvelope}
+                                            className="h-4 w-4 text-slate-400"
+                                        />
+
+                                        <input
+                                            id="login-identifier"
+                                            type="email"
+                                            autoComplete="email"
+                                            value={email}
+                                            onChange={(event) => {
+                                                setEmail(event.target.value);
+                                                setError("");
+                                            }}
+                                            placeholder="seller@example.com"
+                                            required
+                                            className="w-full bg-transparent text-sm font-bold text-slate-900 outline-none placeholder:text-slate-400"
+                                        />
+                                    </div>
+                                )}
+
+                                <p className="mt-2 text-xs font-semibold text-slate-400">
+                                    {loginMethod === "phone"
+                                        ? "Prefer to sign in with your email? "
+                                        : "Prefer to sign in with your phone number? "}
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setLoginMethod(loginMethod === "phone" ? "email" : "phone");
                                             setError("");
                                         }}
-                                        placeholder="+256700000001 or seller@example.com"
-                                        required
-                                        className="w-full bg-transparent text-sm font-bold text-slate-900 outline-none placeholder:text-slate-400"
-                                    />
-                                </div>
-                            </label>
+                                        className="font-black text-orange-600 hover:text-orange-700"
+                                    >
+                                        {loginMethod === "phone" ? "Use email instead" : "Use phone number instead"}
+                                    </button>
+                                </p>
+                            </div>
 
                             <label className="block">
                                 <span className="mb-2 block text-sm font-black text-slate-700">

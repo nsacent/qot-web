@@ -102,7 +102,7 @@ function SellerAdCard({ ad }: { ad: any }) {
 
             <div className="grid grid-cols-2 gap-2 border-t border-slate-100 p-3">
                 <a
-                    href={`/listings/${id}`}
+                    href={`/ads/${id}`}
                     className="rounded-2xl bg-slate-50 px-3 py-2 text-center text-xs font-black text-slate-700 hover:bg-orange-50 hover:text-orange-600"
                 >
                     View

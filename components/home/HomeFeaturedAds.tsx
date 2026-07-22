@@ -124,7 +124,7 @@ export default function HomeFeaturedAds({ ads = [] }: HomeFeaturedAdsProps) {
                         →
                     </button>
                     <Link
-                        href="/listings?sort=featured"
+                        href="/ads?sort=featured"
                         className="rounded-xl px-3 py-2 text-xs font-black text-orange-600 transition hover:bg-orange-50"
                     >
                         View all →

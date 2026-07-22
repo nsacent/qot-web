@@ -30,9 +30,9 @@ const links = [
         icon: faChartPie,
     },
     {
-        label: "Listings",
+        label: "Ads",
         description: "Review adverts",
-        href: "/admin/listings",
+        href: "/admin/ads",
         icon: faListCheck,
     },
     {

@@ -159,10 +159,14 @@ export async function confirmPasswordReset(body: {
     return sessionPost("/password-reset/confirm", body);
 }
 
-export async function sendVerification() {
-    return sessionPost("/verification/send");
+export async function sendVerification(channel: "phone" | "email" = "phone") {
+    return sessionPost("/verification/send", { channel });
 }
 
-export async function confirmVerification(body: { otp?: string; code?: string }) {
+export async function confirmVerification(body: {
+    otp?: string;
+    code?: string;
+    channel?: "phone" | "email";
+}) {
     return sessionPost("/verification/confirm", body);
 }

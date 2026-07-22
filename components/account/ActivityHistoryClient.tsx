@@ -65,7 +65,7 @@ function getListingTitle(listing: any) {
 }
 
 function getStatusLabel(status: string) {
-    if (!status) return "Listing";
+    if (!status) return "Ad";
 
     return status
         .replaceAll("_", " ")
@@ -110,7 +110,7 @@ function buildRecentlyViewedItems(listings: any[]): ActivityItem[] {
             type: "recent",
             title: `Viewed: ${getListingTitle(listing)}`,
             description: "You recently opened this advert.",
-            href: id ? `/listings/${id}` : undefined,
+            href: id ? `/ads/${id}` : undefined,
             date: safeDate(
                 item?.viewed_at ||
                 item?.viewedAt ||
@@ -133,7 +133,7 @@ function buildFavoriteItems(favorites: any[]): ActivityItem[] {
             type: "favorite",
             title: `Saved: ${getListingTitle(listing)}`,
             description: "You saved this advert to your favorites.",
-            href: id ? `/listings/${id}` : "/account/saved",
+            href: id ? `/ads/${id}` : "/account/saved",
             date: safeDate(
                 item?.created_at ||
                 item?.created ||
@@ -161,7 +161,7 @@ function buildReviewItems(reviews: any[]): ActivityItem[] {
                 review?.comment ||
                 review?.body ||
                 `You submitted a ${rating} seller review.`,
-            href: listingId ? `/listings/${listingId}` : "/my-reviews",
+            href: listingId ? `/ads/${listingId}` : "/my-reviews",
             date: safeDate(review?.created_at || review?.created || review?.updated_at),
             badge: rating,
         };
@@ -364,7 +364,7 @@ export default function ActivityHistoryClient() {
 
                 <p className="mt-3 max-w-2xl text-slate-600">
                     Track your recent marketplace actions, saved adverts, reviews,
-                    notifications, and seller listing updates in one place.
+                    notifications, and seller ad updates in one place.
                 </p>
             </div>
 
@@ -420,12 +420,12 @@ export default function ActivityHistoryClient() {
                             <p className="font-bold text-slate-900">No activity found</p>
                             <p className="mt-2 text-sm text-slate-600">
                                 Start browsing, saving adverts, reviewing sellers, or managing
-                                listings to build your activity history.
+                                ads to build your activity history.
                             </p>
 
                             <div className="mt-5 flex flex-col justify-center gap-3 sm:flex-row">
                                 <a
-                                    href="/listings"
+                                    href="/ads"
                                     className="rounded-xl bg-orange-500 px-5 py-3 text-sm font-semibold text-white hover:bg-orange-600"
                                 >
                                     Browse Adverts
@@ -543,7 +543,7 @@ export default function ActivityHistoryClient() {
                                 href="/my-ads"
                                 className="rounded-xl border px-5 py-3 text-center font-semibold hover:bg-slate-50"
                             >
-                                My Listings
+                                My Ads
                             </a>
 
                             <a

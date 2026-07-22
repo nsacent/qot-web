@@ -227,10 +227,10 @@ export default function SellerRenewalsClient() {
                     <div>
                         <span className="inline-flex rounded-full bg-amber-500/15 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-amber-200 ring-1 ring-amber-300/20">Renewal Center</span>
                         <h1 className="mt-5 text-3xl font-black tracking-tight sm:text-4xl">Keep your adverts working</h1>
-                        <p className="mt-3 max-w-2xl text-sm font-semibold leading-6 text-slate-300 sm:text-base">Renew expiring adverts and bring older listings back to buyers without starting over.</p>
+                        <p className="mt-3 max-w-2xl text-sm font-semibold leading-6 text-slate-300 sm:text-base">Renew expiring adverts and bring older ads back to buyers without starting over.</p>
                     </div>
 
-                    <a href="/my-ads" className="rounded-[16px] bg-white/10 px-5 py-3 text-center text-sm font-black text-white ring-1 ring-white/15 hover:bg-white/15">View My Listings</a>
+                    <a href="/my-ads" className="rounded-[16px] bg-white/10 px-5 py-3 text-center text-sm font-black text-white ring-1 ring-white/15 hover:bg-white/15">View My Ads</a>
                 </div>
             </div>
 
@@ -240,7 +240,7 @@ export default function SellerRenewalsClient() {
                     <p className="mt-3 text-4xl font-black">
                         {listings.length}
                     </p>
-                    <p className="mt-2 text-xs font-bold text-orange-100">All your listings</p>
+                    <p className="mt-2 text-xs font-bold text-orange-100">All your ads</p>
                 </div>
 
                 <div className="rounded-[26px] bg-gradient-to-br from-amber-50 to-orange-100 p-6 text-amber-800 shadow-[0_14px_40px_rgba(15,23,42,0.07)] ring-1 ring-black/5">
@@ -308,7 +308,7 @@ export default function SellerRenewalsClient() {
                             href="/my-ads"
                             className="mt-5 inline-block rounded-xl bg-orange-500 px-5 py-3 text-sm font-semibold text-white hover:bg-orange-600"
                         >
-                            View My Listings
+                            View My Ads
                         </a>
                     </div>
                 ) : (
@@ -389,7 +389,7 @@ export default function SellerRenewalsClient() {
                                             </a>
 
                                             <a
-                                                href={`/listings/${id}`}
+                                                href={`/ads/${id}`}
                                                 className="rounded-xl bg-white px-4 py-3 text-center text-sm font-black text-slate-700 ring-1 ring-slate-200 hover:bg-orange-50"
                                             >
                                                 View

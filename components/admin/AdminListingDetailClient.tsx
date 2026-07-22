@@ -196,7 +196,7 @@ export default function AdminListingDetailClient({
                 );
             });
         } catch (requestError: unknown) {
-            setError(errorMessage(requestError, "Failed to load this listing."));
+            setError(errorMessage(requestError, "Failed to load this ad."));
         } finally {
             setLoading(false);
         }
@@ -217,7 +217,7 @@ export default function AdminListingDetailClient({
             })
             .catch((requestError: unknown) => {
                 if (!cancelled) {
-                    setError(errorMessage(requestError, "Failed to load this listing."));
+                    setError(errorMessage(requestError, "Failed to load this ad."));
                 }
             })
             .finally(() => {
@@ -262,10 +262,10 @@ export default function AdminListingDetailClient({
 
         try {
             await apiPost(`/admin-panel/listings/${listing.id}/approve/`);
-            setSuccess("Listing approved and published successfully.");
+            setSuccess("Ad approved and published successfully.");
             await fetchListing(false);
         } catch (requestError: unknown) {
-            setActionError(errorMessage(requestError, "The listing could not be approved."));
+            setActionError(errorMessage(requestError, "The ad could not be approved."));
         } finally {
             setActionLoading("");
         }
@@ -275,7 +275,7 @@ export default function AdminListingDetailClient({
         if (!listing || !modal) return;
 
         if (modal.type === "reject" && !modalValues.reason?.trim()) {
-            setModalError("Enter a clear reason for rejecting this listing.");
+            setModalError("Enter a clear reason for rejecting this ad.");
             return;
         }
 
@@ -298,29 +298,29 @@ export default function AdminListingDetailClient({
                 await apiPost(`/admin-panel/listings/${listing.id}/reject/`, {
                     rejection_reason: modalValues.reason.trim(),
                 });
-                setSuccess("Listing rejected. The seller can now review the reason.");
+                setSuccess("Ad rejected. The seller can now review the reason.");
             } else if (modal.type === "feature") {
                 await apiPost(`/admin-panel/listings/${listing.id}/feature/`, { days });
-                setSuccess(`Listing featured for ${days} day${days === 1 ? "" : "s"}.`);
+                setSuccess(`Ad featured for ${days} day${days === 1 ? "" : "s"}.`);
             } else if (modal.type === "unfeature") {
                 await apiPost(`/admin-panel/listings/${listing.id}/unfeature/`);
-                setSuccess("Featured placement removed from this listing.");
+                setSuccess("Featured placement removed from this ad.");
             } else {
                 await apiPost(`/admin-panel/listings/${listing.id}/delete/`);
-                setSuccess("Listing removed from the marketplace.");
+                setSuccess("Ad removed from the marketplace.");
             }
 
             setModal(null);
             await fetchListing(false);
         } catch (requestError: unknown) {
-            setModalError(errorMessage(requestError, "The listing action failed."));
+            setModalError(errorMessage(requestError, "The ad action failed."));
         } finally {
             setActionLoading("");
         }
     }
 
     if (loading && !listing) {
-        return <AdminLoadingState label="Loading listing details" />;
+        return <AdminLoadingState label="Loading ad details" />;
     }
 
     if (error && !listing) {
@@ -330,7 +330,7 @@ export default function AdminListingDetailClient({
     if (!listing) {
         return (
             <AdminErrorState
-                message="This listing is unavailable or may have been removed."
+                message="This ad is unavailable or may have been removed."
                 onRetry={() => fetchListing()}
             />
         );
@@ -348,9 +348,9 @@ export default function AdminListingDetailClient({
     let modalFields: AdminModalField[] = [];
 
     if (modal?.type === "reject") {
-        modalTitle = "Reject this listing?";
+        modalTitle = "Reject this ad?";
         modalDescription = `Explain why “${listing.title}” cannot be published. The seller may see this reason.`;
-        modalConfirmLabel = "Reject listing";
+        modalConfirmLabel = "Reject ad";
         modalTone = "red";
         modalFields = [
             {
@@ -362,9 +362,9 @@ export default function AdminListingDetailClient({
             },
         ];
     } else if (modal?.type === "feature") {
-        modalTitle = "Feature this listing?";
+        modalTitle = "Feature this ad?";
         modalDescription = `Choose how long “${listing.title}” should receive promoted marketplace placement.`;
-        modalConfirmLabel = "Feature listing";
+        modalConfirmLabel = "Feature ad";
         modalFields = [
             {
                 key: "days",
@@ -382,9 +382,9 @@ export default function AdminListingDetailClient({
         modalConfirmLabel = "Remove feature";
         modalTone = "red";
     } else if (modal?.type === "delete") {
-        modalTitle = "Remove this listing?";
+        modalTitle = "Remove this ad?";
         modalDescription = `“${listing.title}” will be hidden from the marketplace. This moderation action does not erase its audit record.`;
-        modalConfirmLabel = "Remove listing";
+        modalConfirmLabel = "Remove ad";
         modalTone = "red";
     }
 
@@ -393,11 +393,11 @@ export default function AdminListingDetailClient({
             <div className="mb-6 flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
                 <div className="min-w-0">
                     <Link
-                        href="/admin/listings"
+                        href="/admin/ads"
                         className="inline-flex items-center gap-2 text-xs font-black text-slate-500 transition hover:text-orange-600"
                     >
                         <FontAwesomeIcon icon={faArrowLeft} className="h-3 w-3" />
-                        Back to listings
+                        Back to ads
                     </Link>
                     <div className="mt-4 flex flex-wrap items-center gap-2">
                         <span className={`rounded-full px-3 py-1 text-[9px] font-black uppercase tracking-wider ${statusClass(listing.status)}`}>
@@ -426,16 +426,16 @@ export default function AdminListingDetailClient({
                 <div className="flex flex-wrap items-center gap-2">
                     {!isDeleted && (
                         <Link
-                            href={`/admin/listings/${listing.id}/edit`}
+                            href={`/admin/ads/${listing.id}/edit`}
                             className="inline-flex items-center gap-2 rounded-2xl bg-orange-500 px-4 py-3 text-xs font-black text-white shadow-lg shadow-orange-100 transition hover:bg-orange-600"
                         >
                             <FontAwesomeIcon icon={faPenToSquare} className="h-3.5 w-3.5" />
-                            Edit listing
+                            Edit ad
                         </Link>
                     )}
                     {listing.status === "active" && (
                         <Link
-                            href={`/listings/${listing.id}`}
+                            href={`/ads/${listing.id}`}
                             target="_blank"
                             className="inline-flex items-center gap-2 rounded-2xl bg-white px-4 py-3 text-xs font-black text-slate-700 shadow-sm ring-1 ring-slate-200 transition hover:text-orange-600"
                         >
@@ -476,7 +476,7 @@ export default function AdminListingDetailClient({
                             ) : (
                                 <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-300">
                                     <FontAwesomeIcon icon={faImages} className="h-10 w-10" />
-                                    <p className="mt-3 text-sm font-black">No listing images</p>
+                                    <p className="mt-3 text-sm font-black">No ad images</p>
                                 </div>
                             )}
                             <span className="absolute bottom-4 right-4 rounded-full bg-slate-950/80 px-3 py-1.5 text-[10px] font-black text-white backdrop-blur">
@@ -535,7 +535,7 @@ export default function AdminListingDetailClient({
                     )}
 
                     <section className="rounded-[28px] bg-white p-6 shadow-sm ring-1 ring-slate-200/70 sm:p-7">
-                        <h2 className="text-xl font-black tracking-tight text-slate-950">Listing description</h2>
+                        <h2 className="text-xl font-black tracking-tight text-slate-950">Ad description</h2>
                         <p className="mt-4 whitespace-pre-wrap text-sm font-medium leading-7 text-slate-600">
                             {listing.description || "The seller did not provide a description."}
                         </p>
@@ -566,7 +566,7 @@ export default function AdminListingDetailClient({
                     </section>
 
                     <section className="rounded-[28px] bg-white p-6 shadow-sm ring-1 ring-slate-200/70 sm:p-7">
-                        <h2 className="text-xl font-black tracking-tight text-slate-950">Listing timeline</h2>
+                        <h2 className="text-xl font-black tracking-tight text-slate-950">Ad timeline</h2>
                         <div className="mt-5 grid gap-5 sm:grid-cols-2">
                             <TimelineRow icon={faCalendar} label="Submitted" value={formatDate(listing.created_at, true)} />
                             <TimelineRow icon={faClock} label="Last updated" value={formatDate(listing.updated_at, true)} />
@@ -587,13 +587,13 @@ export default function AdminListingDetailClient({
                             </span>
                             <div>
                                 <p className="text-[10px] font-black uppercase tracking-[0.18em] text-orange-400">Moderation</p>
-                                <h2 className="text-lg font-black">Listing controls</h2>
+                                <h2 className="text-lg font-black">Ad controls</h2>
                             </div>
                         </div>
 
                         {isDeleted ? (
                             <div className="mt-5 rounded-2xl bg-white/10 px-4 py-4 text-sm font-semibold leading-6 text-slate-300 ring-1 ring-white/10">
-                                This listing has been removed. Its details remain available for moderation history.
+                                This ad has been removed. Its details remain available for moderation history.
                             </div>
                         ) : (
                             <div className="mt-5 grid gap-2">
@@ -609,7 +609,7 @@ export default function AdminListingDetailClient({
                                 {canReject && (
                                     <ActionButton
                                         icon={faXmark}
-                                        label="Reject listing"
+                                        label="Reject ad"
                                         onClick={() => openModal("reject")}
                                         disabled={Boolean(actionLoading)}
                                         className="bg-white/10 text-white ring-1 ring-white/10 hover:bg-white/15"
@@ -618,7 +618,7 @@ export default function AdminListingDetailClient({
                                 {canFeature && (
                                     <ActionButton
                                         icon={faBolt}
-                                        label="Feature listing"
+                                        label="Feature ad"
                                         onClick={() => openModal("feature")}
                                         disabled={Boolean(actionLoading)}
                                         className="bg-violet-500 text-white hover:bg-violet-400"
@@ -681,7 +681,7 @@ export default function AdminListingDetailClient({
                                 </div>
                             </div>
                             <p className="mt-4 text-xs font-semibold leading-5 text-red-700">
-                                The listing will be soft-deleted so its moderation record remains available.
+                                The ad will be soft-deleted so its moderation record remains available.
                             </p>
                             <button
                                 type="button"
@@ -689,7 +689,7 @@ export default function AdminListingDetailClient({
                                 disabled={Boolean(actionLoading)}
                                 className="mt-4 w-full rounded-2xl bg-red-600 px-4 py-3 text-xs font-black text-white transition hover:bg-red-700 disabled:opacity-60"
                             >
-                                Remove listing
+                                Remove ad
                             </button>
                         </section>
                     )}

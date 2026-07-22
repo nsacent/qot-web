@@ -95,7 +95,7 @@ export default function HomeLatestAds({ ads = [] }: HomeLatestAdsProps) {
                 </h2>
 
                 <a
-                    href="/listings?sort=newest"
+                    href="/ads?sort=newest"
                     className="rounded-xl px-4 py-2 text-sm font-black text-orange-600 hover:bg-orange-50"
                 >
                     View More →

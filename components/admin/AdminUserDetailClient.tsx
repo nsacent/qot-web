@@ -33,6 +33,10 @@ import {
     AdminRefreshButton,
     AdminStatCard,
 } from "@/components/admin/AdminUi";
+import {
+    getUgandanNationalNumber,
+    toUgandanPhone,
+} from "@/lib/ugandanPhone";
 
 type UserPermissions = {
     is_self: boolean;
@@ -390,7 +394,7 @@ export default function AdminUserDetailClient({ userId }: { userId: string }) {
 
             <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                 <AdminStatCard label="Trust score" value={`${user.trust_score}/100`} detail={user.is_verified ? "Verified marketplace identity" : "Verification can improve trust"} icon={faChartLine} tone="orange" />
-                <AdminStatCard label="Listings" value={user.stats.listings.toLocaleString()} detail={`${user.listing_counts.active || 0} currently active`} icon={faStore} tone="blue" />
+                <AdminStatCard label="Ads" value={user.stats.listings.toLocaleString()} detail={`${user.listing_counts.active || 0} currently active`} icon={faStore} tone="blue" />
                 <AdminStatCard label="Paid activity" value={formatMoney(user.stats.paid_spend)} detail={`${user.stats.payments} payment records`} icon={faCreditCard} tone="green" />
                 <AdminStatCard label="Seller reviews" value={user.stats.average_rating ? Number(user.stats.average_rating).toFixed(1) : "—"} detail={`${user.stats.reviews} published reviews`} icon={faStar} tone="violet" />
             </div>
@@ -415,7 +419,20 @@ export default function AdminUserDetailClient({ userId }: { userId: string }) {
                         </label>
                         <label>
                             <span className="mb-2 block text-xs font-black text-slate-700">Phone number</span>
-                            <input value={form.phone} onChange={(event) => setForm({ ...form, phone: event.target.value })} disabled={!user.permissions.can_edit || saving} placeholder="+256…" className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-semibold outline-none focus:border-orange-400 focus:bg-white disabled:cursor-not-allowed disabled:opacity-60" />
+                            <span className="flex h-12 items-center rounded-2xl border border-slate-200 bg-slate-50 px-4 focus-within:border-orange-400 focus-within:bg-white">
+                                <span className="border-r border-slate-200 pr-3 text-sm font-black text-slate-700">+256</span>
+                                <input
+                                    type="tel"
+                                    inputMode="numeric"
+                                    value={getUgandanNationalNumber(form.phone)}
+                                    onChange={(event) => setForm({ ...form, phone: toUgandanPhone(event.target.value) })}
+                                    disabled={!user.permissions.can_edit || saving}
+                                    placeholder="700 000 001"
+                                    pattern="[0-9]{9}"
+                                    maxLength={16}
+                                    className="min-w-0 flex-1 bg-transparent pl-3 text-sm font-semibold outline-none disabled:cursor-not-allowed disabled:opacity-60"
+                                />
+                            </span>
                         </label>
                         <label>
                             <span className="mb-2 block text-xs font-black text-slate-700">Email address</span>
@@ -495,13 +512,13 @@ export default function AdminUserDetailClient({ userId }: { userId: string }) {
                     <div className="flex items-center justify-between gap-3">
                         <div>
                             <p className="text-[10px] font-black uppercase tracking-[0.18em] text-orange-600">Marketplace activity</p>
-                            <h2 className="mt-2 text-xl font-black text-slate-950">Recent listings</h2>
+                            <h2 className="mt-2 text-xl font-black text-slate-950">Recent ads</h2>
                         </div>
-                        <Link href="/admin/listings" className="text-xs font-black text-orange-600 hover:text-orange-700">All listings</Link>
+                        <Link href="/admin/ads" className="text-xs font-black text-orange-600 hover:text-orange-700">All ads</Link>
                     </div>
                     <div className="mt-5 grid gap-3">
                         {user.recent_listings.length ? user.recent_listings.map((listing) => (
-                            <Link key={listing.id} href={`/listings/${listing.id}`} className="flex items-center justify-between gap-4 rounded-2xl bg-slate-50 p-4 transition hover:bg-orange-50">
+                            <Link key={listing.id} href={`/ads/${listing.id}`} className="flex items-center justify-between gap-4 rounded-2xl bg-slate-50 p-4 transition hover:bg-orange-50">
                                 <div className="min-w-0">
                                     <div className="flex flex-wrap items-center gap-2">
                                         <span className={`rounded-full px-2.5 py-1 text-[8px] font-black uppercase tracking-wider ${listingStatusClass(listing.status)}`}>{formatLabel(listing.status)}</span>
@@ -512,7 +529,7 @@ export default function AdminUserDetailClient({ userId }: { userId: string }) {
                                 </div>
                                 <span className="shrink-0 text-xs font-black text-slate-900">{formatMoney(listing.price, listing.currency)}</span>
                             </Link>
-                        )) : <EmptyPanel label="This user has not posted any listings." />}
+                        )) : <EmptyPanel label="This user has not posted any ads." />}
                     </div>
                 </section>
 

@@ -2,37 +2,37 @@ const quickSearches = [
     {
         title: "Toyota Cars",
         description: "Browse Toyota cars around Uganda",
-        href: "/listings?category=cars&brand=Toyota&condition=used",
+        href: "/ads?category=cars&brand=Toyota&condition=used",
         badge: "Cars",
     },
     {
         title: "16GB RAM Laptops",
         description: "Find powerful laptops for work and school",
-        href: "/listings?q=laptop&ram=16GB",
+        href: "/ads?q=laptop&ram=16GB",
         badge: "Computers",
     },
     {
         title: "2-Bedroom Rentals",
         description: "Search rental houses and apartments",
-        href: "/listings?bedrooms=2",
+        href: "/ads?bedrooms=2",
         badge: "Property",
     },
     {
         title: "Phones",
         description: "Find phones from trusted sellers",
-        href: "/listings?q=phone",
+        href: "/ads?q=phone",
         badge: "Electronics",
     },
     {
         title: "Land",
         description: "Browse land adverts by location",
-        href: "/listings?q=land",
+        href: "/ads?q=land",
         badge: "Real Estate",
     },
     {
         title: "Jobs",
         description: "Discover job and service opportunities",
-        href: "/listings?q=jobs",
+        href: "/ads?q=jobs",
         badge: "Work",
     },
 ];
@@ -56,10 +56,10 @@ export default function QuickSearchCards() {
                 </div>
 
                 <a
-                    href="/listings"
+                    href="/ads"
                     className="text-sm font-semibold text-orange-600 hover:text-orange-700"
                 >
-                    Browse all listings →
+                    Browse all ads →
                 </a>
             </div>
 

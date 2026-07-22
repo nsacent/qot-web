@@ -1,13 +1,17 @@
 "use client";
 
 import { useState } from "react";
+import {
+    getUgandanNationalNumber,
+    toUgandanPhone,
+} from "@/lib/ugandanPhone";
 
 const API_BASE_URL =
     process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000/api/v1";
 
 export default function RegisterForm() {
     const [fullName, setFullName] = useState("");
-    const [phone, setPhone] = useState("+256");
+    const [phone, setPhone] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [passwordConfirm, setPasswordConfirm] = useState("");
@@ -85,13 +89,20 @@ export default function RegisterForm() {
                 <label className="mb-2 block text-sm font-semibold text-slate-700">
                     Phone Number
                 </label>
-                <input
-                    value={phone}
-                    onChange={(event) => setPhone(event.target.value)}
-                    placeholder="+256..."
-                    className="w-full rounded-xl border px-4 py-3 outline-none focus:border-orange-500"
-                    required
-                />
+                <span className="flex items-center rounded-xl border px-4 focus-within:border-orange-500">
+                    <span className="border-r pr-3 text-sm font-bold text-slate-700">+256</span>
+                    <input
+                        type="tel"
+                        inputMode="numeric"
+                        value={getUgandanNationalNumber(phone)}
+                        onChange={(event) => setPhone(toUgandanPhone(event.target.value))}
+                        placeholder="700 000 001"
+                        pattern="[0-9]{9}"
+                        maxLength={16}
+                        className="w-full px-3 py-3 outline-none"
+                        required
+                    />
+                </span>
             </div>
 
             <div>
