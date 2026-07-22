@@ -244,8 +244,8 @@ export default function ProfileSettingsClient() {
             </div>
 
             <form onSubmit={handleSave} className="p-5 sm:p-8">
-                <div className="-mt-20 mb-8 flex flex-col gap-4 sm:flex-row sm:items-end">
-                    <div className="relative h-32 w-32 shrink-0 overflow-hidden rounded-[30px] border-4 border-white bg-orange-500 shadow-xl">
+                <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end">
+                    <div className="relative -mt-20 h-32 w-32 shrink-0 overflow-hidden rounded-[30px] border-4 border-white bg-orange-500 shadow-xl">
                         {avatarPreview ? (
                             <img src={avatarPreview} alt="Profile" className="h-full w-full object-cover" />
                         ) : (
