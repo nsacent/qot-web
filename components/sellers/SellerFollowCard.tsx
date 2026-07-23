@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faUserCheck, faUserPlus, faUsers, faXmark } from "@fortawesome/free-solid-svg-icons";
+import UserAvatar from "@/components/account/UserAvatar";
 
 function getArray(data: any): any[] {
     if (Array.isArray(data)) return data;
@@ -167,9 +168,11 @@ export default function SellerFollowCard({
                                 <div className="grid gap-2">
                                     {people.map((person) => (
                                         <a key={person.id} href={`/sellers/${person.id}`} className="flex items-center gap-3 rounded-2xl p-3 hover:bg-orange-50">
-                                            <span className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-orange-500 font-black text-white">
-                                                {person.avatar ? <img src={person.avatar} alt="" className="h-full w-full object-cover" /> : getName(person).charAt(0).toUpperCase()}
-                                            </span>
+                                            <UserAvatar
+                                                user={person}
+                                                name={getName(person)}
+                                                className="h-12 w-12 rounded-2xl bg-orange-500 text-sm text-white"
+                                            />
                                             <span className="min-w-0">
                                                 <span className="block truncate font-black text-slate-900">{getName(person)}</span>
                                                 {person.business_name && person.full_name && <span className="block truncate text-xs font-semibold text-slate-500">{person.full_name}</span>}

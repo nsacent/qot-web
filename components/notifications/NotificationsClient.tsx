@@ -10,6 +10,7 @@ import {
     faEnvelope,
     faShieldHalved,
 } from "@/lib/faIcons";
+import { formatDateTime, formatRelativeTime } from "@/lib/dateTime";
 
 function getArray(data: any): any[] {
     if (Array.isArray(data)) return data;
@@ -55,21 +56,6 @@ function getVisual(notification: any) {
         default:
             return { icon: faBullhorn, tone: "bg-violet-50 text-violet-600 ring-violet-100", label: "QOT update" };
     }
-}
-
-function formatDate(value: string | undefined) {
-    if (!value) return "Recently";
-
-    const date = new Date(value);
-
-    if (Number.isNaN(date.getTime())) return "Recently";
-
-    return new Intl.DateTimeFormat("en-UG", {
-        day: "numeric",
-        month: "short",
-        hour: "numeric",
-        minute: "2-digit",
-    }).format(date);
 }
 
 async function notificationRequest(path: string, init: RequestInit = {}) {
@@ -313,7 +299,9 @@ export default function NotificationsClient() {
                                                     </h2>
                                                 </div>
                                                 <span className="shrink-0 text-[11px] font-bold text-slate-400">
-                                                    {formatDate(notification?.created_at || notification?.created)}
+                                                    <span title={formatDateTime(notification?.created_at || notification?.created)}>
+                                                        {formatRelativeTime(notification?.created_at || notification?.created)}
+                                                    </span>
                                                 </span>
                                             </div>
 

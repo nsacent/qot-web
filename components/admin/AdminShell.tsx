@@ -23,6 +23,7 @@ import {
     getUserRole,
     isAdminOrModerator,
 } from "@/lib/auth";
+import UserAvatar from "@/components/account/UserAvatar";
 
 const links = [
     {
@@ -296,9 +297,11 @@ export default function AdminShell({ children }: AdminShellProps) {
             <div className="mt-auto pt-8">
                 <div className="rounded-[22px] bg-white/7 p-4 ring-1 ring-white/10">
                     <div className="flex items-center gap-3">
-                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-orange-500 text-sm font-black text-white">
-                            {name.charAt(0).toUpperCase()}
-                        </span>
+                        <UserAvatar
+                            user={user}
+                            name={name}
+                            className="h-10 w-10 rounded-xl bg-orange-500 text-sm text-white"
+                        />
                         <span className="min-w-0">
                             <span className="block truncate text-sm font-black text-white">
                                 {name}

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faArrowLeft, faEnvelope, faShieldHalved } from "@/lib/faIcons";
+import UserAvatar from "@/components/account/UserAvatar";
 
 function getArray(data: any): any[] {
     if (Array.isArray(data)) return data;
@@ -268,9 +269,11 @@ export default function ThreadMessagesClient({
                     >
                         <FontAwesomeIcon icon={faArrowLeft} className="h-4 w-4" />
                     </a>
-                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[15px] bg-slate-950 text-sm font-black text-white">
-                        {participantName.charAt(0).toUpperCase()}
-                    </span>
+                    <UserAvatar
+                        src={thread?.other_user_avatar}
+                        name={participantName}
+                        className="h-11 w-11 rounded-[15px] bg-slate-950 text-sm text-white"
+                    />
                     <div className="min-w-0">
                         <h1 className="truncate text-base font-black text-slate-950">{participantName}</h1>
                         <p className="mt-0.5 flex items-center gap-1.5 text-[11px] font-bold text-emerald-600">

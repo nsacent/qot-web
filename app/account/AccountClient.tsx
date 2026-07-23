@@ -14,6 +14,7 @@ import {
     faStar,
 } from "@/lib/faIcons";
 import QotLoader from "@/components/common/QotLoader";
+import UserAvatar from "@/components/account/UserAvatar";
 import {
     getCurrentUser,
     logoutUser,
@@ -166,15 +167,10 @@ function AccountForm() {
                 <div className="mx-auto grid max-w-[1400px] items-start gap-6 lg:grid-cols-[300px_minmax(0,1fr)]">
                     <aside className="flex min-h-[560px] flex-col rounded-[34px] bg-white p-6 shadow-[0_18px_60px_rgba(15,23,42,0.10)] ring-1 ring-black/5 sm:min-h-[620px] lg:sticky lg:top-6 lg:max-h-[calc(100vh-3rem)] lg:min-h-[calc(100vh-160px)] lg:overflow-hidden">
                         <div className="flex items-center gap-4">
-                            <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-[28px] bg-orange-500 text-3xl font-black text-white shadow-[0_18px_40px_rgba(249,115,22,0.25)]">
-                                {user?.profile?.avatar ? (
-                                    <img src={user.profile.avatar} alt="Profile" className="h-full w-full object-cover" />
-                                ) : (
-                                    (user?.full_name || user?.email || user?.phone || "Q")
-                                        .charAt(0)
-                                        .toUpperCase()
-                                )}
-                            </div>
+                            <UserAvatar
+                                user={user}
+                                className="h-20 w-20 rounded-[28px] bg-orange-500 text-3xl text-white shadow-[0_18px_40px_rgba(249,115,22,0.25)]"
+                            />
 
                             <div className="min-w-0">
                                 <h1 className="truncate text-2xl font-black text-slate-950">

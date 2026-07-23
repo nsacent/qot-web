@@ -5,6 +5,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
     faCamera,
     faCircleCheck,
+    faClock,
     faEnvelope,
     faLocationDot,
     faPhone,
@@ -22,6 +23,8 @@ import {
     getUgandanNationalNumber,
     toUgandanPhone,
 } from "@/lib/ugandanPhone";
+import { DEFAULT_TIME_ZONE, TIME_ZONE_OPTIONS } from "@/lib/dateTime";
+import UserAvatar from "@/components/account/UserAvatar";
 
 function getUserObject(data: any) {
     return data?.user || data?.data || data;
@@ -70,6 +73,7 @@ export default function ProfileSettingsClient() {
     const [businessName, setBusinessName] = useState("");
     const [bio, setBio] = useState("");
     const [defaultCity, setDefaultCity] = useState("");
+    const [selectedTimezone, setSelectedTimezone] = useState(DEFAULT_TIME_ZONE);
     const [avatarFile, setAvatarFile] = useState<File | null>(null);
     const [coverFile, setCoverFile] = useState<File | null>(null);
 
@@ -111,6 +115,7 @@ export default function ProfileSettingsClient() {
         setBusinessName(currentUser?.profile?.business_name || "");
         setBio(currentUser?.profile?.bio || "");
         setDefaultCity(String(currentUser?.profile?.default_city || ""));
+        setSelectedTimezone(currentUser?.profile?.timezone || DEFAULT_TIME_ZONE);
     }
 
     useEffect(() => {
@@ -166,6 +171,7 @@ export default function ProfileSettingsClient() {
             formData.append("business_name", businessName.trim());
             formData.append("bio", bio.trim());
             if (defaultCity) formData.append("default_city", defaultCity);
+            formData.append("timezone", selectedTimezone);
             if (avatarFile) formData.append("avatar", avatarFile);
             if (coverFile) formData.append("cover_photo", coverFile);
 
@@ -185,7 +191,8 @@ export default function ProfileSettingsClient() {
             setCoverFile(null);
             localStorage.setItem("qot_user", JSON.stringify(currentUser));
             window.dispatchEvent(new Event("storage"));
-            setMessage("Profile and default location saved.");
+            window.dispatchEvent(new Event("qot_session_updated"));
+            setMessage("Profile, default location, and timezone saved.");
         } catch (err: any) {
             setError(err.message || "Failed to update your profile.");
         } finally {
@@ -384,6 +391,32 @@ export default function ProfileSettingsClient() {
                             <FontAwesomeIcon icon={faLocationDot} className="h-4 w-4 text-orange-500" />
                         </button>
                     </div>
+                    <div>
+                        <p className="mb-2 text-sm font-black text-slate-700">Timezone</p>
+                        <label className="flex items-center gap-3 rounded-2xl bg-slate-50 px-4 py-3 ring-1 ring-slate-100 focus-within:bg-white focus-within:ring-orange-200">
+                            <FontAwesomeIcon icon={faClock} className="h-4 w-4 shrink-0 text-orange-500" />
+                            <span className="min-w-0 flex-1">
+                                <select
+                                    value={selectedTimezone}
+                                    onChange={(event) => setSelectedTimezone(event.target.value)}
+                                    className="w-full bg-transparent text-sm font-black text-slate-900 outline-none"
+                                    aria-label="Account timezone"
+                                >
+                                    {!TIME_ZONE_OPTIONS.some((item) => item.value === selectedTimezone) && (
+                                        <option value={selectedTimezone}>{selectedTimezone}</option>
+                                    )}
+                                    {TIME_ZONE_OPTIONS.map((item) => (
+                                        <option key={item.value} value={item.value}>
+                                            {item.label}
+                                        </option>
+                                    ))}
+                                </select>
+                                <span className="mt-0.5 block text-xs font-semibold text-slate-500">
+                                    Used for dates and account activity
+                                </span>
+                            </span>
+                        </label>
+                    </div>
                 </div>
 
                 <label className="mt-5 block">
@@ -445,13 +478,11 @@ export default function ProfileSettingsClient() {
                                             href={`/sellers/${member.id}`}
                                             className="flex items-center gap-3 rounded-2xl p-3 hover:bg-orange-50"
                                         >
-                                            <span className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-orange-500 font-black text-white">
-                                                {member.avatar ? (
-                                                    <img src={member.avatar} alt="" className="h-full w-full object-cover" />
-                                                ) : (
-                                                    getMemberName(member).charAt(0).toUpperCase()
-                                                )}
-                                            </span>
+                                            <UserAvatar
+                                                user={member}
+                                                name={getMemberName(member)}
+                                                className="h-12 w-12 rounded-2xl bg-orange-500 text-sm text-white"
+                                            />
                                             <span className="min-w-0">
                                                 <span className="block truncate font-black text-slate-900">
                                                     {getMemberName(member)}

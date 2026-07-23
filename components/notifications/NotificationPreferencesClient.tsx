@@ -13,6 +13,7 @@ import {
     faShieldHalved,
     faUser,
 } from "@/lib/faIcons";
+import UserAvatar from "@/components/account/UserAvatar";
 
 const defaultPreferences = {
     verification: true,
@@ -200,9 +201,11 @@ export default function NotificationPreferencesClient() {
                     </div>
 
                     <div className="flex items-center gap-3 rounded-[20px] bg-white/10 p-3 pr-5 ring-1 ring-white/15 backdrop-blur">
-                        <span className="flex h-12 w-12 items-center justify-center rounded-[16px] bg-orange-500 text-lg font-black text-white">
-                            {name.charAt(0).toUpperCase()}
-                        </span>
+                        <UserAvatar
+                            user={user}
+                            name={name}
+                            className="h-12 w-12 rounded-[16px] bg-orange-500 text-lg text-white"
+                        />
                         <div>
                             <p className="max-w-44 truncate text-sm font-black text-white">{name}</p>
                             <p className="mt-0.5 text-xs font-semibold text-slate-300">{enabledCount} of {preferenceItems.length} alerts enabled</p>

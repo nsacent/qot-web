@@ -11,6 +11,7 @@ import {
     faUserRegular,
 } from "@/lib/faIcons";
 import { getCurrentUser } from "@/lib/sessionClient";
+import UserAvatar from "@/components/account/UserAvatar";
 
 const FOCUSED_ROUTES = [
     "/login",
@@ -111,7 +112,16 @@ export default function MobileBottomNav() {
                         href={accountHref}
                         className={navClass(accountActive)}
                     >
-                        <FontAwesomeIcon icon={faUserRegular} className="h-5 w-5" />
+                        {user ? (
+                            <UserAvatar
+                                user={user}
+                                className={`h-6 w-6 rounded-full text-[8px] text-white ${
+                                    accountActive ? "bg-orange-500 ring-2 ring-orange-200" : "bg-slate-500"
+                                }`}
+                            />
+                        ) : (
+                            <FontAwesomeIcon icon={faUserRegular} className="h-5 w-5" />
+                        )}
                         Profile
                     </a>
                 </div>

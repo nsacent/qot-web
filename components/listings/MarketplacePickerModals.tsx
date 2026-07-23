@@ -24,6 +24,7 @@ type PickerCity = {
     label: string;
     regionKey: string;
     regionName: string;
+    count?: number;
 };
 
 type RegionGroup = {
@@ -111,7 +112,11 @@ function normalizeCity(value: unknown, valueMode: "id" | "slug"): PickerCity | n
         regionRecord?.id || record.region || regionName.toLowerCase().replace(/\s+/g, "-")
     );
 
-    return { value: normalizedValue, label, regionKey, regionName };
+    const count = typeof record.listings_count === "number"
+        ? record.listings_count
+        : undefined;
+
+    return { value: normalizedValue, label, regionKey, regionName, count };
 }
 
 function categoryContainsSelection(category: PickerCategory, selectedValue: string) {
@@ -164,7 +169,7 @@ function PickerModalShell({
     if (!open) return null;
 
     return createPortal(
-        <div className="fixed inset-0 z-[120] flex items-end justify-center sm:items-center sm:p-5">
+        <div className="fixed inset-0 z-[180] flex items-stretch justify-center sm:items-center sm:p-5">
             <button
                 type="button"
                 aria-label="Close picker"
@@ -176,9 +181,9 @@ function PickerModalShell({
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby="marketplace-picker-title"
-                className="relative z-10 flex max-h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-t-[32px] bg-white shadow-[0_30px_110px_rgba(15,23,42,0.35)] ring-1 ring-white/60 sm:max-h-[86vh] sm:rounded-[34px]"
+                className="relative z-10 flex h-full max-h-none w-full flex-col overflow-hidden bg-white shadow-[0_30px_110px_rgba(15,23,42,0.35)] ring-1 ring-white/60 sm:h-auto sm:max-h-[86vh] sm:max-w-5xl sm:rounded-[34px]"
             >
-                <header className="relative overflow-hidden bg-slate-950 px-5 pb-5 pt-5 text-white sm:px-7 sm:pb-6 sm:pt-6">
+                <header className="relative shrink-0 overflow-hidden bg-slate-950 px-5 pb-5 pt-[max(1.25rem,env(safe-area-inset-top))] text-white sm:px-7 sm:pb-6 sm:pt-6">
                     <div className="pointer-events-none absolute -right-20 -top-24 h-64 w-64 rounded-full bg-orange-500/20 blur-3xl" />
                     <div className="relative flex items-start gap-4">
                         <span className="hidden h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-orange-500 text-white shadow-lg shadow-orange-950/30 sm:flex">
@@ -221,7 +226,7 @@ function PickerModalShell({
                     </label>
                 </header>
 
-                <div className="min-h-0 flex-1 overflow-hidden">{children}</div>
+                <div className="min-h-0 flex-1 overflow-hidden pb-[env(safe-area-inset-bottom)] sm:pb-0">{children}</div>
             </div>
         </div>,
         document.body
@@ -310,7 +315,7 @@ export function CategoryPickerModal({
                     icon={faLayerGroup}
                 />
             ) : (
-                <div className="grid min-h-0 md:h-[54vh] md:grid-cols-[280px_minmax(0,1fr)]">
+                <div className="grid h-full min-h-0 grid-rows-[auto_minmax(0,1fr)] md:h-[54vh] md:grid-cols-[280px_minmax(0,1fr)] md:grid-rows-1">
                     <aside className="max-h-44 overflow-x-auto border-b border-slate-200 bg-slate-50 p-3 md:max-h-full md:overflow-x-hidden md:overflow-y-auto md:border-b-0 md:border-r md:p-4">
                         <p className="mb-3 hidden px-2 text-[9px] font-black uppercase tracking-[0.18em] text-slate-400 md:block">
                             Departments
@@ -373,7 +378,7 @@ export function CategoryPickerModal({
                         </div>
                     </aside>
 
-                    <main className="max-h-[54vh] min-h-0 overflow-y-auto overscroll-contain p-4 sm:p-6">
+                    <main className="h-full min-h-0 overflow-y-auto overscroll-contain p-4 sm:p-6 md:max-h-[54vh]">
                         {activeParent && (
                             <>
                                 <div className="flex items-end justify-between gap-4">
@@ -431,6 +436,7 @@ export function LocationPickerModal({
     onSelectRegion,
     onSelectAll,
     allLabel = "All Uganda",
+    multiple = false,
 }: {
     open: boolean;
     onClose: () => void;
@@ -444,6 +450,7 @@ export function LocationPickerModal({
     onSelectRegion?: (value: string) => void;
     onSelectAll?: () => void;
     allLabel?: string;
+    multiple?: boolean;
 }) {
     const [activeRegionKey, setActiveRegionKey] = useState("");
     const regionGroups = useMemo(() => {
@@ -479,8 +486,9 @@ export function LocationPickerModal({
             return null;
         })
         .filter((group): group is RegionGroup => Boolean(group));
+    const selectedValues = selectedValue.split(",").filter(Boolean);
     const selectedRegion = filteredGroups.find((group) =>
-        group.cities.some((city) => city.value === selectedValue)
+        group.cities.some((city) => selectedValues.includes(city.value))
     );
     const selectedRegionGroup = filteredGroups.find(
         (group) =>
@@ -499,7 +507,7 @@ export function LocationPickerModal({
 
     function select(value: string) {
         onSelect(value);
-        close();
+        if (!multiple) close();
     }
 
     return (
@@ -521,7 +529,7 @@ export function LocationPickerModal({
                     icon={faLocationDot}
                 />
             ) : (
-                <div className="grid min-h-0 md:h-[54vh] md:grid-cols-[280px_minmax(0,1fr)]">
+                <div className="grid h-full min-h-0 grid-rows-[auto_minmax(0,1fr)] md:h-[54vh] md:grid-cols-[280px_minmax(0,1fr)] md:grid-rows-1">
                     <aside className="max-h-44 overflow-x-auto border-b border-slate-200 bg-slate-50 p-3 md:max-h-full md:overflow-x-hidden md:overflow-y-auto md:border-b-0 md:border-r md:p-4">
                         <p className="mb-3 hidden px-2 text-[9px] font-black uppercase tracking-[0.18em] text-slate-400 md:block">
                             Regions
@@ -552,7 +560,7 @@ export function LocationPickerModal({
                             {filteredGroups.map((group) => {
                                 const active = activeRegion?.key === group.key;
                                 const hasSelection = group.cities.some(
-                                    (city) => city.value === selectedValue
+                                    (city) => selectedValues.includes(city.value)
                                 ) || group.name.toLowerCase().replace(/\s+/g, "-") === selectedRegionValue;
 
                                 return (
@@ -579,7 +587,7 @@ export function LocationPickerModal({
                         </div>
                     </aside>
 
-                    <main className="max-h-[54vh] min-h-0 overflow-y-auto overscroll-contain p-4 sm:p-6">
+                    <main className="h-full min-h-0 overflow-y-auto overscroll-contain p-4 sm:p-6 md:max-h-[54vh]">
                         {activeRegion && (
                             <>
                                 <div className="flex items-end justify-between gap-4">
@@ -609,13 +617,22 @@ export function LocationPickerModal({
                                         <PickerChoice
                                             key={city.value}
                                             title={city.label}
-                                            description={city.regionName}
-                                            selected={city.value === selectedValue}
+                                            description={`${city.regionName}${city.count !== undefined ? ` · ${city.count} ads` : ""}`}
+                                            selected={selectedValues.includes(city.value)}
                                             icon={faLocationDot}
                                             onClick={() => select(city.value)}
                                         />
                                     ))}
                                 </div>
+                                {multiple && (
+                                    <button
+                                        type="button"
+                                        onClick={close}
+                                        className="sticky bottom-0 mt-5 h-12 w-full rounded-2xl bg-orange-500 text-sm font-black text-white shadow-lg shadow-orange-100"
+                                    >
+                                        Done{selectedValues.length ? ` · ${selectedValues.length} selected` : ""}
+                                    </button>
+                                )}
                             </>
                         )}
                     </main>

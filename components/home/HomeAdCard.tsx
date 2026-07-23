@@ -1,4 +1,5 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { formatDateTime, formatRelativeTime } from "@/lib/dateTime";
 import { faEye, faLocationDot } from "@/lib/faIcons";
 import HomeAdFavoriteButton from "@/components/home/HomeAdFavoriteButton";
 import ListingCardImage from "@/components/listings/ListingCardImage";
@@ -143,31 +144,6 @@ function getAdLocation(ad: any) {
     return "Uganda";
 }
 
-function formatDate(value: any) {
-    if (!value) return "Recently";
-
-    const date = new Date(value);
-
-    if (Number.isNaN(date.getTime())) return "Recently";
-
-    const months = [
-        "Jan",
-        "Feb",
-        "Mar",
-        "Apr",
-        "May",
-        "Jun",
-        "Jul",
-        "Aug",
-        "Sep",
-        "Oct",
-        "Nov",
-        "Dec",
-    ];
-
-    return `${months[date.getUTCMonth()]} ${date.getUTCDate()}`;
-}
-
 function getViewCount(ad: any) {
     const value = Number(
         ad?.views_count ?? ad?.view_count ?? ad?.views ?? ad?.total_views ?? 0
@@ -183,10 +159,10 @@ export default function HomeAdCard({ ad, favoriteIds, featured }: HomeAdCardProp
     const href = id ? `/ads/${id}` : "/ads";
 
     const date =
-        ad?.updated_at ||
         ad?.created_at ||
         ad?.published_at ||
-        ad?.date_posted;
+        ad?.date_posted ||
+        ad?.updated_at;
 
     const isFavorited = favoriteIds?.has(String(id)) === true;
     const showFeatured = featured ?? isFeaturedAd(ad);
@@ -279,7 +255,7 @@ export default function HomeAdCard({ ad, favoriteIds, featured }: HomeAdCardProp
                             <FontAwesomeIcon icon={faEye} className="h-2.5 w-2.5" />
                             {viewCount.toLocaleString()}
                         </span>
-                        <span>{formatDate(date)}</span>
+                        <span title={formatDateTime(date)}>{formatRelativeTime(date)}</span>
                     </span>
                 </div>
             </div>

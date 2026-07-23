@@ -37,6 +37,7 @@ import {
     getUgandanNationalNumber,
     toUgandanPhone,
 } from "@/lib/ugandanPhone";
+import UserAvatar from "@/components/account/UserAvatar";
 
 type UserPermissions = {
     is_self: boolean;
@@ -101,6 +102,7 @@ type AdminUserDetail = {
     recent_listings: RecentListing[];
     recent_payments: RecentPayment[];
     permissions: UserPermissions;
+    avatar_url?: string | null;
 };
 
 type EditForm = {
@@ -299,12 +301,6 @@ export default function AdminUserDetailClient({ userId }: { userId: string }) {
         return <AdminErrorState message={error || "User not found."} onRetry={loadUser} />;
     }
 
-    const initials = user.full_name
-        .split(/\s+/)
-        .filter(Boolean)
-        .slice(0, 2)
-        .map((part) => part.charAt(0).toUpperCase())
-        .join("") || "Q";
     const roleName = formatLabel(user.role);
     const accountHealthy = user.is_active && !user.is_banned;
     const accessFields: AdminModalField[] =
@@ -340,9 +336,11 @@ export default function AdminUserDetailClient({ userId }: { userId: string }) {
 
                 <div className="relative flex flex-col gap-6 xl:flex-row xl:items-center xl:justify-between">
                     <div className="flex min-w-0 items-start gap-5">
-                        <span className="flex h-20 w-20 shrink-0 items-center justify-center rounded-[26px] bg-gradient-to-br from-orange-400 to-orange-600 text-2xl font-black shadow-xl shadow-orange-950/30">
-                            {initials}
-                        </span>
+                        <UserAvatar
+                            user={user}
+                            name={user.full_name}
+                            className="h-20 w-20 rounded-[26px] bg-gradient-to-br from-orange-400 to-orange-600 text-2xl text-white shadow-xl shadow-orange-950/30"
+                        />
                         <div className="min-w-0">
                             <div className="flex flex-wrap gap-2">
                                 <span className="rounded-full bg-white/10 px-3 py-1 text-[9px] font-black uppercase tracking-[0.16em] text-white">

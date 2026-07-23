@@ -946,11 +946,11 @@ export default function PostAdForm() {
     }
 
     return (
-        <form onSubmit={handlePreview} className="flex flex-col gap-6">
+        <form onSubmit={handlePreview} className="grid gap-4 lg:grid-cols-2">
             {error && <ErrorBox message={error} />}
 
             {draftMessage && (
-                <div className="order-0 flex items-center gap-3 rounded-[20px] bg-green-50 px-4 py-3 text-sm font-black text-green-700 ring-1 ring-green-100">
+                <div className="order-0 flex items-center gap-3 rounded-[16px] bg-green-50 px-4 py-3 text-sm font-black text-green-700 ring-1 ring-green-100 lg:col-span-2">
                     <FontAwesomeIcon icon={faCircleCheck} className="h-4 w-4" />
                     {draftMessage}
                 </div>
@@ -958,10 +958,85 @@ export default function PostAdForm() {
 
             <FormCard
                 className="order-1"
-                icon={faPenToSquare}
+                icon={faCamera}
                 eyebrow="Step 1"
-                title="Basic advert details"
-                description="Use a clear title and helpful description so buyers understand what you are selling."
+                title="Add photos"
+                description="Up to 10 photos. Your first photo is the cover."
+            >
+                <div className="rounded-[18px] border-2 border-dashed border-orange-200 bg-orange-50/70 p-3 transition hover:border-orange-300 hover:bg-orange-50">
+                    <label className="flex min-h-20 cursor-pointer items-center gap-3 rounded-[14px] px-2 py-2 text-left">
+                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] bg-white text-orange-600 ring-1 ring-orange-100">
+                            <FontAwesomeIcon icon={faCamera} className="h-4 w-4" />
+                        </span>
+                        <span className="min-w-0 flex-1">
+                            <span className="block text-sm font-black text-slate-900">
+                                {photosUploading ? "Uploading photos..." : "Tap to add photos"}
+                            </span>
+                            <span className="mt-0.5 block text-xs font-semibold text-slate-500">
+                                JPG, PNG or WEBP · 5MB maximum each
+                            </span>
+                        </span>
+                        <span className="hidden rounded-full bg-orange-500 px-3 py-1.5 text-xs font-black text-white sm:inline-flex">
+                            Choose
+                        </span>
+                        <input
+                            type="file"
+                            accept="image/jpeg,image/png,image/webp"
+                            multiple
+                            onChange={handlePhotoSelection}
+                            disabled={photosUploading}
+                            className="sr-only"
+                        />
+                    </label>
+
+                    {photoPreviews.length > 0 && (
+                        <div className="mt-3 grid grid-cols-3 gap-2 border-t border-orange-200/70 pt-3 sm:grid-cols-4">
+                            {photoPreviews.map((photo, index) => (
+                                <div
+                                    key={`${photo.id}-${index}`}
+                                    className="group relative aspect-[4/3] overflow-hidden rounded-[12px] bg-slate-100 ring-1 ring-slate-200"
+                                >
+                                    <img
+                                        src={photo.url}
+                                        alt={`Selected photo ${index + 1}`}
+                                        className="h-full w-full object-cover"
+                                    />
+                                    {index === 0 && (
+                                        <span className="absolute left-1.5 top-1.5 rounded-full bg-orange-500 px-2 py-0.5 text-[8px] font-black uppercase text-white">
+                                            Cover
+                                        </span>
+                                    )}
+                                    <button
+                                        type="button"
+                                        onClick={() => removePhoto(index)}
+                                        disabled={photosUploading}
+                                        aria-label={`Remove ${photo.name}`}
+                                        className="absolute right-1.5 top-1.5 flex h-7 w-7 items-center justify-center rounded-full bg-slate-950/80 text-white transition hover:bg-red-600"
+                                    >
+                                        <FontAwesomeIcon icon={faXmark} className="h-3.5 w-3.5" />
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
+                    {uploadProgress && !showPreview && (
+                        <div className={`mt-3 rounded-[12px] px-3 py-2 text-xs font-black ring-1 ${photosUploading
+                            ? "bg-blue-50 text-blue-700 ring-blue-100"
+                            : "bg-green-50 text-green-700 ring-green-100"
+                        }`}>
+                            {uploadProgress}
+                        </div>
+                    )}
+                </div>
+            </FormCard>
+
+            <FormCard
+                className="order-2"
+                icon={faPenToSquare}
+                eyebrow="Step 2"
+                title="What are you selling?"
+                description="Add a short title and the important details."
             >
                 <Field label="Advert Title" icon={faBullhorn}>
                     <input
@@ -978,7 +1053,7 @@ export default function PostAdForm() {
                         value={description}
                         onChange={(event) => setDescription(event.target.value)}
                         placeholder="Describe the item, condition, features, and location..."
-                        rows={6}
+                        rows={4}
                         className={inputClass}
                         required
                     />
@@ -990,7 +1065,7 @@ export default function PostAdForm() {
                 icon={faMoneyBillWave}
                 eyebrow="Step 3"
                 title="Price and condition"
-                description="Set your price and let buyers know if they can negotiate."
+                description="Set the price and item condition."
             >
                 <div className="grid gap-5 md:grid-cols-2">
                     <Field label="Price" icon={faMoneyBillWave}>
@@ -1007,9 +1082,6 @@ export default function PostAdForm() {
                             <span>
                                 <span className="block text-sm font-black text-slate-800">
                                     Negotiable price
-                                </span>
-                                <span className="mt-0.5 block text-xs font-semibold text-slate-500">
-                                    Tick this if buyers can bargain or make offers.
                                 </span>
                             </span>
 
@@ -1042,7 +1114,7 @@ export default function PostAdForm() {
                 icon={faLayerGroup}
                 eyebrow="Step 4"
                 title="Category and location"
-                description="Choose the right category and location so buyers can find your advert."
+                description="Help nearby buyers find your advert."
             >
                 <div className="grid gap-5 md:grid-cols-2">
                     <Field label="Category" icon={faLayerGroup}>
@@ -1054,9 +1126,6 @@ export default function PostAdForm() {
                             <span>
                                 <span className="block text-sm font-black text-slate-900">
                                     {selectedCategory ? getOptionLabel(selectedCategory) : "Select category"}
-                                </span>
-                                <span className="mt-0.5 block text-xs font-semibold text-slate-500">
-                                    Choose advert category
                                 </span>
                             </span>
 
@@ -1075,9 +1144,6 @@ export default function PostAdForm() {
                             <span>
                                 <span className="block text-sm font-black text-slate-900">
                                     {selectedCity ? getOptionLabel(selectedCity) : "Select city"}
-                                </span>
-                                <span className="mt-0.5 block text-xs font-semibold text-slate-500">
-                                    Choose advert location
                                 </span>
                             </span>
 
@@ -1111,11 +1177,11 @@ export default function PostAdForm() {
 
             {category && (
                 <FormCard
-                    className="order-5"
+                    className="order-5 lg:col-span-2"
                     icon={faSliders}
                     eyebrow="Step 5"
                     title="Category details"
-                    description="These details change depending on the category you select."
+                    description="Add only the details that apply to this category."
                 >
                     {filtersLoading ? (
                         <div className="rounded-[18px] bg-slate-50 p-4 text-sm font-bold text-slate-500 ring-1 ring-slate-100">
@@ -1206,86 +1272,12 @@ export default function PostAdForm() {
                 </FormCard>
             )}
 
-            <FormCard
-                className="order-2"
-                icon={faCamera}
-                eyebrow="Step 2"
-                title="Advert photos"
-                description="Add up to 10 clear photos. The first photo will be the primary image."
-            >
-                <label className="flex cursor-pointer flex-col items-center justify-center rounded-[24px] border-2 border-dashed border-orange-200 bg-orange-50 px-6 py-10 text-center transition hover:border-orange-300 hover:bg-orange-100/60">
-                    <span className="flex h-14 w-14 items-center justify-center rounded-full bg-white text-orange-600 shadow-sm">
-                        <FontAwesomeIcon icon={faCamera} className="h-6 w-6" />
-                    </span>
-                    <span className="mt-4 text-sm font-black text-slate-900">
-                        Choose advert photos
-                    </span>
-                    <span className="mt-1 text-xs font-semibold text-slate-500">
-                        JPG, PNG, or WEBP - maximum 5MB each
-                    </span>
-                    <input
-                        type="file"
-                        accept="image/jpeg,image/png,image/webp"
-                        multiple
-                        onChange={handlePhotoSelection}
-                        disabled={photosUploading}
-                        className="sr-only"
-                    />
-                </label>
-
-                {photoPreviews.length > 0 && (
-                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-5">
-                        {photoPreviews.map((photo, index) => (
-                            <div
-                                key={`${photo.id}-${index}`}
-                                className="group relative aspect-square overflow-hidden rounded-[20px] bg-slate-100 ring-1 ring-slate-200"
-                            >
-                                <img
-                                    src={photo.url}
-                                    alt={`Selected photo ${index + 1}`}
-                                    className="h-full w-full object-cover"
-                                />
-                                {index === 0 && (
-                                    <span className="absolute left-2 top-2 rounded-full bg-orange-500 px-2.5 py-1 text-[9px] font-black uppercase text-white shadow-sm">
-                                        Primary
-                                    </span>
-                                )}
-                                <button
-                                    type="button"
-                                    onClick={() => removePhoto(index)}
-                                    disabled={photosUploading}
-                                    aria-label={`Remove ${photo.name}`}
-                                    className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-slate-950/80 text-white shadow-sm transition hover:bg-red-600"
-                                >
-                                    <FontAwesomeIcon icon={faXmark} className="h-4 w-4" />
-                                </button>
-                            </div>
-                        ))}
-                    </div>
-                )}
-
-                {uploadProgress && !showPreview && (
-                    <div className={`rounded-[18px] px-4 py-3 text-sm font-black ring-1 ${photosUploading
-                        ? "bg-blue-50 text-blue-700 ring-blue-100"
-                        : "bg-green-50 text-green-700 ring-green-100"
-                    }`}>
-                        {uploadProgress}
-                    </div>
-                )}
-            </FormCard>
-
-            <div className="order-6 rounded-[24px] border border-orange-200 bg-orange-50 p-5 text-sm text-orange-800">
-                <p className="flex items-center gap-2 font-black">
-                    <FontAwesomeIcon icon={faShieldHalved} className="h-4 w-4" />
-                    You will preview before posting.
-                </p>
-
-                <p className="mt-1 font-semibold">
-                    Review the advert details and selected photos together before submitting.
-                </p>
+            <div className="order-6 flex items-center gap-2 rounded-[16px] border border-orange-200 bg-orange-50 px-4 py-3 text-sm font-black text-orange-800 lg:col-span-2">
+                <FontAwesomeIcon icon={faShieldHalved} className="h-4 w-4" />
+                You&apos;ll preview everything before the advert goes live.
             </div>
 
-            <div className="order-7 grid gap-3 sm:grid-cols-[auto_1fr]">
+            <div className="order-7 grid gap-3 sm:grid-cols-[auto_1fr] lg:col-span-2">
                 <button
                     type="button"
                     onClick={saveDraft}
@@ -1323,24 +1315,24 @@ function FormCard({
     children?: ReactNode;
 }) {
     return (
-        <section className={`rounded-[30px] bg-white p-5 shadow-[0_18px_55px_rgba(15,23,42,0.08)] ring-1 ring-black/5 md:p-6 ${className}`}>
-            <div className="mb-5 flex gap-4">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-orange-50 text-orange-600">
-                    <FontAwesomeIcon icon={icon} className="h-5 w-5" />
+        <section className={`rounded-[22px] border border-slate-200/80 bg-white p-4 shadow-[0_10px_28px_rgba(15,23,42,0.05)] sm:p-5 ${className}`}>
+            <div className="mb-4 flex gap-3">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[11px] bg-orange-50 text-orange-600">
+                    <FontAwesomeIcon icon={icon} className="h-4 w-4" />
                 </div>
 
                 <div>
-                    <p className="text-xs font-black uppercase tracking-wide text-orange-600">
+                    <p className="text-[10px] font-black uppercase tracking-[0.15em] text-orange-600">
                         {eyebrow}
                     </p>
-                    <h2 className="mt-1 text-xl font-black text-slate-950">{title}</h2>
-                    <p className="mt-1 text-sm font-semibold leading-6 text-slate-500">
+                    <h2 className="mt-0.5 text-lg font-black text-slate-950">{title}</h2>
+                    <p className="mt-0.5 text-xs font-semibold leading-5 text-slate-500">
                         {description}
                     </p>
                 </div>
             </div>
 
-            {children && <div className="space-y-5">{children}</div>}
+            {children && <div className="space-y-4">{children}</div>}
         </section>
     );
 }
@@ -1406,7 +1398,7 @@ function PreviewBox({
 
 function ErrorBox({ message }: { message: string }) {
     return (
-        <div className="rounded-[20px] border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700">
+        <div className="rounded-[16px] border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700 lg:col-span-2">
             {message}
         </div>
     );

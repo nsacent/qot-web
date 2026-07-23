@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import QotLogo from "@/components/brand/QotLogo";
 import UserProfileTab from "@/components/layout/UserProfileTab";
+import UserAvatar from "@/components/account/UserAvatar";
 import {
     CategoryPickerModal,
     LocationPickerModal,
@@ -792,9 +793,11 @@ export default function QotMarketplaceNav({
                                             href={`/account/messages/${thread.id}`}
                                             className="flex gap-3 rounded-[18px] p-3 transition hover:bg-orange-50"
                                         >
-                                            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[13px] bg-slate-950 text-sm font-black text-white">
-                                                {name.charAt(0).toUpperCase()}
-                                            </span>
+                                            <UserAvatar
+                                                src={thread?.other_user_avatar}
+                                                name={name}
+                                                className="h-10 w-10 rounded-[13px] bg-slate-950 text-sm text-white"
+                                            />
                                             <span className="min-w-0 flex-1">
                                                 <span className="flex items-center justify-between gap-3">
                                                     <span className="truncate text-xs font-black text-slate-950">{name}</span>

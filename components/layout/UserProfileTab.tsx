@@ -18,6 +18,7 @@ import {
 } from "@/lib/faIcons";
 import { isAdminOrModerator } from "@/lib/auth";
 import { getCurrentUser, logoutUser } from "@/lib/sessionClient";
+import UserAvatar from "@/components/account/UserAvatar";
 
 type CurrentUser = {
     id?: number;
@@ -33,6 +34,11 @@ type CurrentUser = {
     is_moderator?: boolean;
     staff?: boolean;
     superuser?: boolean;
+    profile?: {
+        avatar?: string | null;
+        business_name?: string | null;
+    } | null;
+    avatar?: string | null;
 };
 
 const accountLinks = [
@@ -95,17 +101,6 @@ function getUserDisplayName(user: CurrentUser) {
         user.email ||
         "My Account"
     );
-}
-
-function getInitials(user: CurrentUser) {
-    const initials = getUserDisplayName(user)
-        .split(/\s+/)
-        .filter(Boolean)
-        .slice(0, 2)
-        .map((part) => part.charAt(0).toUpperCase())
-        .join("");
-
-    return initials || "Q";
 }
 
 function getRoleLabel(user: CurrentUser) {
@@ -219,9 +214,11 @@ export default function UserProfileTab() {
                         : "border-slate-200 bg-white text-slate-800 hover:border-orange-200 hover:bg-orange-50"
                 }`}
             >
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[11px] bg-gradient-to-br from-orange-400 to-orange-600 text-[11px] font-black text-white shadow-sm shadow-orange-200">
-                    {getInitials(user)}
-                </span>
+                <UserAvatar
+                    user={user}
+                    name={displayName}
+                    className="h-8 w-8 rounded-[11px] bg-gradient-to-br from-orange-400 to-orange-600 text-[11px] text-white shadow-sm shadow-orange-200"
+                />
 
                 <span className="hidden max-w-28 text-left xl:block">
                     <span className="block truncate text-[11px] font-black leading-4">
@@ -248,9 +245,11 @@ export default function UserProfileTab() {
                     <div className="relative overflow-hidden bg-slate-950 px-5 py-5 text-white">
                         <div className="absolute -right-8 -top-12 h-32 w-32 rounded-full bg-orange-500/25 blur-2xl" />
                         <div className="relative flex items-center gap-3.5">
-                            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-orange-400 to-orange-600 text-sm font-black shadow-lg shadow-orange-950/30">
-                                {getInitials(user)}
-                            </span>
+                            <UserAvatar
+                                user={user}
+                                name={displayName}
+                                className="h-12 w-12 rounded-2xl bg-gradient-to-br from-orange-400 to-orange-600 text-sm text-white shadow-lg shadow-orange-950/30"
+                            />
                             <div className="min-w-0 flex-1">
                                 <p className="truncate text-sm font-black">
                                     {displayName}

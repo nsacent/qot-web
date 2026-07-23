@@ -27,6 +27,7 @@ import {
     AdminRefreshButton,
     AdminStatCard,
 } from "@/components/admin/AdminUi";
+import UserAvatar from "@/components/account/UserAvatar";
 
 const USERS_ENDPOINT = "/admin-panel/users/";
 
@@ -50,6 +51,7 @@ type AdminUserSummary = {
     banned_reason: string | null;
     is_staff: boolean;
     date_joined: string;
+    avatar_url?: string | null;
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -289,9 +291,11 @@ export default function AdminUsersClient() {
                             <article key={user.id} className="rounded-[24px] bg-white p-5 shadow-sm ring-1 ring-slate-200/70 sm:p-6">
                                 <div className="flex flex-col gap-5 lg:flex-row lg:items-center">
                                     <div className="flex min-w-0 flex-1 items-start gap-4">
-                                        <span className="flex h-13 w-13 shrink-0 items-center justify-center rounded-2xl bg-slate-950 text-base font-black text-white">
-                                            {name.charAt(0).toUpperCase()}
-                                        </span>
+                                        <UserAvatar
+                                            user={user}
+                                            name={name}
+                                            className="h-13 w-13 rounded-2xl bg-slate-950 text-base text-white"
+                                        />
 
                                         <div className="min-w-0 flex-1">
                                             <div className="flex flex-wrap items-center gap-2">

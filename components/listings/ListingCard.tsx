@@ -1,4 +1,5 @@
 import FavoriteButton from "@/components/listings/FavoriteButton";
+import { formatDateTime, formatRelativeTime } from "@/lib/dateTime";
 
 type ListingCardProps = {
     listing: any;
@@ -8,19 +9,6 @@ function formatPrice(price: any) {
     if (!price) return "Contact seller";
 
     return `UGX ${Number(price).toLocaleString()}`;
-}
-
-function formatDate(dateValue: string) {
-    if (!dateValue) return "";
-
-    const date = new Date(dateValue);
-    if (Number.isNaN(date.getTime())) return "";
-
-    return date.toLocaleDateString("en-UG", {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-    });
 }
 
 export default function ListingCard({ listing }: ListingCardProps) {
@@ -133,7 +121,11 @@ export default function ListingCard({ listing }: ListingCardProps) {
                         <span>{listing.favorites_count} saves</span>
                     )}
 
-                    {listing.created_at && <span>{formatDate(listing.created_at)}</span>}
+                    {listing.created_at && (
+                        <span title={formatDateTime(listing.created_at)}>
+                            {formatRelativeTime(listing.created_at)}
+                        </span>
+                    )}
                 </div>
 
                 <div className="mt-5">

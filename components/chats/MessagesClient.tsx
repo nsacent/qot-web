@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { formatDateTime, formatRelativeTime } from "@/lib/dateTime";
 import { faEnvelope, faMagnifyingGlass } from "@/lib/faIcons";
 
 function getArray(data: any): any[] {
@@ -45,19 +46,6 @@ function getLastMessage(thread: any) {
     if (message?.body) return message.body;
 
     return "Open the conversation";
-}
-
-function formatDate(value: string | undefined) {
-    if (!value) return "New chat";
-
-    const date = new Date(value);
-
-    if (Number.isNaN(date.getTime())) return "New chat";
-
-    return new Intl.DateTimeFormat("en-UG", {
-        day: "numeric",
-        month: "short",
-    }).format(date);
 }
 
 export default function MessagesClient() {
@@ -191,7 +179,9 @@ export default function MessagesClient() {
                                             {participant}
                                         </h2>
                                         <span className="shrink-0 text-[11px] font-bold text-slate-400">
-                                            {formatDate(thread?.last_message_at || thread?.created_at)}
+                                            <span title={formatDateTime(thread?.last_message_at || thread?.created_at)}>
+                                                {formatRelativeTime(thread?.last_message_at || thread?.created_at)}
+                                            </span>
                                         </span>
                                     </div>
                                     <p className="mt-1 truncate text-xs font-bold text-orange-600">

@@ -6,6 +6,7 @@ import SimilarListings from "@/components/listings/SimilarListings";
 import ListingImageCarousel from "@/components/listings/ListingImageCarousel";
 import BuyerSafetyCard from "@/components/listings/BuyerSafetyCard";
 import AdSellerCard from "@/components/sellers/AdSellerCard";
+import { formatDateTime, formatRelativeTime } from "@/lib/dateTime";
 
 export const dynamic = "force-dynamic";
 
@@ -120,20 +121,6 @@ function cleanLabel(value: any, fallback = "Not specified") {
         .replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
-function formatDate(value: any) {
-    if (!value) return "Recently posted";
-
-    const date = new Date(value);
-
-    if (Number.isNaN(date.getTime())) return "Recently posted";
-
-    return date.toLocaleDateString("en-UG", {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-    });
-}
-
 export default async function ListingDetailsPage({ params }: PageProps) {
     const { id } = await params;
 
@@ -196,9 +183,9 @@ export default async function ListingDetailsPage({ params }: PageProps) {
     const categoryName = getCategoryName(listing);
     const statusLabel = cleanLabel(listing?.status, "Available");
     const conditionLabel = cleanLabel(listing?.condition);
-    const postedDate = formatDate(
+    const postedValue =
         listing?.created_at || listing?.published_at || listing?.date_posted
-    );
+    const postedDate = formatRelativeTime(postedValue);
 
     return (
         <main className="min-h-screen bg-[#fff7f2] text-slate-950 antialiased">
@@ -277,7 +264,10 @@ export default async function ListingDetailsPage({ params }: PageProps) {
                                     <p className="text-xs font-black uppercase tracking-wide text-slate-400">
                                         Posted
                                     </p>
-                                    <p className="mt-1 text-sm font-black text-slate-800">
+                                    <p
+                                        className="mt-1 text-sm font-black text-slate-800"
+                                        title={formatDateTime(postedValue)}
+                                    >
                                         {postedDate}
                                     </p>
                                 </div>

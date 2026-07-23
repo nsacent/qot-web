@@ -9,26 +9,13 @@ import {
     faMagnifyingGlass,
     faTrash,
 } from "@/lib/faIcons";
+import { formatDateTime, formatRelativeTime } from "@/lib/dateTime";
 
 const STORAGE_KEY = "qot_recently_viewed";
 
 function formatPrice(price: any) {
     if (!price) return "Contact seller";
     return `UGX ${Number(price).toLocaleString()}`;
-}
-
-function formatDate(value: string) {
-    if (!value) return "Recently";
-
-    const date = new Date(value);
-
-    if (Number.isNaN(date.getTime())) return "Recently";
-
-    return date.toLocaleDateString("en-UG", {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-    });
 }
 
 export default function RecentlyViewedClient() {
@@ -192,7 +179,9 @@ export default function RecentlyViewedClient() {
                                             <FontAwesomeIcon icon={faLocationDot} className="h-3 w-3 text-orange-500" />
                                             {item.city || "Uganda"}
                                         </span>
-                                        <span className="shrink-0">{formatDate(item.viewed_at)}</span>
+                                        <span className="shrink-0" title={formatDateTime(item.viewed_at)}>
+                                            {formatRelativeTime(item.viewed_at)}
+                                        </span>
                                     </div>
 
                                     <div className="mt-4 grid grid-cols-[1fr_auto] gap-2">
