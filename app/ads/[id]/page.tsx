@@ -368,6 +368,8 @@ export default async function ListingDetailsPage({ params }: PageProps) {
                         </div>
 
                         <aside className="space-y-6">
+                            <BuyerSafetyCard listingId={listing.id} />
+
                             <AdSellerCard
                                 listing={listing}
                                 sellerId={sellerId || null}
@@ -375,8 +377,6 @@ export default async function ListingDetailsPage({ params }: PageProps) {
                                 location={location}
                                 sellerProfile={sellerProfile}
                             />
-
-                            <BuyerSafetyCard listingId={listing.id} />
                         </aside>
                     </div>
                 </section>

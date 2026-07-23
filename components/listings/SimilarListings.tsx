@@ -120,8 +120,11 @@ export default async function SimilarListings({ listing }: SimilarListingsProps)
     }
 
     return (
-        <section className="mt-8 rounded-[34px] bg-white p-5 shadow-[0_18px_55px_rgba(15,23,42,0.08)] ring-1 ring-black/5 sm:p-7">
-            <div className="flex flex-col justify-between gap-5 md:flex-row md:items-end">
+        <section
+            id="similar-ads"
+            className="mt-8 scroll-mt-24 rounded-[34px] bg-white p-5 shadow-[0_18px_55px_rgba(15,23,42,0.08)] ring-1 ring-black/5 sm:p-7"
+        >
+            <div className="flex items-end justify-between gap-4">
                 <div>
                     <div className="flex flex-wrap gap-2">
                         <span className="inline-flex items-center gap-2 rounded-full bg-orange-50 px-4 py-2 text-xs font-black uppercase tracking-wide text-orange-600 ring-1 ring-orange-100">
@@ -129,31 +132,36 @@ export default async function SimilarListings({ listing }: SimilarListingsProps)
                             Similar ads
                         </span>
 
-                        <span className="inline-flex items-center gap-2 rounded-full bg-slate-50 px-4 py-2 text-xs font-black uppercase tracking-wide text-slate-600 ring-1 ring-slate-100">
+                        <span className="hidden items-center gap-2 rounded-full bg-slate-50 px-4 py-2 text-xs font-black uppercase tracking-wide text-slate-600 ring-1 ring-slate-100 sm:inline-flex">
                             <FontAwesomeIcon icon={faLayerGroup} className="h-3.5 w-3.5" />
                             {categoryName}
                         </span>
 
-                        <span className="inline-flex items-center gap-2 rounded-full bg-slate-50 px-4 py-2 text-xs font-black uppercase tracking-wide text-slate-600 ring-1 ring-slate-100">
+                        <span className="hidden items-center gap-2 rounded-full bg-slate-50 px-4 py-2 text-xs font-black uppercase tracking-wide text-slate-600 ring-1 ring-slate-100 sm:inline-flex">
                             <FontAwesomeIcon icon={faLocationDot} className="h-3.5 w-3.5" />
                             {cityName}
                         </span>
                     </div>
 
-                    <h2 className="mt-4 text-2xl font-black tracking-tight text-slate-950 md:text-3xl">
+                    <h2 className="mt-3 text-2xl font-black tracking-tight text-slate-950 md:mt-4 md:text-3xl">
                         You may also like
                     </h2>
 
-                    <p className="mt-2 max-w-2xl text-sm font-bold leading-6 text-slate-500">
+                    <p className="mt-1.5 hidden max-w-2xl text-sm font-bold leading-6 text-slate-500 sm:block">
                         More ads related to this ad, based on category and location.
+                    </p>
+
+                    <p className="mt-1.5 text-xs font-bold text-slate-400 sm:hidden">
+                        Swipe to explore similar ads
                     </p>
                 </div>
 
                 <a
                     href={buildMoreLink(category, city)}
-                    className="inline-flex h-11 items-center justify-center gap-2 rounded-[18px] bg-slate-950 px-5 text-sm font-black text-white transition hover:bg-orange-600"
+                    className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-[15px] bg-slate-950 px-3.5 text-xs font-black text-white transition hover:bg-orange-600 sm:h-11 sm:rounded-[18px] sm:px-5 sm:text-sm"
                 >
-                    View more
+                    <span className="hidden sm:inline">View more</span>
+                    <span className="sm:hidden">All ads</span>
                     <FontAwesomeIcon icon={faArrowRight} className="h-4 w-4" />
                 </a>
             </div>

@@ -2,6 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { apiGet } from "@/lib/apiClient";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+    faArrowRight,
+    faBoxOpen,
+    faLocationDot,
+    faShieldHalved,
+    faTriangleExclamation,
+} from "@fortawesome/free-solid-svg-icons";
 
 type BuyerSafetyCardProps = {
     listingId?: string | number;
@@ -59,47 +67,93 @@ export default function BuyerSafetyCard({ listingId }: BuyerSafetyCardProps) {
 
     const showReportButton = ownershipStatus === "not-own";
 
+    const safetyTips = [
+        {
+            icon: faLocationDot,
+            title: "Meet somewhere public",
+            description: "Choose a busy, well-lit place and avoid meeting alone.",
+        },
+        {
+            icon: faBoxOpen,
+            title: "Inspect before paying",
+            description: "Check the item carefully and confirm it matches this ad.",
+        },
+        {
+            icon: faShieldHalved,
+            title: "Keep your money safe",
+            description: "Never pay in advance or share your PIN or verification code.",
+        },
+    ];
+
     return (
-        <div className="rounded-2xl border border-orange-200 bg-orange-50 p-5">
-            <p className="text-sm font-semibold uppercase tracking-wide text-orange-700">
-                Buyer Safety
-            </p>
+        <section
+            id="buyer-safety"
+            className="relative scroll-mt-24 overflow-hidden rounded-[28px] bg-slate-950 p-5 text-white shadow-[0_18px_45px_rgba(15,23,42,0.22)] sm:p-6"
+        >
+            <span className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-orange-500/20 blur-2xl" />
+            <span className="pointer-events-none absolute -bottom-20 -left-12 h-36 w-36 rounded-full bg-orange-400/10 blur-2xl" />
 
-            <h2 className="mt-2 text-lg font-bold text-slate-900">
-                Stay safe before making payment
-            </h2>
+            <div className="relative">
+                <div className="flex items-start gap-3.5">
+                    <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-orange-500 text-white shadow-lg shadow-orange-950/30">
+                        <FontAwesomeIcon icon={faShieldHalved} className="h-5 w-5" />
+                    </span>
 
-            <ul className="mt-4 space-y-3 text-sm leading-6 text-slate-700">
-                <li>• Meet the seller in a safe public place.</li>
-                <li>• Inspect the item carefully before paying.</li>
-                <li>• Do not send money before confirming the item.</li>
-                <li>• Be careful with deals that look too cheap.</li>
-                <li>• Report suspicious adverts immediately.</li>
-            </ul>
+                    <div>
+                        <p className="text-[10px] font-black uppercase tracking-[0.16em] text-orange-400">
+                            QOT Buyer Safety
+                        </p>
+                        <h2 className="mt-1 text-xl font-black tracking-tight text-white">
+                            Buy with confidence
+                        </h2>
+                        <p className="mt-1 text-xs font-semibold leading-5 text-slate-400">
+                            A few checks can help you avoid scams.
+                        </p>
+                    </div>
+                </div>
 
-            <div
-                className={
-                    showReportButton
-                        ? "mt-5 grid gap-3 sm:grid-cols-2"
-                        : "mt-5 grid gap-3"
-                }
-            >
-                <a
-                    href="/safety/report"
-                    className="rounded-xl border border-orange-200 bg-white px-4 py-3 text-center text-sm font-semibold text-orange-700 hover:bg-orange-100"
-                >
-                    Safety Center
-                </a>
+                <div className="mt-5 space-y-2.5">
+                    {safetyTips.map((tip) => (
+                        <div
+                            key={tip.title}
+                            className="flex gap-3 rounded-2xl bg-white/[0.07] p-3.5 ring-1 ring-white/10"
+                        >
+                            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/10 text-orange-400">
+                                <FontAwesomeIcon icon={tip.icon} className="h-4 w-4" />
+                            </span>
+                            <div className="min-w-0">
+                                <p className="text-sm font-black text-white">{tip.title}</p>
+                                <p className="mt-0.5 text-[11px] font-semibold leading-[17px] text-slate-400">
+                                    {tip.description}
+                                </p>
+                            </div>
+                        </div>
+                    ))}
+                </div>
 
-                {showReportButton && (
+                <div className={`mt-4 grid gap-2.5 ${showReportButton ? "grid-cols-2" : "grid-cols-1"}`}>
                     <a
-                        href={reportHref}
-                        className="rounded-xl bg-orange-500 px-4 py-3 text-center text-sm font-semibold text-white hover:bg-orange-600"
+                        href="/safety/report"
+                        className="inline-flex min-h-11 items-center justify-center gap-2 rounded-[15px] bg-white px-3 text-xs font-black text-slate-950 transition hover:bg-orange-50"
                     >
-                        Report Advert
+                        Safety tips
+                        <FontAwesomeIcon icon={faArrowRight} className="h-3 w-3" />
                     </a>
-                )}
+
+                    {showReportButton && (
+                        <a
+                            href={reportHref}
+                            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-[15px] bg-white/10 px-3 text-xs font-black text-white ring-1 ring-white/15 transition hover:bg-white/15"
+                        >
+                            <FontAwesomeIcon
+                                icon={faTriangleExclamation}
+                                className="h-3.5 w-3.5 text-orange-400"
+                            />
+                            Report ad
+                        </a>
+                    )}
+                </div>
             </div>
-        </div>
+        </section>
     );
 }

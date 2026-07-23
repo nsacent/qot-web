@@ -109,16 +109,20 @@ export default function SimilarListingsClient({
     const cleanListings = useMemo(() => listings.slice(0, 12), [listings]);
 
     return (
-        <div className="mt-7 grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
+        <div className="-mr-5 mt-5 flex snap-x snap-mandatory gap-3 overflow-x-auto overscroll-x-contain pb-2 pr-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:-mr-7 sm:pr-7 md:mr-0 md:mt-7 md:grid md:grid-cols-3 md:gap-4 md:overflow-visible md:pr-0 lg:grid-cols-4 xl:grid-cols-6">
             {cleanListings.map((item: any) => {
                 const id = String(getListingId(item));
 
                 return (
-                    <HomeAdCard
+                    <div
                         key={id || item?.slug}
-                        ad={item}
-                        favoriteIds={favoriteIds}
-                    />
+                        className="w-[72vw] min-w-[220px] max-w-[260px] shrink-0 snap-start md:w-auto md:min-w-0 md:max-w-none"
+                    >
+                        <HomeAdCard
+                            ad={item}
+                            favoriteIds={favoriteIds}
+                        />
+                    </div>
                 );
             })}
         </div>
