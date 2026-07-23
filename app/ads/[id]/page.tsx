@@ -7,6 +7,7 @@ import ListingImageCarousel from "@/components/listings/ListingImageCarousel";
 import BuyerSafetyCard from "@/components/listings/BuyerSafetyCard";
 import AdSellerCard from "@/components/sellers/AdSellerCard";
 import { formatDateTime, formatRelativeTime } from "@/lib/dateTime";
+import { backendJson, getAccessToken } from "@/lib/authCookies";
 
 export const dynamic = "force-dynamic";
 
@@ -121,6 +122,24 @@ function cleanLabel(value: any, fallback = "Not specified") {
         .replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
+async function getListingForRequest(id: string) {
+    const accessToken = await getAccessToken();
+
+    if (accessToken) {
+        const authenticatedResult = await backendJson(
+            `/listings/${encodeURIComponent(id)}/`,
+            {},
+            accessToken
+        ).catch(() => null);
+
+        if (authenticatedResult?.ok) {
+            return authenticatedResult.data;
+        }
+    }
+
+    return apiGet(`/listings/${encodeURIComponent(id)}/`).catch(() => null);
+}
+
 export default async function ListingDetailsPage({ params }: PageProps) {
     const { id } = await params;
 
@@ -133,12 +152,8 @@ export default async function ListingDetailsPage({ params }: PageProps) {
 
     let listing: any = null;
 
-    try {
-        const data = await apiGet(`/listings/${id}/`);
-        listing = data?.listing || data?.data || data;
-    } catch (error) {
-        console.error("Listing detail API error:", error);
-    }
+    const listingPayload = await getListingForRequest(id);
+    listing = listingPayload?.listing || listingPayload?.data || listingPayload;
 
     if (!listing) {
         return (
@@ -186,10 +201,11 @@ export default async function ListingDetailsPage({ params }: PageProps) {
     const postedValue =
         listing?.created_at || listing?.published_at || listing?.date_posted
     const postedDate = formatRelativeTime(postedValue);
+    const isPublicListing = String(listing?.status || "").toLowerCase() === "active";
 
     return (
         <main className="min-h-screen bg-[#fff7f2] text-slate-950 antialiased">
-            <RecentlyViewedTracker listing={listing} />
+            {isPublicListing && <RecentlyViewedTracker listing={listing} />}
 
             <div className="mx-auto max-w-[1500px] px-4 py-4 sm:px-6">
                 <Navbar categories={categories} cities={cities} />
@@ -201,6 +217,25 @@ export default async function ListingDetailsPage({ params }: PageProps) {
                     >
                         ← Back to Ads
                     </a>
+
+                    {!isPublicListing && (
+                        <div className="mt-4 flex flex-col gap-3 rounded-[22px] border border-amber-200 bg-amber-50 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+                            <div>
+                                <p className="text-sm font-black text-amber-900">
+                                    This ad is {statusLabel.toLowerCase()}
+                                </p>
+                                <p className="mt-1 text-xs font-semibold leading-5 text-amber-700">
+                                    Only you and QOT administrators can view this page until the ad is approved.
+                                </p>
+                            </div>
+                            <a
+                                href={`/my-ads/${id}`}
+                                className="inline-flex h-10 shrink-0 items-center justify-center rounded-[14px] bg-white px-4 text-xs font-black text-amber-800 ring-1 ring-amber-200 hover:bg-amber-100"
+                            >
+                                Manage Ad
+                            </a>
+                        </div>
+                    )}
 
                     <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_0.42fr]">
                         <div className="rounded-[34px] bg-white p-5 shadow-[0_18px_60px_rgba(15,23,42,0.10)] ring-1 ring-black/5 sm:p-7">

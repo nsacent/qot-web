@@ -3,7 +3,29 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faArrowLeft, faEnvelope, faShieldHalved } from "@/lib/faIcons";
+import {
+    faFileLines,
+    faPaperclip,
+    faPaperPlane,
+    faXmark,
+} from "@fortawesome/free-solid-svg-icons";
 import UserAvatar from "@/components/account/UserAvatar";
+
+const QUICK_MESSAGES = [
+    "Hi, is this ad still available?",
+    "What is your best price?",
+    "I would like to offer UGX ",
+    "Where can I inspect the item?",
+];
+
+const MAX_ATTACHMENT_SIZE = 10 * 1024 * 1024;
+
+function formatFileSize(value: any) {
+    const size = Number(value || 0);
+    if (!size) return "";
+    if (size < 1024 * 1024) return `${Math.ceil(size / 1024)} KB`;
+    return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+}
 
 function getArray(data: any): any[] {
     if (Array.isArray(data)) return data;
@@ -62,7 +84,9 @@ export default function ThreadMessagesClient({
     const [sending, setSending] = useState(false);
     const [error, setError] = useState("");
     const [sendError, setSendError] = useState("");
+    const [attachments, setAttachments] = useState<File[]>([]);
     const messageListRef = useRef<HTMLDivElement | null>(null);
+    const fileInputRef = useRef<HTMLInputElement | null>(null);
 
     const loadConversation = useCallback(async (showLoader = false) => {
         if (showLoader) setLoading(true);
@@ -171,23 +195,40 @@ export default function ThreadMessagesClient({
         event.preventDefault();
 
         const cleanBody = body.trim();
-        if (!cleanBody || sending) return;
+        if ((!cleanBody && attachments.length === 0) || sending) return;
 
         setSending(true);
         setSendError("");
 
         try {
-            const response = await fetch(
-                `/api/proxy/chats/threads/${threadId}/messages/`,
-                {
-                    method: "POST",
-                    credentials: "include",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({ body: cleanBody }),
-                }
-            );
+            let response: Response;
+
+            if (attachments.length > 0) {
+                const formData = new FormData();
+                if (cleanBody) formData.append("message", cleanBody);
+                attachments.forEach((file) => formData.append("files", file));
+
+                response = await fetch(
+                    `/api/proxy/chats/threads/${threadId}/attachments/`,
+                    {
+                        method: "POST",
+                        credentials: "include",
+                        body: formData,
+                    }
+                );
+            } else {
+                response = await fetch(
+                    `/api/proxy/chats/threads/${threadId}/messages/`,
+                    {
+                        method: "POST",
+                        credentials: "include",
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify({ body: cleanBody }),
+                    }
+                );
+            }
 
             if (response.status === 401) {
                 window.location.href = `/login?next=/account/messages/${threadId}`;
@@ -199,6 +240,8 @@ export default function ThreadMessagesClient({
             if (!response.ok) {
                 throw new Error(
                     data?.detail ||
+                    data?.files?.[0] ||
+                    data?.file?.[0] ||
                     data?.message ||
                     data?.error ||
                     "Failed to send message."
@@ -206,13 +249,41 @@ export default function ThreadMessagesClient({
             }
 
             setBody("");
-            setMessages((current) => [...current, data]);
+            setAttachments([]);
+            if (fileInputRef.current) fileInputRef.current.value = "";
+            setMessages((current) => [...current, data?.chat_message || data]);
             window.dispatchEvent(new Event("qot_messages_updated"));
         } catch (requestError: any) {
             setSendError(requestError?.message || "Failed to send message.");
         } finally {
             setSending(false);
         }
+    }
+
+    function chooseAttachments(event: React.ChangeEvent<HTMLInputElement>) {
+        const selectedFiles = Array.from(event.target.files || []);
+        if (selectedFiles.length === 0) return;
+
+        const oversizedFile = selectedFiles.find((file) => file.size > MAX_ATTACHMENT_SIZE);
+        if (oversizedFile) {
+            setSendError(`${oversizedFile.name} is larger than 10 MB.`);
+            event.target.value = "";
+            return;
+        }
+
+        if (attachments.length + selectedFiles.length > 5) {
+            setSendError("You can attach up to 5 files at a time.");
+            event.target.value = "";
+            return;
+        }
+
+        setSendError("");
+        setAttachments((current) => [...current, ...selectedFiles]);
+        event.target.value = "";
+    }
+
+    function removeAttachment(index: number) {
+        setAttachments((current) => current.filter((_, itemIndex) => itemIndex !== index));
     }
 
     if (loading) {
@@ -317,7 +388,10 @@ export default function ThreadMessagesClient({
                 {messages.length > 0 ? (
                     messages.map((message: any) => {
                         const mine = String(getSenderId(message)) === String(currentUser?.id);
-                        const attachment = message?.image || message?.attachments?.[0]?.file_url || message?.attachments?.[0]?.file;
+                        const legacyImage = message?.image;
+                        const messageAttachments = Array.isArray(message?.attachments)
+                            ? message.attachments
+                            : [];
 
                         return (
                             <div key={message.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
@@ -330,13 +404,41 @@ export default function ThreadMessagesClient({
                                             ? "rounded-br-[6px] bg-orange-500 text-white"
                                             : "rounded-bl-[6px] bg-white text-slate-800 ring-1 ring-slate-200"
                                     }`}>
-                                        {attachment && (
+                                        {legacyImage && (
                                             <img
-                                                src={attachment}
+                                                src={legacyImage}
                                                 alt="Message attachment"
                                                 className="mb-3 max-h-72 w-full rounded-[14px] object-cover"
                                             />
                                         )}
+                                        {messageAttachments.map((attachment: any) => {
+                                            const fileUrl = attachment?.file_url || attachment?.file;
+                                            if (!fileUrl) return null;
+
+                                            if (attachment?.file_type === "image") {
+                                                return (
+                                                    <a key={attachment.id || fileUrl} href={fileUrl} target="_blank" rel="noreferrer" className="mb-3 block last:mb-0">
+                                                        <img src={fileUrl} alt={attachment?.original_name || "Message attachment"} className="max-h-72 w-full rounded-[14px] object-cover" />
+                                                    </a>
+                                                );
+                                            }
+
+                                            return (
+                                                <a
+                                                    key={attachment.id || fileUrl}
+                                                    href={fileUrl}
+                                                    target="_blank"
+                                                    rel="noreferrer"
+                                                    className={`mb-2 flex items-center gap-3 rounded-[14px] p-3 last:mb-0 ${mine ? "bg-white/15 text-white" : "bg-slate-50 text-slate-700 ring-1 ring-slate-200"}`}
+                                                >
+                                                    <FontAwesomeIcon icon={faFileLines} className="h-5 w-5 shrink-0" />
+                                                    <span className="min-w-0">
+                                                        <span className="block truncate text-xs font-black">{attachment?.original_name || "Attached file"}</span>
+                                                        <span className={`mt-0.5 block text-[9px] font-bold ${mine ? "text-white/70" : "text-slate-400"}`}>{formatFileSize(attachment?.size)}</span>
+                                                    </span>
+                                                </a>
+                                            );
+                                        })}
                                         {(message?.body || message?.message) && (
                                             <p className="whitespace-pre-line text-sm font-semibold leading-6">
                                                 {message?.body || message?.message}
@@ -369,7 +471,53 @@ export default function ThreadMessagesClient({
                         {sendError}
                     </p>
                 )}
+                <div className="mb-3 flex gap-2 overflow-x-auto pb-1">
+                    {QUICK_MESSAGES.map((message) => (
+                        <button
+                            key={message}
+                            type="button"
+                            onClick={() => setBody(message)}
+                            className="shrink-0 rounded-full bg-orange-50 px-3 py-2 text-[11px] font-black text-orange-700 ring-1 ring-orange-100 transition hover:bg-orange-100"
+                        >
+                            {message.trim()}
+                        </button>
+                    ))}
+                </div>
+
+                {attachments.length > 0 && (
+                    <div className="mb-3 flex flex-wrap gap-2">
+                        {attachments.map((file, index) => (
+                            <span key={`${file.name}-${file.lastModified}-${index}`} className="inline-flex max-w-full items-center gap-2 rounded-[13px] bg-slate-100 px-3 py-2 text-xs font-bold text-slate-700 ring-1 ring-slate-200">
+                                <FontAwesomeIcon icon={faFileLines} className="h-3.5 w-3.5 shrink-0 text-orange-500" />
+                                <span className="max-w-48 truncate">{file.name}</span>
+                                <span className="shrink-0 text-[9px] text-slate-400">{formatFileSize(file.size)}</span>
+                                <button type="button" onClick={() => removeAttachment(index)} aria-label={`Remove ${file.name}`} className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white text-slate-500 hover:text-red-600">
+                                    <FontAwesomeIcon icon={faXmark} className="h-2.5 w-2.5" />
+                                </button>
+                            </span>
+                        ))}
+                    </div>
+                )}
+
                 <div className="flex items-end gap-3 rounded-[20px] bg-slate-100 p-2 ring-1 ring-slate-200 focus-within:bg-white focus-within:ring-2 focus-within:ring-orange-200">
+                    <input
+                        ref={fileInputRef}
+                        type="file"
+                        multiple
+                        accept="image/jpeg,image/png,image/webp,image/gif,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv"
+                        onChange={chooseAttachments}
+                        className="hidden"
+                    />
+                    <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={sending || attachments.length >= 5}
+                        aria-label="Attach files"
+                        title="Attach up to 5 files, 10 MB each"
+                        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[15px] bg-white text-slate-500 ring-1 ring-slate-200 transition hover:text-orange-600 disabled:opacity-40"
+                    >
+                        <FontAwesomeIcon icon={faPaperclip} className="h-4 w-4" />
+                    </button>
                     <textarea
                         value={body}
                         onChange={(event) => setBody(event.target.value)}
@@ -380,10 +528,11 @@ export default function ThreadMessagesClient({
 
                     <button
                         type="submit"
-                        disabled={sending || !body.trim()}
-                        className="h-11 shrink-0 rounded-[15px] bg-orange-500 px-5 text-sm font-black text-white shadow-[0_8px_18px_rgba(249,115,22,0.20)] transition hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-45"
+                        disabled={sending || (!body.trim() && attachments.length === 0)}
+                        aria-label="Send message"
+                        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[15px] bg-orange-500 text-white shadow-[0_8px_18px_rgba(249,115,22,0.20)] transition hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-45 sm:w-auto sm:px-5"
                     >
-                        {sending ? "Sending..." : "Send →"}
+                        {sending ? <span className="text-xs font-black">...</span> : <><FontAwesomeIcon icon={faPaperPlane} className="h-4 w-4" /><span className="ml-2 hidden text-sm font-black sm:inline">Send</span></>}
                     </button>
                 </div>
             </form>

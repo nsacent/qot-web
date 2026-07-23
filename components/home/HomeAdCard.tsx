@@ -8,6 +8,7 @@ type HomeAdCardProps = {
     ad: any;
     favoriteIds?: Set<string>;
     featured?: boolean;
+    displayMode?: "grid" | "list";
 };
 
 function formatPrice(value: any, currency = "UGX") {
@@ -152,7 +153,12 @@ function getViewCount(ad: any) {
     return Number.isFinite(value) && value > 0 ? value : 0;
 }
 
-export default function HomeAdCard({ ad, favoriteIds, featured }: HomeAdCardProps) {
+export default function HomeAdCard({
+    ad,
+    favoriteIds,
+    featured,
+    displayMode = "grid",
+}: HomeAdCardProps) {
     const id = getAdId(ad);
     const title = getAdTitle(ad);
     const category = getAdCategories(ad);
@@ -167,20 +173,21 @@ export default function HomeAdCard({ ad, favoriteIds, featured }: HomeAdCardProp
     const isFavorited = favoriteIds?.has(String(id)) === true;
     const showFeatured = featured ?? isFeaturedAd(ad);
     const viewCount = getViewCount(ad);
+    const isList = displayMode === "list";
 
     return (
-        <article className="group relative flex h-full flex-col overflow-hidden rounded-[20px] bg-white shadow-[0_8px_24px_rgba(15,23,42,0.08)] ring-1 ring-black/5 transition duration-300 hover:-translate-y-1 hover:shadow-[0_18px_38px_rgba(15,23,42,0.14)] hover:ring-orange-200">
+        <article className={`group relative flex overflow-hidden rounded-[20px] bg-white shadow-[0_8px_24px_rgba(15,23,42,0.08)] ring-1 ring-black/5 transition duration-300 hover:-translate-y-1 hover:shadow-[0_18px_38px_rgba(15,23,42,0.14)] hover:ring-orange-200 ${isList ? "h-[132px] flex-row md:h-full md:flex-col" : "h-full flex-col"}`}>
             <a
                 href={href}
                 aria-label={`View ${title}`}
                 className="absolute inset-0 z-10 rounded-[20px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-orange-500"
             />
 
-            <div className="relative aspect-[6/5] overflow-hidden bg-slate-100">
+            <div className={`relative shrink-0 overflow-hidden bg-slate-100 ${isList ? "w-[38%] md:aspect-[25/17] md:w-full" : "aspect-[25/17] w-full"}`}>
                 <ListingCardImage
                     listing={ad}
                     title={title}
-                    className="h-full"
+                    fill
                 />
 
                 {showFeatured && (
@@ -197,7 +204,7 @@ export default function HomeAdCard({ ad, favoriteIds, featured }: HomeAdCardProp
                 )}
             </div>
 
-            <div className="flex flex-1 flex-col px-3 pb-3 pt-2.5">
+            <div className={`flex min-w-0 flex-1 flex-col ${isList ? "px-3 py-2.5 md:px-3 md:pb-3 md:pt-2.5" : "px-3 pb-3 pt-2.5"}`}>
                 <div className="flex min-w-0 items-center justify-between gap-2">
                     <nav
                         aria-label="Ad category"
@@ -207,11 +214,11 @@ export default function HomeAdCard({ ad, favoriteIds, featured }: HomeAdCardProp
                             <>
                                 <a
                                     href={`/ads?category=${encodeURIComponent(category.parent)}`}
-                                    className="relative z-20 truncate hover:text-orange-700 hover:underline"
+                                    className={`relative z-20 truncate hover:text-orange-700 hover:underline ${isList ? "hidden md:inline" : ""}`}
                                 >
                                     {category.parent}
                                 </a>
-                                <span aria-hidden="true" className="shrink-0 text-orange-400">
+                                <span aria-hidden="true" className={`shrink-0 text-orange-400 ${isList ? "hidden md:inline" : ""}`}>
                                     ›
                                 </span>
                             </>
@@ -226,7 +233,7 @@ export default function HomeAdCard({ ad, favoriteIds, featured }: HomeAdCardProp
                     </nav>
 
                     {isVerifiedSeller(ad) && (
-                        <span className="inline-flex shrink-0 items-center gap-1 text-[8px] font-extrabold uppercase tracking-wider text-emerald-600">
+                        <span className={`shrink-0 items-center gap-1 text-[8px] font-extrabold uppercase tracking-wider text-emerald-600 ${isList ? "hidden md:inline-flex" : "inline-flex"}`}>
                             <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
                             Verified
                         </span>
@@ -250,7 +257,7 @@ export default function HomeAdCard({ ad, favoriteIds, featured }: HomeAdCardProp
                         <span className="truncate">{getAdLocation(ad)}</span>
                     </span>
 
-                    <span className="flex shrink-0 items-center gap-2 text-slate-400">
+                    <span className={`shrink-0 items-center gap-2 text-slate-400 ${isList ? "hidden md:flex" : "flex"}`}>
                         <span className="inline-flex items-center gap-1" title={`${viewCount.toLocaleString()} views`}>
                             <FontAwesomeIcon icon={faEye} className="h-2.5 w-2.5" />
                             {viewCount.toLocaleString()}

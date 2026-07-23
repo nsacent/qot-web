@@ -219,7 +219,7 @@ export default function AdSellerCard({
                 <div className="mb-4">
                     <h3 className="text-base font-black text-slate-950">Contact this seller</h3>
                     <p className="mt-1 text-xs font-bold leading-5 text-slate-500">
-                        Keep conversations on QOT and inspect the item before paying.
+                        Chat starts with “Hi, is this ad still available?” You can edit or follow up in Messages.
                     </p>
                 </div>
 

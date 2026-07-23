@@ -32,6 +32,7 @@ import {
     CategoryPickerModal,
     LocationPickerModal,
 } from "@/components/listings/MarketplacePickerModals";
+import AdPreviewPanel from "@/components/listings/AdPreviewPanel";
 import { fetchAllProxyPages } from "@/lib/marketplaceCatalog";
 
 type CategoryFilterField = {
@@ -111,35 +112,6 @@ async function clientApiGet(path: string) {
     return data;
 }
 
-async function clientApiPost(path: string, payload: any) {
-    const response = await fetch(`/api/proxy${path}`, {
-        method: "POST",
-        credentials: "include",
-        headers: {
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-    });
-
-    const data = await response.json().catch(() => null);
-
-    if (response.status === 401 || response.status === 403) {
-        throw new Error("__AUTH__");
-    }
-
-    if (!response.ok) {
-        throw new Error(
-            data?.detail ||
-            data?.message ||
-            data?.error ||
-            JSON.stringify(data) ||
-            "Failed to post advert."
-        );
-    }
-
-    return data;
-}
-
 async function clientApiPostForm(path: string, payload: FormData) {
     const response = await fetch(`/api/proxy${path}`, {
         method: "POST",
@@ -192,6 +164,8 @@ async function clientApiDelete(path: string) {
         method: "DELETE",
         credentials: "include",
     });
+
+    if (response.status === 404) return;
 
     if (!response.ok && response.status !== 204) {
         const data = await response.json().catch(() => null);
@@ -733,7 +707,12 @@ export default function PostAdForm() {
             }
         }
 
-        setPhotos((current) => current.filter((_, itemIndex) => itemIndex !== index));
+        const remainingPhotos = photos.filter((_, itemIndex) => itemIndex !== index);
+        setPhotos(remainingPhotos);
+
+        if (remainingPhotos.length === 0) {
+            setUploadProgress("");
+        }
     }
 
     function handlePreview(event: FormEvent<HTMLFormElement>) {
@@ -807,109 +786,32 @@ export default function PostAdForm() {
             <section className="space-y-6">
                 {error && <ErrorBox message={error} />}
 
-                <FormCard
-                    icon={faCircleCheck}
-                    eyebrow="Advert Preview"
-                    title="Review before posting"
-                    description="Confirm that all details are correct before submitting your advert."
+                <AdPreviewPanel
+                    mode="create"
+                    images={photoPreviews.map((photo, index) => ({
+                        id: photo.id,
+                        url: photo.url,
+                        isPrimary: index === 0,
+                    }))}
+                    title={title}
+                    price={formatPrice(price)}
+                    category={getSelectedCategoryName()}
+                    location={getSelectedCityName()}
+                    condition={condition}
+                    description={description}
+                    isNegotiable={isNegotiable}
+                    details={categoryFilters.flatMap((field) => {
+                        const value = categoryFilterValues[field.key];
+                        if (!value) return [];
+
+                        return [{
+                            label: field.label,
+                            value: isBooleanType(field.type)
+                                ? value === "true" ? "Yes" : "No"
+                                : value,
+                        }];
+                    })}
                 />
-
-                <article className="overflow-hidden rounded-[32px] bg-white shadow-[0_18px_55px_rgba(15,23,42,0.08)] ring-1 ring-black/5">
-                    {photoPreviews.length > 0 && (
-                        <div className="grid grid-cols-2 gap-2 bg-slate-100 p-2 md:grid-cols-4">
-                            {photoPreviews.map((photo, index) => (
-                                <div
-                                    key={`${photo.id}-${index}`}
-                                    className="relative aspect-[4/3] overflow-hidden rounded-[18px] bg-white"
-                                >
-                                    <img
-                                        src={photo.url}
-                                        alt={`Advert photo ${index + 1}`}
-                                        className="h-full w-full object-cover"
-                                    />
-                                    {index === 0 && (
-                                        <span className="absolute left-2 top-2 rounded-full bg-orange-500 px-3 py-1 text-[10px] font-black uppercase text-white shadow-sm">
-                                            Primary
-                                        </span>
-                                    )}
-                                </div>
-                            ))}
-                        </div>
-                    )}
-
-                    <div className="bg-slate-950 p-6 text-white md:p-8">
-                        <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-xs font-black uppercase tracking-wide text-orange-100 ring-1 ring-white/10">
-                            <FontAwesomeIcon icon={faBullhorn} className="h-3.5 w-3.5" />
-                            Preview
-                        </span>
-
-                        <h3 className="mt-4 text-3xl font-black">{title}</h3>
-
-                        <div className="mt-4 flex flex-wrap items-center gap-2">
-                            <p className="text-2xl font-black text-orange-300">
-                                {formatPrice(price)}
-                            </p>
-
-                            {isNegotiable && (
-                                <span className="rounded-full bg-green-500/15 px-3 py-1 text-xs font-black uppercase text-green-200 ring-1 ring-green-300/20">
-                                    Negotiable
-                                </span>
-                            )}
-                        </div>
-                    </div>
-
-                    <div className="grid gap-4 p-6 md:grid-cols-2">
-                        <PreviewBox icon={faLayerGroup} label="Category" value={getSelectedCategoryName()} />
-                        <PreviewBox icon={faLocationDot} label="City" value={getSelectedCityName()} />
-                        <PreviewBox icon={faTag} label="Condition" value={condition} capitalize />
-                        <PreviewBox icon={faMoneyBillWave} label="Price" value={formatPrice(price)} />
-
-                        {categoryFilters.map((field) => {
-                            const value = categoryFilterValues[field.key];
-
-                            if (!value) return null;
-
-                            return (
-                                <PreviewBox
-                                    key={field.key}
-                                    icon={faSliders}
-                                    label={field.label}
-                                    value={
-                                        isBooleanType(field.type)
-                                            ? value === "true"
-                                                ? "Yes"
-                                                : "No"
-                                            : value
-                                    }
-                                />
-                            );
-                        })}
-                    </div>
-
-                    <div className="border-t border-slate-100 p-6">
-                        <p className="flex items-center gap-2 text-sm font-black text-slate-500">
-                            <FontAwesomeIcon icon={faFileLines} className="h-4 w-4 text-orange-500" />
-                            Description
-                        </p>
-
-                        <p className="mt-3 whitespace-pre-line leading-7 text-slate-700">
-                            {description}
-                        </p>
-                    </div>
-                </article>
-
-                <div className="rounded-[24px] border border-orange-200 bg-orange-50 p-5 text-orange-800">
-                    <p className="flex items-center gap-2 font-black">
-                        <FontAwesomeIcon icon={faCamera} className="h-4 w-4" />
-                        {photoPreviews.length > 0
-                            ? `${photoPreviews.length} photo${photoPreviews.length === 1 ? "" : "s"} ready to upload.`
-                            : "No photos selected."}
-                    </p>
-
-                    <p className="mt-1 text-sm font-semibold">
-                        Photos are safely staged. The first photo will be used as the primary image when you submit.
-                    </p>
-                </div>
 
                 {uploadProgress && (
                     <div className="rounded-[18px] bg-blue-50 px-4 py-3 text-sm font-black text-blue-700 ring-1 ring-blue-100">
@@ -917,7 +819,7 @@ export default function PostAdForm() {
                     </div>
                 )}
 
-                <div className="flex flex-col gap-3 sm:flex-row">
+                <div className="sticky bottom-3 z-20 flex flex-col gap-3 rounded-[22px] border border-slate-200/80 bg-white/95 p-3 shadow-[0_16px_45px_rgba(15,23,42,0.14)] backdrop-blur sm:flex-row sm:items-center">
                     <button
                         type="button"
                         onClick={() => {
@@ -925,19 +827,26 @@ export default function PostAdForm() {
                             window.scrollTo({ top: 0, behavior: "smooth" });
                         }}
                         disabled={loading}
-                        className="inline-flex h-12 items-center justify-center gap-2 rounded-[18px] bg-white px-5 text-sm font-black text-slate-700 ring-1 ring-slate-200 hover:bg-slate-50 disabled:opacity-60"
+                        className="inline-flex h-12 items-center justify-center gap-2 rounded-[16px] bg-slate-100 px-5 text-sm font-black text-slate-700 hover:bg-slate-200 disabled:opacity-60"
                     >
                         <FontAwesomeIcon icon={faArrowLeft} className="h-4 w-4" />
-                        Back to Edit
+                        Edit details
                     </button>
+
+                    <div className="hidden min-w-0 flex-1 px-2 sm:block">
+                        <p className="text-sm font-black text-slate-900">Ready to publish?</p>
+                        <p className="truncate text-xs font-semibold text-slate-500">
+                            {photoPreviews.length} photo{photoPreviews.length === 1 ? "" : "s"} · Review complete
+                        </p>
+                    </div>
 
                     <button
                         type="button"
                         onClick={submitAdvert}
                         disabled={loading}
-                        className="inline-flex h-12 items-center justify-center gap-2 rounded-[18px] bg-orange-500 px-5 text-sm font-black text-white hover:bg-orange-600 disabled:opacity-60"
+                        className="inline-flex h-12 items-center justify-center gap-2 rounded-[16px] bg-orange-500 px-6 text-sm font-black text-white shadow-lg shadow-orange-200 hover:bg-orange-600 disabled:opacity-60"
                     >
-                        {loading ? uploadProgress || "Submitting advert..." : "Submit Advert"}
+                        {loading ? uploadProgress || "Publishing ad..." : "Publish Ad"}
                         <FontAwesomeIcon icon={faArrowRight} className="h-4 w-4" />
                     </button>
                 </div>
@@ -1367,31 +1276,6 @@ function SelectWrap({ children }: { children: ReactNode }) {
                 icon={faChevronDown}
                 className="pointer-events-none absolute right-4 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400"
             />
-        </div>
-    );
-}
-
-function PreviewBox({
-    icon,
-    label,
-    value,
-    capitalize = false,
-}: {
-    icon: any;
-    label: string;
-    value: string;
-    capitalize?: boolean;
-}) {
-    return (
-        <div className="rounded-xl bg-slate-50 p-4">
-            <p className="flex items-center gap-2 text-sm font-bold text-slate-500">
-                <FontAwesomeIcon icon={icon} className="h-4 w-4 text-orange-500" />
-                {label}
-            </p>
-
-            <p className={`mt-1 font-black text-slate-900 ${capitalize ? "capitalize" : ""}`}>
-                {value}
-            </p>
         </div>
     );
 }

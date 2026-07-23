@@ -2,11 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faStar } from "@/lib/faIcons";
+import { faClock } from "@/lib/faIcons";
 import HomeAdCard from "@/components/home/HomeAdCard";
-
-const API_BASE_URL =
-    process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000/api/v1";
 
 type HomeLatestAdsProps = {
     ads?: any[];
@@ -88,8 +85,9 @@ export default function HomeLatestAds({ ads = [] }: HomeLatestAdsProps) {
         <section className="mx-auto max-w-[1390px] px-2 pb-5 pt-2">
             <div className="mb-4 flex items-center justify-between">
                 <h2 className="flex items-center gap-2 text-2xl font-black text-slate-950">
-                    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-orange-500 text-white">
-                        <FontAwesomeIcon icon={faStar} className="h-4 w-4" />
+                    <span className="relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-slate-800 to-slate-950 text-white shadow-lg shadow-slate-200 ring-1 ring-white/60">
+                        <span className="absolute -bottom-2 -left-2 h-5 w-5 rounded-full bg-orange-500/70" />
+                        <FontAwesomeIcon icon={faClock} className="relative h-4 w-4 text-orange-300" />
                     </span>
                     Latest Ads
                 </h2>

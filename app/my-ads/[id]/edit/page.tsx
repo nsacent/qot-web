@@ -1,5 +1,4 @@
 import EditAdClient from "@/app/my-ads/[id]/edit/EditAdClient";
-import QotMarketplaceFooter from "@/components/layout/QotMarketplaceFooter";
 import QotMarketplaceNav from "@/components/layout/QotMarketplaceNav";
 
 export const dynamic = "force-dynamic";
@@ -52,9 +51,9 @@ async function getCities() {
 export default async function EditMyAdPage({
     params,
 }: {
-    params: Promise<{ id: string }> | { id: string };
+    params: Promise<{ id: string }>;
 }) {
-    const resolvedParams = await Promise.resolve(params);
+    const resolvedParams = await params;
     const id = resolvedParams.id;
 
     const [categoriesData, cities] = await Promise.all([
@@ -68,7 +67,23 @@ export default async function EditMyAdPage({
         <main className="min-h-screen bg-[#fff7f2] text-slate-950 antialiased">
             <div className="mx-auto max-w-[1500px] px-4 py-4 sm:px-6">
                 <QotMarketplaceNav categories={categories} cities={cities} />
-                <EditAdClient id={id} />
+                <section className="mx-auto max-w-6xl py-5 sm:py-6">
+                    <div className="mb-4 px-1 sm:flex sm:items-end sm:justify-between sm:gap-4">
+                        <div>
+                            <p className="text-xs font-black uppercase tracking-[0.18em] text-orange-600">
+                                Manage your advert
+                            </p>
+                            <h1 className="mt-1 text-2xl font-black text-slate-900 sm:text-3xl">
+                                Edit Ad
+                            </h1>
+                        </div>
+
+                        <p className="mt-1 text-sm font-semibold text-slate-500 sm:mt-0">
+                            Start with photos, update the essentials, then preview.
+                        </p>
+                    </div>
+                    <EditAdClient id={id} />
+                </section>
             </div>
         </main>
     );

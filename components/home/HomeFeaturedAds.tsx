@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faStar } from "@/lib/faIcons";
+import { faCrown } from "@/lib/faIcons";
 import HomeAdCard from "@/components/home/HomeAdCard";
 
 type ListingRecord = Record<string, unknown>;
@@ -73,7 +73,6 @@ export default function HomeFeaturedAds({ ads = [] }: HomeFeaturedAdsProps) {
     }
 
     useEffect(() => {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
         void loadSavedAds();
 
         function refreshSavedAds() {
@@ -100,8 +99,9 @@ export default function HomeFeaturedAds({ ads = [] }: HomeFeaturedAdsProps) {
         <section className="mx-auto max-w-[1390px] px-2 pb-4 pt-5">
             <div className="mb-4 flex items-center justify-between gap-4">
                 <h2 className="flex items-center gap-2 text-xl font-black text-slate-950 sm:text-2xl">
-                    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-orange-500 text-white">
-                        <FontAwesomeIcon icon={faStar} className="h-3.5 w-3.5" />
+                    <span className="relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-amber-400 via-orange-500 to-red-500 text-white shadow-lg shadow-orange-200 ring-1 ring-white/60">
+                        <span className="absolute -right-2 -top-2 h-5 w-5 rounded-full bg-white/25" />
+                        <FontAwesomeIcon icon={faCrown} className="relative h-4 w-4" />
                     </span>
                     Featured Ads
                 </h2>

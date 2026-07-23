@@ -13,6 +13,8 @@ type ContactSellerButtonProps = {
     compact?: boolean;
 };
 
+const DEFAULT_ENQUIRY = "Hi, is this ad still available?";
+
 async function readApiError(response: Response) {
     const text = await response.text();
 
@@ -72,7 +74,10 @@ export default function ContactSellerButton({
 
         setLoading(true);
 
-        const payloads = [{ listing: listingId }, { listing_id: listingId }];
+        const payloads = [
+            { listing_id: listingId, initial_message: DEFAULT_ENQUIRY },
+            { listing: listingId, initial_message: DEFAULT_ENQUIRY },
+        ];
 
         try {
             let lastError = "Failed to start chat.";
@@ -126,6 +131,7 @@ export default function ContactSellerButton({
             onClick={createThread}
             disabled={loading}
             className={buttonClass}
+            title={`Start with: ${DEFAULT_ENQUIRY}`}
         >
             {!compact && (
                 <FontAwesomeIcon

@@ -15,16 +15,16 @@ const footerGroups = [
     {
         title: "Marketplace",
         links: [
-            { label: "Browse adverts", href: "/ads" },
+            { label: "Browse ads", href: "/ads" },
             { label: "Explore categories", href: "/categories" },
             { label: "Meet sellers", href: "/sellers" },
-            { label: "Post an advert", href: "/post-ad" },
+            { label: "Post an ad", href: "/post-ad" },
         ],
     },
     {
         title: "Selling",
         links: [
-            { label: "Seller dashboard", href: "/account/dashboard" },
+            { label: "My Dashboard", href: "/account/dashboard" },
             { label: "My adverts", href: "/my-ads" },
             { label: "Analytics", href: "/account/analytics" },
             { label: "Renewals", href: "/account/renewals" },
@@ -33,8 +33,8 @@ const footerGroups = [
     {
         title: "Your account",
         links: [
-            { label: "Account overview", href: "/account" },
-            { label: "Saved adverts", href: "/account/saved" },
+            { label: "My account", href: "/account" },
+            { label: "Saved ads", href: "/account/saved" },
             { label: "Messages", href: "/account/messages" },
             { label: "Notifications", href: "/account/notifications" },
         ],
@@ -102,7 +102,7 @@ export default function QotMarketplaceFooter() {
                                 className="inline-flex items-center justify-center gap-2 rounded-[16px] bg-slate-950 px-6 py-3.5 text-sm font-black text-white shadow-lg transition hover:-translate-y-0.5 hover:bg-slate-900"
                             >
                                 <FontAwesomeIcon icon={faPlus} className="h-4 w-4" />
-                                Post an advert
+                                Post an ad
                             </Link>
                             <Link
                                 href="/ads"
@@ -134,7 +134,7 @@ export default function QotMarketplaceFooter() {
                                     className="inline-flex items-center gap-2 rounded-full bg-white/7 px-3 py-2 text-[11px] font-black text-slate-200 ring-1 ring-white/10 transition hover:bg-orange-500 hover:text-white"
                                 >
                                     <FontAwesomeIcon icon={faHeartRegular} className="h-3.5 w-3.5" />
-                                    Saved adverts
+                                    Saved ads
                                 </Link>
                                 <Link
                                     href="/account/messages"

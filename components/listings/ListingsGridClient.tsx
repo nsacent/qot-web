@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faGrip, faList } from "@fortawesome/free-solid-svg-icons";
 import HomeAdCard from "@/components/home/HomeAdCard";
 
 type ListingsGridClientProps = {
@@ -38,6 +40,7 @@ export default function ListingsGridClient({
     listings,
 }: ListingsGridClientProps) {
     const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
+    const [displayMode, setDisplayMode] = useState<"grid" | "list">("grid");
 
     async function loadFavorites() {
         try {
@@ -107,18 +110,47 @@ export default function ListingsGridClient({
     }, []);
 
     return (
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {listings.map((item: any) => {
-                const id = String(getListingId(item));
+        <section>
+            <div className="mb-3 flex items-center justify-between md:hidden">
+                <p className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-500">
+                    Ad view
+                </p>
+                <div className="inline-flex rounded-[14px] bg-white p-1 shadow-sm ring-1 ring-slate-200" aria-label="Choose ad layout">
+                    <button
+                        type="button"
+                        onClick={() => setDisplayMode("grid")}
+                        aria-label="Show ads in grid view"
+                        aria-pressed={displayMode === "grid"}
+                        className={`flex h-9 w-9 items-center justify-center rounded-[10px] transition ${displayMode === "grid" ? "bg-orange-500 text-white shadow-sm" : "text-slate-500 hover:bg-slate-50"}`}
+                    >
+                        <FontAwesomeIcon icon={faGrip} className="h-4 w-4" />
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setDisplayMode("list")}
+                        aria-label="Show ads in list view"
+                        aria-pressed={displayMode === "list"}
+                        className={`flex h-9 w-9 items-center justify-center rounded-[10px] transition ${displayMode === "list" ? "bg-orange-500 text-white shadow-sm" : "text-slate-500 hover:bg-slate-50"}`}
+                    >
+                        <FontAwesomeIcon icon={faList} className="h-4 w-4" />
+                    </button>
+                </div>
+            </div>
 
-                return (
-                    <HomeAdCard
-                        key={id || item?.slug}
-                        ad={item}
-                        favoriteIds={favoriteIds}
-                    />
-                );
-            })}
-        </div>
+            <div className={`grid ${displayMode === "grid" ? "grid-cols-2 gap-3 sm:gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" : "grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"}`}>
+                {listings.map((item: any) => {
+                    const id = String(getListingId(item));
+
+                    return (
+                        <HomeAdCard
+                            key={id || item?.slug}
+                            ad={item}
+                            favoriteIds={favoriteIds}
+                            displayMode={displayMode}
+                        />
+                    );
+                })}
+            </div>
+        </section>
     );
 }

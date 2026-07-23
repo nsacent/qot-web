@@ -19,8 +19,68 @@ const FOCUSED_ROUTES = [
     "/forgot-password",
     "/reset-password",
     "/account/reset-password",
+    "/account/verification",
     "/verification",
 ];
+
+function getArray(data: any): any[] {
+    if (Array.isArray(data)) return data;
+    if (Array.isArray(data?.results)) return data.results;
+    if (Array.isArray(data?.data)) return data.data;
+    if (Array.isArray(data?.messages)) return data.messages;
+    if (Array.isArray(data?.chats)) return data.chats;
+    return [];
+}
+
+function getUnreadCount(data: any) {
+    if (typeof data?.unread_count === "number") return data.unread_count;
+    if (typeof data?.unread === "number") return data.unread;
+    if (typeof data?.unread_total === "number") return data.unread_total;
+
+    const items = getArray(data);
+    const summed = items.reduce((total, item) => {
+        const unread = Number(
+            item?.unread_count ||
+            item?.unread_messages_count ||
+            item?.unread_total ||
+            0
+        );
+
+        return total + (Number.isFinite(unread) ? unread : 0);
+    }, 0);
+
+    if (summed > 0) return summed;
+
+    return items.filter((item) => (
+        item?.is_read === false ||
+        item?.read === false ||
+        item?.unread === true ||
+        item?.status === "unread"
+    )).length;
+}
+
+async function getAuthenticatedData(path: string) {
+    const response = await fetch(`/api/proxy${path}`, {
+        credentials: "include",
+        cache: "no-store",
+    });
+
+    if (!response.ok) return null;
+    return response.json().catch(() => null);
+}
+
+function CounterBadge({ count, label }: { count: number; label: string }) {
+    if (count < 1) return null;
+
+    return (
+        <span
+            aria-label={`${count} unread ${label}`}
+            className="absolute -right-2.5 -top-2 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-orange-500 px-1 text-[9px] font-black leading-none text-white ring-2 ring-white"
+        >
+            {count > 99 ? "99+" : count}
+        </span>
+    );
+}
 
 function shouldHideMobileNav(pathname: string | null) {
     if (!pathname) return false;
@@ -41,26 +101,42 @@ export default function MobileBottomNav() {
     const pathname = usePathname();
     const [mounted, setMounted] = useState(false);
     const [user, setUser] = useState<any>(null);
+    const [messageCount, setMessageCount] = useState(0);
 
     useEffect(() => {
+        let active = true;
         setMounted(true);
 
-        async function refreshUser() {
+        async function refreshNav() {
             try {
-                setUser(await getCurrentUser());
+                const currentUser = await getCurrentUser();
+                const messagesData = await getAuthenticatedData("/chats/threads/");
+
+                if (!active) return;
+
+                setUser(currentUser);
+                setMessageCount(messagesData ? getUnreadCount(messagesData) : 0);
             } catch {
+                if (!active) return;
                 setUser(null);
+                setMessageCount(0);
             }
         }
 
-        refreshUser();
+        refreshNav();
 
-        window.addEventListener("focus", refreshUser);
-        window.addEventListener("qot_session_updated", refreshUser);
+        const interval = window.setInterval(refreshNav, 60000);
+
+        window.addEventListener("focus", refreshNav);
+        window.addEventListener("qot_session_updated", refreshNav);
+        window.addEventListener("qot_messages_updated", refreshNav);
 
         return () => {
-            window.removeEventListener("focus", refreshUser);
-            window.removeEventListener("qot_session_updated", refreshUser);
+            active = false;
+            window.clearInterval(interval);
+            window.removeEventListener("focus", refreshNav);
+            window.removeEventListener("qot_session_updated", refreshNav);
+            window.removeEventListener("qot_messages_updated", refreshNav);
         };
     }, []);
 
@@ -89,7 +165,10 @@ export default function MobileBottomNav() {
                         href={messagesHref}
                         className={navClass(pathname?.startsWith("/account/messages"))}
                     >
-                        <FontAwesomeIcon icon={faEnvelope} className="h-5 w-5" />
+                        <span className="relative">
+                            <FontAwesomeIcon icon={faEnvelope} className="h-5 w-5" />
+                            <CounterBadge count={messageCount} label="messages" />
+                        </span>
                         Messages
                     </a>
 

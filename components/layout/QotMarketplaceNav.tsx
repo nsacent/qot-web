@@ -9,6 +9,7 @@ import {
     LocationPickerModal,
 } from "@/components/listings/MarketplacePickerModals";
 import { fetchAllProxyPages } from "@/lib/marketplaceCatalog";
+import { getPrimaryListingImage } from "@/lib/listingImages";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
     faBell,
@@ -208,15 +209,7 @@ function getListingPrice(ad: any) {
 }
 
 function getListingImage(ad: any) {
-    return (
-        ad?.cover_image ||
-        ad?.image ||
-        ad?.thumbnail ||
-        ad?.main_image ||
-        ad?.images?.[0]?.image ||
-        ad?.images?.[0]?.url ||
-        ""
-    );
+    return getPrimaryListingImage(ad);
 }
 
 function getListingLocation(ad: any) {

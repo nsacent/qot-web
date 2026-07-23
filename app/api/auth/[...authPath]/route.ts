@@ -12,17 +12,13 @@ import {
 } from "@/lib/authCookies";
 
 type RouteContext = {
-    params:
-    | Promise<{
+    params: Promise<{
         authPath?: string[];
-    }>
-    | {
-        authPath?: string[];
-    };
+    }>;
 };
 
 async function getAuthKey(context: RouteContext) {
-    const params = await Promise.resolve(context.params);
+    const params = await context.params;
     return (params.authPath || []).join("/");
 }
 

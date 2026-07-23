@@ -2,11 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { backendJsonWithSession } from "@/lib/authCookies";
 
 type RouteContext = {
-    params: Promise<{ path?: string[] }> | { path?: string[] };
+    params: Promise<{ path?: string[] }>;
 };
 
 async function getProxyPath(context: RouteContext, request: NextRequest) {
-    const params = await Promise.resolve(context.params);
+    const params = await context.params;
     const path = params.path || [];
 
     const backendPath = `/${path.join("/")}/`;
@@ -40,6 +40,10 @@ async function getRequestBodyAndHeaders(request: NextRequest, method: string) {
 }
 
 function json(data: any, status = 200) {
+    if (status === 204 || status === 205 || status === 304) {
+        return new NextResponse(null, { status });
+    }
+
     return NextResponse.json(data, { status });
 }
 

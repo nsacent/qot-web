@@ -6,7 +6,7 @@ import {
 } from "@/lib/authCookies";
 
 type RouteContext = {
-    params: Promise<{ filename: string }> | { filename: string };
+    params: Promise<{ filename: string }>;
 };
 
 const BACKUP_NAME_PATTERN =
@@ -26,7 +26,7 @@ async function requestBackup(filename: string, accessToken: string) {
 }
 
 export async function GET(_request: NextRequest, context: RouteContext) {
-    const { filename } = await Promise.resolve(context.params);
+    const { filename } = await context.params;
 
     if (!BACKUP_NAME_PATTERN.test(filename || "")) {
         return NextResponse.json({ detail: "Backup not found." }, { status: 404 });

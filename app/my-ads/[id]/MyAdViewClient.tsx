@@ -3,137 +3,21 @@
 import { Suspense, useEffect, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
+    faArrowLeft,
+    faClock,
+    faEye,
+    faHeart,
     faLocationDot,
+    faPenToSquare,
+    faStore,
     faTag,
-} from "@/lib/faIcons";
+    faTrash,
+} from "@fortawesome/free-solid-svg-icons";
 import QotLoader from "@/components/common/QotLoader";
 import { getCurrentUser } from "@/lib/sessionClient";
 import ListingImageCarousel from "@/components/listings/ListingImageCarousel";
 import ListingShareActions from "@/components/listings/ListingShareActions";
-
-const API_BASE_URL =
-    process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000/api/v1";
-
-const API_ORIGIN = API_BASE_URL.replace(/\/api\/v1\/?$/, "");
-
-function getImageUrl(value: any) {
-    const image = value?.image || value?.url || value;
-
-    if (!image) return "";
-
-    if (String(image).startsWith("http")) return String(image);
-    if (String(image).startsWith("/")) return `${API_ORIGIN}${image}`;
-
-    return String(image);
-}
-
-function getImageId(value: any) {
-    return value?.id || value?.pk || value?.image_id || "";
-}
-
-function getListingPrimaryUrl(ad: any) {
-    const image =
-        ad?.primary_image?.image ||
-        ad?.primary_image?.url ||
-        ad?.cover_image ||
-        ad?.thumbnail ||
-        ad?.main_image ||
-        ad?.featured_image;
-
-    return getImageUrl(image);
-}
-
-function getImageIsPrimary(item: any) {
-    const value =
-        item?.is_primary ??
-        item?.primary ??
-        item?.is_main ??
-        item?.is_cover ??
-        item?.is_featured;
-
-    return value === true || value === "true" || value === 1 || value === "1";
-}
-
-function getOrderedAdImages(ad: any) {
-    const rawImages = ad?.images || ad?.photos || [];
-
-    const primaryUrl = getListingPrimaryUrl(ad);
-    const primaryId =
-        ad?.primary_image?.id ||
-        ad?.primary_image_id ||
-        ad?.cover_image_id ||
-        ad?.main_image_id ||
-        "";
-
-    let images: any[] = [];
-
-    if (Array.isArray(rawImages)) {
-        images = rawImages
-            .map((item: any, index: number) => {
-                const id = String(getImageId(item) || "");
-                const url = getImageUrl(item);
-
-                return {
-                    id,
-                    url,
-                    index,
-                    backendSaysPrimary: getImageIsPrimary(item),
-                    matchesPrimaryId: Boolean(primaryId && id && String(primaryId) === id),
-                    matchesPrimaryUrl: Boolean(primaryUrl && url && primaryUrl === url),
-                };
-            })
-            .filter((item: any) => item.url);
-    }
-
-    if (primaryUrl && !images.some((item) => item.url === primaryUrl)) {
-        images.unshift({
-            id: String(primaryId || ""),
-            url: primaryUrl,
-            index: -1,
-            backendSaysPrimary: false,
-            matchesPrimaryId: true,
-            matchesPrimaryUrl: true,
-        });
-    }
-
-    if (!images.length) return [];
-
-    let primaryIndex = images.findIndex((item) => item.matchesPrimaryId);
-
-    if (primaryIndex < 0) {
-        primaryIndex = images.findIndex((item) => item.backendSaysPrimary);
-    }
-
-    if (primaryIndex < 0) {
-        primaryIndex = images.findIndex((item) => item.matchesPrimaryUrl);
-    }
-
-    if (primaryIndex < 0) {
-        primaryIndex = 0;
-    }
-
-    const primaryImage = images[primaryIndex];
-    const otherImages = images.filter((_, index) => index !== primaryIndex);
-
-    return [
-        {
-            ...primaryImage,
-            isPrimary: true,
-        },
-        ...otherImages.map((item) => ({
-            ...item,
-            isPrimary: false,
-        })),
-    ];
-}
-
-function getArray(data: any) {
-    if (Array.isArray(data)) return data;
-    if (Array.isArray(data?.results)) return data.results;
-    if (Array.isArray(data?.data)) return data.data;
-    if (Array.isArray(data?.listings)) return data.listings;
-    return [];
-}
+import { formatDateTime, formatRelativeTime } from "@/lib/dateTime";
 
 function formatPrice(value: any) {
     if (value === null || value === undefined || value === "") {
@@ -147,6 +31,40 @@ function formatPrice(value: any) {
     }
 
     return `UGX ${new Intl.NumberFormat("en-UG").format(number)}`;
+}
+
+function cleanLabel(value: any, fallback = "Not specified") {
+    if (!value) return fallback;
+
+    return String(value)
+        .replaceAll("_", " ")
+        .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function formatCount(value: any) {
+    const number = Number(value || 0);
+    return Number.isFinite(number) ? new Intl.NumberFormat("en-UG").format(number) : "0";
+}
+
+function getLocation(ad: any) {
+    const city = ad?.city?.name || ad?.city_name;
+    const region = ad?.region?.name || ad?.region_name || ad?.district_name || ad?.district;
+
+    if (city && region) return `${city}, ${region}`;
+    return city || region || ad?.location_name || "Uganda";
+}
+
+function getAttributeDetails(ad: any) {
+    if (!Array.isArray(ad?.attributes)) return [];
+
+    return ad.attributes.flatMap((item: any) => {
+        const label = item?.filter_name || item?.name || item?.label || item?.key || "Detail";
+        const rawValue = item?.value_text ?? item?.value_number ?? item?.value_boolean ?? item?.value;
+
+        if (rawValue === "" || rawValue === null || rawValue === undefined) return [];
+
+        return [{ label, value: typeof rawValue === "boolean" ? (rawValue ? "Yes" : "No") : String(rawValue) }];
+    });
 }
 
 
@@ -437,167 +355,216 @@ function MyAdViewContent({ id }: { id: string }) {
 
 
 
+    const status = getAdStatus(ad);
+    const statusInfo = getStatusInfo(status);
+    const actions = getStatusActions(status);
+    const attributes = getAttributeDetails(ad);
+    const location = getLocation(ad);
+    const condition = cleanLabel(ad?.condition);
+    const updatedValue = ad?.updated_at || ad?.modified_at || ad?.created_at;
+    const viewCount = ad?.views_count ?? ad?.view_count ?? ad?.views ?? 0;
+    const savedCount = ad?.favorites_count ?? ad?.favourites_count ?? ad?.saved_count ?? 0;
+
     return (
-        <section className="py-6 text-slate-950">
-            <div className="grid gap-6 lg:grid-cols-[1fr_0.42fr]">
-                <div className="rounded-[34px] bg-white p-5 shadow-[0_18px_60px_rgba(15,23,42,0.10)] ring-1 ring-black/5 sm:p-7">
-                    <a
-                        href="/my-ads"
-                        className="text-sm font-black text-orange-600 hover:text-orange-700"
-                    >
-                        ← Back to My Ads
-                    </a>
+        <section className="pb-10 pt-5 text-slate-950">
+            <a
+                href="/my-ads"
+                className="inline-flex items-center gap-2 rounded-xl px-1 py-2 text-sm font-black text-slate-600 hover:text-orange-600"
+            >
+                <FontAwesomeIcon icon={faArrowLeft} className="h-3.5 w-3.5" />
+                My Ads
+            </a>
 
-                    <div className="mt-6">
-                        <ListingImageCarousel
-                            listing={ad}
-                            title={ad?.title || "Ad image"}
-                        />
-                    </div>
+            <div className="mt-3 overflow-hidden rounded-[28px] border border-orange-100 bg-white shadow-[0_18px_55px_rgba(15,23,42,0.07)]">
+                <div className="border-b border-orange-100 bg-gradient-to-r from-orange-50 via-white to-amber-50 px-5 py-6 sm:px-7 sm:py-7">
+                    <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+                        <div className="min-w-0">
+                            <div className="flex flex-wrap items-center gap-2">
+                                <span className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.12em] text-slate-500 ring-1 ring-slate-200">
+                                    <FontAwesomeIcon icon={faStore} className="h-3 w-3 text-orange-500" />
+                                    Ad workspace
+                                </span>
+                                <span className={`rounded-full px-3 py-1.5 text-[10px] font-black uppercase tracking-wide ring-1 ${statusInfo.badge}`}>
+                                    {statusInfo.label}
+                                </span>
+                            </div>
 
+                            <h1 className="mt-4 max-w-4xl text-2xl font-black leading-tight tracking-tight text-slate-950 sm:text-4xl">
+                                {ad?.title || "Untitled Ad"}
+                            </h1>
+                            <p className="mt-3 text-2xl font-black text-orange-600 sm:text-3xl">
+                                {formatPrice(ad?.price || ad?.amount || ad?.selling_price)}
+                            </p>
 
+                            <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-xs font-bold text-slate-500">
+                                <span className="inline-flex items-center gap-2">
+                                    <FontAwesomeIcon icon={faTag} className="h-3.5 w-3.5 text-orange-500" />
+                                    {ad?.category_name || ad?.category?.name || "Category"}
+                                </span>
+                                <span className="inline-flex items-center gap-2">
+                                    <FontAwesomeIcon icon={faLocationDot} className="h-3.5 w-3.5 text-orange-500" />
+                                    {location}
+                                </span>
+                            </div>
+                        </div>
 
-                    <h1 className="mt-7 text-3xl font-black text-slate-950">
-                        {ad?.title || "Untitled Ad"}
-                    </h1>
-
-                    <p className="mt-3 text-2xl font-black text-orange-600">
-                        {formatPrice(ad?.price || ad?.amount || ad?.selling_price)}
-                    </p>
-
-                    <div className="mt-5 flex flex-wrap gap-3">
-                        <span className="inline-flex items-center gap-2 rounded-2xl bg-slate-50 px-4 py-2 text-sm font-black text-slate-700">
-                            <FontAwesomeIcon icon={faTag} className="h-4 w-4 text-orange-500" />
-                            {ad?.category_name || ad?.category?.name || "Category"}
-                        </span>
-
-                        <span className="inline-flex items-center gap-2 rounded-2xl bg-slate-50 px-4 py-2 text-sm font-black text-slate-700">
-                            <FontAwesomeIcon
-                                icon={faLocationDot}
-                                className="h-4 w-4 text-orange-500"
-                            />
-                            {ad?.city_name ||
-                                ad?.city?.name ||
-                                ad?.location_name ||
-                                ad?.district ||
-                                "Uganda"}
-                        </span>
-                    </div>
-
-                    <div className="mt-7 rounded-[28px] bg-slate-50 p-5">
-                        <h2 className="text-lg font-black text-slate-950">Description</h2>
-
-                        <p className="mt-3 whitespace-pre-line text-sm font-semibold leading-7 text-slate-600">
-                            {ad?.description || "No description provided."}
-                        </p>
+                        <div className="flex shrink-0 flex-col gap-2 sm:flex-row">
+                            <a
+                                href={`/ads/${id}`}
+                                className="inline-flex h-11 items-center justify-center gap-2 rounded-[14px] bg-white px-4 text-sm font-black text-slate-700 ring-1 ring-slate-200 hover:bg-slate-50"
+                            >
+                                <FontAwesomeIcon icon={faEye} className="h-4 w-4" />
+                                Public page
+                            </a>
+                            <a
+                                href={`/my-ads/${id}/edit`}
+                                className="inline-flex h-11 items-center justify-center gap-2 rounded-[14px] bg-orange-500 px-5 text-sm font-black text-white shadow-lg shadow-orange-200 hover:bg-orange-600"
+                            >
+                                <FontAwesomeIcon icon={faPenToSquare} className="h-4 w-4" />
+                                Edit Ad
+                            </a>
+                        </div>
                     </div>
                 </div>
 
-                <aside className="h-fit rounded-[34px] bg-white p-5 shadow-[0_18px_60px_rgba(15,23,42,0.10)] ring-1 ring-black/5 sm:p-6">
-                    {(() => {
-                        const status = getAdStatus(ad);
-                        const statusInfo = getStatusInfo(status);
-                        const actions = getStatusActions(status);
+                <div className="grid divide-y divide-slate-100 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+                    <div className="flex items-center gap-3 px-5 py-4 sm:px-6">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
+                            <FontAwesomeIcon icon={faEye} className="h-4 w-4" />
+                        </div>
+                        <div>
+                            <p className="text-xl font-black text-slate-950">{formatCount(viewCount)}</p>
+                            <p className="text-[10px] font-black uppercase tracking-wide text-slate-400">Views</p>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-3 px-5 py-4 sm:px-6">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-rose-50 text-rose-500">
+                            <FontAwesomeIcon icon={faHeart} className="h-4 w-4" />
+                        </div>
+                        <div>
+                            <p className="text-xl font-black text-slate-950">{formatCount(savedCount)}</p>
+                            <p className="text-[10px] font-black uppercase tracking-wide text-slate-400">Saved</p>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-3 px-5 py-4 sm:px-6">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-violet-50 text-violet-600">
+                            <FontAwesomeIcon icon={faClock} className="h-4 w-4" />
+                        </div>
+                        <div>
+                            <p className="text-sm font-black text-slate-950" title={formatDateTime(updatedValue)}>
+                                {formatRelativeTime(updatedValue)}
+                            </p>
+                            <p className="text-[10px] font-black uppercase tracking-wide text-slate-400">Last updated</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-                        return (
-                            <>
-                                <div className="flex items-start justify-between gap-3">
-                                    <div>
-                                        <h2 className="text-xl font-black text-slate-950">
-                                            Ad status
-                                        </h2>
+            <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
+                <div className="min-w-0 space-y-6">
+                    <div className="rounded-[28px] border border-slate-200/80 bg-white p-4 shadow-[0_14px_45px_rgba(15,23,42,0.06)] sm:p-6">
+                        <div className="mb-4 flex items-center justify-between gap-3">
+                            <div>
+                                <p className="text-[10px] font-black uppercase tracking-[0.16em] text-orange-600">Ad photos</p>
+                                <h2 className="mt-1 text-lg font-black text-slate-950">Your gallery</h2>
+                            </div>
+                            <span className="rounded-full bg-slate-50 px-3 py-1 text-[10px] font-black uppercase tracking-wide text-slate-500">
+                                Cover first
+                            </span>
+                        </div>
+                        <ListingImageCarousel listing={ad} title={ad?.title || "Ad image"} />
+                    </div>
 
-                                        <p className="mt-2 text-sm font-semibold text-slate-500">
-                                            See what is happening with this ad and choose the right action.
-                                        </p>
-                                    </div>
+                    <div className="rounded-[28px] border border-slate-200/80 bg-white p-5 shadow-[0_14px_45px_rgba(15,23,42,0.06)] sm:p-7">
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                            <div>
+                                <p className="text-[10px] font-black uppercase tracking-[0.16em] text-orange-600">Ad content</p>
+                                <h2 className="mt-1 text-xl font-black text-slate-950">Description & details</h2>
+                            </div>
+                            <span className="rounded-full bg-slate-50 px-3 py-1.5 text-xs font-black text-slate-600">
+                                {condition}
+                            </span>
+                        </div>
 
-                                    <span
-                                        className={`rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-wide ring-1 ${statusInfo.badge}`}
-                                    >
-                                        {statusInfo.label}
-                                    </span>
-                                </div>
+                        <p className="mt-5 whitespace-pre-line text-sm font-semibold leading-7 text-slate-600">
+                            {ad?.description || "No description provided."}
+                        </p>
 
-                                <div className="mt-5 rounded-[24px] bg-slate-50 p-4">
-                                    <h3 className="text-sm font-black text-slate-900">
-                                        {statusInfo.title}
-                                    </h3>
-
-                                    <p className="mt-2 text-sm font-semibold leading-6 text-slate-500">
-                                        {statusInfo.description}
-                                    </p>
-                                </div>
-
-                                <div className="mt-6 grid gap-3">
-                                    <a
-                                        href={`/my-ads/${id}/edit`}
-                                        className="rounded-2xl bg-orange-500 px-5 py-3 text-center text-sm font-black text-white hover:bg-orange-600"
-                                    >
-                                        Edit Ad Details
-                                    </a>
-
-                                    <a
-                                        href={`/ads/${id}`}
-                                        className="rounded-2xl bg-slate-50 px-5 py-3 text-center text-sm font-black text-slate-700 hover:bg-orange-50 hover:text-orange-600"
-                                    >
-                                        View Public Page
-                                    </a>
-
-                                    <ListingShareActions
-                                        listing={ad}
-                                        listingId={id}
-                                        title={ad?.title}
-                                        className="mt-3"
-                                    />
-
-                                    {actions.length > 0 && (
-                                        <div className="mt-2 border-t border-slate-100 pt-4">
-                                            <p className="mb-3 text-xs font-black uppercase tracking-wide text-slate-400">
-                                                Recommended actions
-                                            </p>
-
-                                            <div className="grid gap-3">
-                                                {actions.map((item) => (
-                                                    <button
-                                                        key={item.action}
-                                                        type="button"
-                                                        onClick={() => handleListingAction(item.action)}
-                                                        disabled={Boolean(actionLoading)}
-                                                        className={`rounded-2xl px-5 py-3 text-left text-sm font-black disabled:cursor-not-allowed disabled:opacity-60 ${item.className}`}
-                                                    >
-                                                        <span className="block">
-                                                            {actionLoading === item.action
-                                                                ? "Please wait..."
-                                                                : item.label}
-                                                        </span>
-
-                                                        <span className="mt-1 block text-xs font-semibold opacity-75">
-                                                            {item.motive}
-                                                        </span>
-                                                    </button>
-                                                ))}
-                                            </div>
+                        {attributes.length > 0 && (
+                            <div className="mt-6 border-t border-slate-100 pt-6">
+                                <h3 className="text-sm font-black text-slate-950">Product details</h3>
+                                <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
+                                    {attributes.map((item: any) => (
+                                        <div key={`${item.label}-${item.value}`} className="rounded-2xl bg-slate-50 px-4 py-3.5">
+                                            <p className="text-[10px] font-black uppercase tracking-wide text-slate-400">{item.label}</p>
+                                            <p className="mt-1 break-words text-sm font-black text-slate-800">{item.value}</p>
                                         </div>
-                                    )}
-
-                                    <div className="mt-2 border-t border-slate-100 pt-4">
-                                        <button
-                                            type="button"
-                                            onClick={handleDelete}
-                                            className="w-full rounded-2xl bg-red-50 px-5 py-3 text-sm font-black text-red-600 hover:bg-red-100"
-                                        >
-                                            Delete Ad
-                                        </button>
-
-                                        <p className="mt-2 text-xs font-semibold leading-5 text-slate-400">
-                                            Delete only when you no longer want this ad in your account.
-                                        </p>
-                                    </div>
+                                    ))}
                                 </div>
-                            </>
-                        );
-                    })()}
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                <aside className="space-y-5 lg:sticky lg:top-5 lg:h-fit">
+                    <div className="rounded-[28px] border border-slate-200/80 bg-white p-5 shadow-[0_14px_45px_rgba(15,23,42,0.06)]">
+                        <div className="flex items-start justify-between gap-3">
+                            <div>
+                                <p className="text-[10px] font-black uppercase tracking-[0.16em] text-orange-600">Current state</p>
+                                <h2 className="mt-1 text-xl font-black text-slate-950">{statusInfo.title}</h2>
+                            </div>
+                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-orange-50 text-orange-600">
+                                <FontAwesomeIcon icon={faClock} className="h-4 w-4" />
+                            </div>
+                        </div>
+                        <p className="mt-3 text-sm font-semibold leading-6 text-slate-500">{statusInfo.description}</p>
+
+                        <div className="mt-5 grid gap-2">
+                            <a href={`/my-ads/${id}/edit`} className="inline-flex h-12 items-center justify-center gap-2 rounded-[16px] bg-orange-500 px-5 text-sm font-black text-white hover:bg-orange-600">
+                                <FontAwesomeIcon icon={faPenToSquare} className="h-4 w-4" />
+                                Edit Ad Details
+                            </a>
+                            <a href={`/ads/${id}`} className="inline-flex h-12 items-center justify-center gap-2 rounded-[16px] bg-slate-950 px-5 text-sm font-black text-white hover:bg-slate-800">
+                                <FontAwesomeIcon icon={faEye} className="h-4 w-4" />
+                                View as Buyer
+                            </a>
+                        </div>
+
+                        {actions.length > 0 && (
+                            <div className="mt-6 border-t border-slate-100 pt-5">
+                                <p className="mb-3 text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Manage availability</p>
+                                <div className="grid gap-2">
+                                    {actions.map((item) => (
+                                        <button
+                                            key={item.action}
+                                            type="button"
+                                            onClick={() => handleListingAction(item.action)}
+                                            disabled={Boolean(actionLoading)}
+                                            className={`rounded-2xl px-4 py-3 text-left text-sm font-black transition disabled:cursor-not-allowed disabled:opacity-60 ${item.className}`}
+                                        >
+                                            <span className="block">{actionLoading === item.action ? "Please wait..." : item.label}</span>
+                                            <span className="mt-1 block text-[11px] font-semibold opacity-70">{item.motive}</span>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="rounded-[24px] border border-slate-200/80 bg-white p-5 shadow-[0_12px_35px_rgba(15,23,42,0.05)]">
+                        <p className="text-sm font-black text-slate-950">Share your ad</p>
+                        <p className="mt-1 text-xs font-semibold text-slate-500">Send it to buyers or promote it on your channels.</p>
+                        <ListingShareActions listing={ad} listingId={id} title={ad?.title} className="mt-4" />
+                    </div>
+
+                    <div className="rounded-[24px] border border-red-100 bg-red-50/70 p-5">
+                        <p className="text-sm font-black text-red-700">Remove this ad</p>
+                        <p className="mt-1 text-xs font-semibold leading-5 text-red-500">Deleting is permanent. Pause the ad instead if it may become available again.</p>
+                        <button type="button" onClick={handleDelete} className="mt-4 inline-flex h-11 w-full items-center justify-center gap-2 rounded-[14px] bg-white text-sm font-black text-red-600 ring-1 ring-red-100 hover:bg-red-100">
+                            <FontAwesomeIcon icon={faTrash} className="h-4 w-4" />
+                            Delete Ad
+                        </button>
+                    </div>
                 </aside>
             </div>
         </section>

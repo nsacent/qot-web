@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
+    faArrowLeft,
     faCircleCheck,
     faEnvelope,
     faMobileScreen,
@@ -181,6 +182,9 @@ function VerificationForm() {
     const destination = isPhoneChannel
         ? maskPhone(user?.phone)
         : maskEmail(user?.email);
+    const hasDestination = isPhoneChannel
+        ? Boolean(user?.phone)
+        : Boolean(user?.email);
 
     function selectChannel(nextChannel: VerificationChannel) {
         if (nextChannel === channel) return;
@@ -194,185 +198,226 @@ function VerificationForm() {
     }
 
     return (
-        <main className="min-h-screen bg-[#fff7f2] px-4 py-8 text-slate-950">
-            <div className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-[1500px] items-center justify-center">
-                <div className="grid w-full max-w-5xl overflow-hidden rounded-[34px] bg-white shadow-[0_24px_80px_rgba(15,23,42,0.14)] ring-1 ring-black/5 md:grid-cols-[0.95fr_1.05fr]">
-                    <section className="relative hidden overflow-hidden bg-gradient-to-br from-orange-500 via-orange-600 to-orange-700 p-10 text-white md:flex md:flex-col md:justify-between">
-                        <div className="absolute -right-20 -top-20 h-56 w-56 rounded-full bg-white/10" />
-                        <div className="absolute -bottom-24 -left-20 h-64 w-64 rounded-full bg-white/10" />
+        <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(249,115,22,0.12),transparent_30%),linear-gradient(180deg,#fffaf7_0%,#fff7f2_100%)] px-4 py-4 text-slate-950 sm:px-6 sm:py-6">
+            <header className="mx-auto flex max-w-[1180px] items-center justify-between rounded-[22px] bg-white/90 px-4 py-3 shadow-sm ring-1 ring-black/5 backdrop-blur sm:px-5">
+                <a href="/" aria-label="QOT Uganda home" className="inline-flex items-center">
+                    <QotLogo className="h-10 w-auto text-orange-500 sm:h-11" />
+                </a>
 
-                        <div className="relative">
-                            <a href="/" aria-label="QOT Uganda home" className="inline-flex items-center">
-                                <QotLogo className="h-14 w-auto text-white" />
-                            </a>
+                <a
+                    href="/account"
+                    className="inline-flex h-10 items-center gap-2 rounded-2xl bg-slate-100 px-4 text-xs font-black text-slate-700 transition hover:bg-slate-950 hover:text-white"
+                >
+                    <FontAwesomeIcon icon={faArrowLeft} className="h-3 w-3" />
+                    My account
+                </a>
+            </header>
 
-                            <h1 className="mt-10 text-4xl font-black leading-tight">
-                                Secure your QOT account.
-                            </h1>
+            <div className="mx-auto grid max-w-[1180px] overflow-hidden rounded-[32px] bg-white shadow-[0_24px_70px_rgba(15,23,42,0.12)] ring-1 ring-black/5 lg:mt-6 lg:grid-cols-[0.88fr_1.12fr]">
+                <section className="relative overflow-hidden bg-slate-950 p-6 text-white sm:p-8 lg:p-10">
+                    <div className="absolute -right-24 -top-24 h-64 w-64 rounded-full bg-orange-500/25 blur-3xl" />
+                    <div className="absolute -bottom-28 -left-24 h-72 w-72 rounded-full bg-orange-400/10 blur-3xl" />
 
-                            <p className="mt-4 max-w-sm text-sm font-semibold leading-6 text-orange-50">
-                                Confirm that your Ugandan phone number belongs to you before using QOT seller tools.
+                    <div className="relative">
+                        <span className="flex h-14 w-14 items-center justify-center rounded-[20px] bg-orange-500 text-white shadow-[0_14px_30px_rgba(249,115,22,0.28)]">
+                            <FontAwesomeIcon icon={faShieldHalved} className="h-6 w-6" />
+                        </span>
+
+                        <p className="mt-6 text-[10px] font-black uppercase tracking-[0.18em] text-orange-300">
+                            Account protection
+                        </p>
+                        <h1 className="mt-2 max-w-md text-3xl font-black leading-[1.08] tracking-tight sm:text-4xl">
+                            Verification builds trust on QOT.
+                        </h1>
+                        <p className="mt-4 max-w-md text-sm font-semibold leading-6 text-slate-300">
+                            Confirm your contact details once to protect your account and help buyers know they are dealing with a real person.
+                        </p>
+                    </div>
+
+                    <div className="relative mt-8 hidden gap-3 lg:grid">
+                        {[
+                            "Unlock posting and seller tools",
+                            "Build confidence with buyers",
+                            "Protect account recovery",
+                        ].map((benefit) => (
+                            <div key={benefit} className="flex items-center gap-3 rounded-2xl bg-white/[0.07] px-4 py-3 ring-1 ring-white/10">
+                                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-orange-500/20 text-orange-300">
+                                    <FontAwesomeIcon icon={faCircleCheck} className="h-3.5 w-3.5" />
+                                </span>
+                                <span className="text-xs font-black text-slate-100">{benefit}</span>
+                            </div>
+                        ))}
+                    </div>
+
+                    <div className="relative mt-7 flex items-start gap-3 rounded-2xl bg-orange-500/10 p-4 ring-1 ring-orange-300/15 lg:mt-10">
+                        <FontAwesomeIcon icon={faShieldHalved} className="mt-0.5 h-4 w-4 shrink-0 text-orange-300" />
+                        <p className="text-xs font-semibold leading-5 text-slate-300">
+                            Your code is private, expires after 10 minutes, and should never be shared with anyone.
+                        </p>
+                    </div>
+                </section>
+
+                <section className="p-5 sm:p-8 lg:p-10">
+                    <div className="flex items-center justify-between gap-4">
+                        <div>
+                            <p className="text-[10px] font-black uppercase tracking-[0.16em] text-orange-600">
+                                Verify your account
+                            </p>
+                            <p className="mt-1 text-xs font-bold text-slate-400">
+                                Phone is your primary verification method
                             </p>
                         </div>
+                        {!isVerified && (
+                            <span className="shrink-0 rounded-full bg-orange-50 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-orange-600 ring-1 ring-orange-100">
+                                {hasSentCode ? "Step 2 of 2" : "Step 1 of 2"}
+                            </span>
+                        )}
+                    </div>
 
-                        <div className="relative rounded-3xl bg-white/15 p-5 backdrop-blur">
-                            <FontAwesomeIcon icon={faMobileScreen} className="h-7 w-7" />
-                            <p className="mt-4 text-sm font-black">Phone verification</p>
-                            <p className="mt-1 text-xs font-semibold text-orange-50">
-                                QOT sends a private 6-digit code by SMS. It expires after 10 minutes.
+                    <div className="mt-6 grid grid-cols-2 gap-2 rounded-[20px] bg-slate-100 p-1.5">
+                        <button
+                            type="button"
+                            onClick={() => selectChannel("phone")}
+                            aria-pressed={isPhoneChannel}
+                            className={`rounded-[15px] px-3 py-3 text-left transition ${isPhoneChannel ? "bg-white shadow-sm ring-1 ring-black/5" : "text-slate-500 hover:bg-white/60"}`}
+                        >
+                            <span className="flex items-center gap-2 text-sm font-black">
+                                <FontAwesomeIcon icon={faMobileScreen} className={`h-4 w-4 ${isPhoneChannel ? "text-orange-500" : "text-slate-400"}`} />
+                                Phone
+                            </span>
+                            <span className={`mt-1 block text-[9px] font-black uppercase tracking-wider ${isPhoneChannel ? "text-orange-600" : "text-slate-400"}`}>
+                                Primary {isPhoneVerified ? "• Verified" : ""}
+                            </span>
+                        </button>
+
+                        <button
+                            type="button"
+                            onClick={() => selectChannel("email")}
+                            aria-pressed={!isPhoneChannel}
+                            className={`rounded-[15px] px-3 py-3 text-left transition ${!isPhoneChannel ? "bg-white shadow-sm ring-1 ring-black/5" : "text-slate-500 hover:bg-white/60"}`}
+                        >
+                            <span className="flex items-center gap-2 text-sm font-black">
+                                <FontAwesomeIcon icon={faEnvelope} className={`h-4 w-4 ${!isPhoneChannel ? "text-orange-500" : "text-slate-400"}`} />
+                                Email
+                            </span>
+                            <span className={`mt-1 block text-[9px] font-black uppercase tracking-wider ${!isPhoneChannel ? "text-orange-600" : "text-slate-400"}`}>
+                                Secondary {isEmailVerified ? "• Verified" : ""}
+                            </span>
+                        </button>
+                    </div>
+
+                    {isVerified ? (
+                        <div className="mt-7 rounded-[26px] bg-emerald-50 p-6 ring-1 ring-emerald-100 sm:p-8">
+                            <div className="flex h-16 w-16 items-center justify-center rounded-[22px] bg-emerald-500 text-white shadow-[0_12px_28px_rgba(16,185,129,0.22)]">
+                                <FontAwesomeIcon icon={faCircleCheck} className="h-8 w-8" />
+                            </div>
+                            <h2 className="mt-5 text-3xl font-black tracking-tight text-slate-950">
+                                {isPhoneChannel ? "Phone verified" : "Email verified"}
+                            </h2>
+                            <p className="mt-2 text-sm font-semibold leading-6 text-slate-600">
+                                {isPhoneChannel
+                                    ? "Your primary QOT contact is confirmed and your seller tools are protected."
+                                    : "Your email is confirmed for account updates and recovery."}
                             </p>
+
+                            <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                                <a href={nextUrl} className="rounded-2xl bg-slate-950 px-5 py-3.5 text-center text-sm font-black text-white transition hover:bg-slate-800">
+                                    Continue
+                                </a>
+                                <a href="/account" className="rounded-2xl bg-white px-5 py-3.5 text-center text-sm font-black text-slate-700 ring-1 ring-emerald-100 transition hover:text-orange-600">
+                                    My account
+                                </a>
+                            </div>
                         </div>
-                    </section>
+                    ) : (
+                        <div className="mt-7">
+                            <h2 className="text-2xl font-black tracking-tight text-slate-950 sm:text-3xl">
+                                {hasSentCode
+                                    ? "Enter your 6-digit code"
+                                    : isPhoneChannel
+                                        ? "Confirm your phone number"
+                                        : "Confirm your email address"}
+                            </h2>
+                            <p className="mt-2 text-sm font-semibold leading-6 text-slate-500">
+                                {hasSentCode
+                                    ? `We sent a one-time code ${isPhoneChannel ? "by SMS" : "by email"}.`
+                                    : `We will send a private one-time code ${isPhoneChannel ? "by SMS" : "by email"}.`}
+                            </p>
 
-                    <section className="p-6 sm:p-10">
-                        <div className="mb-8 md:hidden">
-                            <a href="/" aria-label="QOT Uganda home" className="inline-flex items-center">
-                                <QotLogo className="h-11 w-auto text-orange-500" />
-                            </a>
-                        </div>
-
-                        <div className="mb-7 grid grid-cols-2 gap-2 rounded-2xl bg-slate-100 p-1.5">
-                            <button
-                                type="button"
-                                onClick={() => selectChannel("phone")}
-                                className={`rounded-xl px-3 py-3 text-left transition ${isPhoneChannel ? "bg-white shadow-sm ring-1 ring-black/5" : "hover:bg-white/60"}`}
-                            >
-                                <span className="flex items-center gap-2 text-sm font-black text-slate-900">
-                                    <FontAwesomeIcon icon={faMobileScreen} className="h-4 w-4 text-orange-500" />
-                                    Phone
-                                </span>
-                                <span className="mt-1 block text-[10px] font-black uppercase tracking-wider text-orange-600">
-                                    Primary {isPhoneVerified ? "• Verified" : ""}
-                                </span>
-                            </button>
-
-                            <button
-                                type="button"
-                                onClick={() => selectChannel("email")}
-                                className={`rounded-xl px-3 py-3 text-left transition ${!isPhoneChannel ? "bg-white shadow-sm ring-1 ring-black/5" : "hover:bg-white/60"}`}
-                            >
-                                <span className="flex items-center gap-2 text-sm font-black text-slate-900">
-                                    <FontAwesomeIcon icon={faEnvelope} className="h-4 w-4 text-slate-500" />
-                                    Email
-                                </span>
-                                <span className="mt-1 block text-[10px] font-black uppercase tracking-wider text-slate-500">
-                                    Secondary {isEmailVerified ? "• Verified" : ""}
-                                </span>
-                            </button>
-                        </div>
-
-                        {isVerified ? (
-                            <>
-                                <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-green-100 text-green-600">
-                                    <FontAwesomeIcon icon={faCircleCheck} className="h-8 w-8" />
-                                </div>
-
-                                <h2 className="mt-6 text-3xl font-black text-slate-950">
-                                    {isPhoneChannel ? "Phone verified" : "Email verified"}
-                                </h2>
-
-                                <p className="mt-2 text-sm font-semibold leading-6 text-slate-500">
-                                    {isPhoneChannel
-                                        ? "Your QOT phone number is verified. This is your primary account verification."
-                                        : "Your QOT email address is verified as a secondary account and recovery contact."}
-                                </p>
-
-                                <div className="mt-7 grid gap-3 sm:grid-cols-2">
-                                    <a
-                                        href="/"
-                                        className="rounded-2xl bg-orange-500 px-5 py-3.5 text-center text-sm font-black text-white hover:bg-orange-600"
-                                    >
-                                        Go Home
-                                    </a>
-
-                                    <a
-                                        href="/account"
-                                        className="rounded-2xl bg-slate-50 px-5 py-3.5 text-center text-sm font-black text-slate-700 hover:bg-orange-50 hover:text-orange-600"
-                                    >
-                                        My Account
-                                    </a>
-                                </div>
-                            </>
-                        ) : (
-                            <>
-                                <h2 className="text-3xl font-black text-slate-950">
-                                    {isPhoneChannel ? "Verify your phone" : "Verify your email"}
-                                </h2>
-
-                                <p className="mt-2 text-sm font-semibold leading-6 text-slate-500">
-                                    We will send a one-time verification code {isPhoneChannel ? "by SMS" : "by email"} to:
-                                    <br />
-                                    <span className="font-black text-slate-900">
-                                        {destination}
-                                    </span>
-                                </p>
-
-                                {error && (
-                                    <div className="mt-5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
-                                        {error}
-                                    </div>
-                                )}
-
-                                {message && (
-                                    <div className="mt-5 rounded-2xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-bold text-green-700">
-                                        {message}
-                                    </div>
-                                )}
-
-                                <button
-                                    type="button"
-                                    onClick={handleSendCode}
-                                    disabled={sending || resendSeconds > 0}
-                                    className="mt-7 flex w-full items-center justify-center gap-2 rounded-2xl bg-orange-500 px-5 py-3.5 text-sm font-black text-white hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-60"
-                                >
+                            <div className="mt-5 flex items-center gap-3 rounded-[20px] bg-slate-50 p-4 ring-1 ring-slate-100">
+                                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[15px] bg-white text-orange-500 shadow-sm ring-1 ring-slate-100">
                                     <FontAwesomeIcon icon={isPhoneChannel ? faMobileScreen : faEnvelope} className="h-4 w-4" />
-                                    {sending
-                                        ? "Sending OTP..."
-                                        : resendSeconds > 0
-                                            ? `Resend in ${resendSeconds}s`
-                                            : hasSentCode
-                                                ? "Resend OTP"
-                                                : isPhoneChannel
-                                                    ? "Send OTP by SMS"
-                                                    : "Send OTP by email"}
-                                </button>
+                                </span>
+                                <div className="min-w-0 flex-1">
+                                    <p className="text-[9px] font-black uppercase tracking-[0.14em] text-slate-400">
+                                        Code destination
+                                    </p>
+                                    <p className="mt-1 truncate text-sm font-black text-slate-900">{destination}</p>
+                                </div>
+                                <a href="/account" className="shrink-0 text-xs font-black text-orange-600 hover:text-orange-700">
+                                    Change
+                                </a>
+                            </div>
 
-                                <p className="mt-3 text-center text-xs font-semibold leading-5 text-slate-400">
-                                    {isPhoneChannel
-                                        ? "SMS delivery can take up to one minute. Never share this code with anyone."
-                                        : "Check your inbox and spam folder. Never share this code with anyone."}
-                                </p>
+                            {error && (
+                                <div role="alert" className="mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
+                                    {error}
+                                </div>
+                            )}
 
-                                <form onSubmit={handleConfirm} className="mt-5 space-y-4">
+                            {message && (
+                                <div className="mt-4 flex items-start gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold leading-5 text-emerald-700">
+                                    <FontAwesomeIcon icon={faCircleCheck} className="mt-0.5 h-4 w-4 shrink-0" />
+                                    {message}
+                                </div>
+                            )}
+
+                            {!hasSentCode ? (
+                                <>
+                                    <button
+                                        type="button"
+                                        onClick={handleSendCode}
+                                        disabled={sending || !hasDestination}
+                                        className="mt-6 flex h-13 w-full items-center justify-center gap-2 rounded-[18px] bg-orange-500 px-5 text-sm font-black text-white shadow-[0_12px_26px_rgba(249,115,22,0.22)] transition hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-60"
+                                    >
+                                        <FontAwesomeIcon icon={isPhoneChannel ? faMobileScreen : faEnvelope} className="h-4 w-4" />
+                                        {sending
+                                            ? "Sending code..."
+                                            : isPhoneChannel
+                                                ? "Send code by SMS"
+                                                : "Send code by email"}
+                                    </button>
+                                    <p className="mt-3 text-center text-xs font-semibold leading-5 text-slate-400">
+                                        {!hasDestination
+                                            ? `Add ${isPhoneChannel ? "a phone number" : "an email address"} in your account first.`
+                                            : isPhoneChannel
+                                                ? "SMS delivery can take up to one minute."
+                                                : "Check your inbox and spam folder."}
+                                    </p>
+                                </>
+                            ) : (
+                                <form onSubmit={handleConfirm} className="mt-6">
                                     <label className="block">
-                                        <span className="mb-2 block text-sm font-black text-slate-700">
+                                        <span className="mb-2 block text-xs font-black uppercase tracking-[0.12em] text-slate-500">
                                             Verification code
                                         </span>
-
-                                        <div className="flex items-center gap-3 rounded-2xl bg-slate-50 px-4 py-3 ring-1 ring-slate-100 focus-within:bg-white focus-within:ring-orange-200">
-                                            <FontAwesomeIcon
-                                                icon={faShieldHalved}
-                                                className="h-4 w-4 text-slate-400"
-                                            />
-
+                                        <div className="rounded-[18px] bg-slate-50 px-4 py-3 ring-1 ring-slate-200 transition focus-within:bg-white focus-within:ring-2 focus-within:ring-orange-300">
                                             <input
                                                 type="text"
                                                 inputMode="numeric"
                                                 autoComplete="one-time-code"
                                                 value={code}
                                                 onChange={(event) => {
-                                                    setCode(
-                                                        event.target.value
-                                                            .replace(/\D/g, "")
-                                                            .slice(0, 6)
-                                                    );
+                                                    setCode(event.target.value.replace(/\D/g, "").slice(0, 6));
                                                     setError("");
                                                 }}
-                                                placeholder="Enter 6-digit code"
+                                                placeholder="000000"
+                                                aria-label="6-digit verification code"
                                                 pattern="[0-9]{6}"
                                                 maxLength={6}
                                                 required
-                                                className="w-full bg-transparent text-sm font-bold text-slate-900 outline-none placeholder:text-slate-400"
+                                                autoFocus
+                                                className="w-full bg-transparent text-center text-2xl font-black tracking-[0.4em] text-slate-950 outline-none placeholder:text-slate-300"
                                             />
                                         </div>
                                     </label>
@@ -380,19 +425,35 @@ function VerificationForm() {
                                     <button
                                         type="submit"
                                         disabled={confirming || code.length !== 6}
-                                        className="w-full rounded-2xl bg-slate-950 px-5 py-3.5 text-sm font-black text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                                        className="mt-4 h-13 w-full rounded-[18px] bg-slate-950 px-5 text-sm font-black text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-45"
                                     >
                                         {confirming
-                                            ? "Verifying..."
+                                            ? "Checking code..."
                                             : isPhoneChannel
                                                 ? "Verify phone number"
                                                 : "Verify email address"}
                                     </button>
+
+                                    <div className="mt-4 flex items-center justify-between gap-3 rounded-2xl bg-slate-50 px-4 py-3">
+                                        <span className="text-xs font-semibold text-slate-500">Didn&apos;t get the code?</span>
+                                        <button
+                                            type="button"
+                                            onClick={handleSendCode}
+                                            disabled={sending || resendSeconds > 0}
+                                            className="shrink-0 text-xs font-black text-orange-600 hover:text-orange-700 disabled:text-slate-400"
+                                        >
+                                            {sending
+                                                ? "Sending..."
+                                                : resendSeconds > 0
+                                                    ? `Resend in ${resendSeconds}s`
+                                                    : "Resend code"}
+                                        </button>
+                                    </div>
                                 </form>
-                            </>
-                        )}
-                    </section>
-                </div>
+                            )}
+                        </div>
+                    )}
+                </section>
             </div>
         </main>
     );

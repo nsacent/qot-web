@@ -130,7 +130,7 @@ export default function SellerFollowCard({
                 </div>
 
                 {isOwnProfile ? (
-                    <a href="/account/settings" className="rounded-2xl bg-slate-950 px-5 py-3 text-center text-sm font-black text-white transition hover:bg-slate-800">
+                    <a href="/account" className="rounded-2xl bg-slate-950 px-5 py-3 text-center text-sm font-black text-white transition hover:bg-slate-800">
                         Edit your profile
                     </a>
                 ) : (

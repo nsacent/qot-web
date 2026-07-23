@@ -49,6 +49,7 @@ function FeaturedAdMiniCard({ ad }: { ad: HeroListing }) {
                 <ListingCardImage
                     listing={ad}
                     title={getAdTitle(ad)}
+                    fill
                     className="h-full transition duration-300 group-hover:scale-105"
                 />
             </div>
