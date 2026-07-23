@@ -14,8 +14,25 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "QOT Uganda",
-  description: "Buy, sell and connect across Uganda.",
+  metadataBase: new URL("https://qot.ug"),
+  title: {
+    default: "QOT - Buy & Sell for Free",
+    template: "%s | QOT",
+  },
+  description: "Buy and sell products and services across Uganda for free.",
+  openGraph: {
+    title: "QOT - Buy & Sell for Free",
+    description: "Buy and sell products and services across Uganda for free.",
+    url: "https://qot.ug",
+    siteName: "QOT",
+    locale: "en_UG",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "QOT - Buy & Sell for Free",
+    description: "Buy and sell products and services across Uganda for free.",
+  },
 };
 
 export default function RootLayout({

@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+import Link from "next/link";
 import Navbar from "@/components/layout/QotMarketplaceNav";
 import QotMarketplaceFooter from "@/components/layout/QotMarketplaceFooter";
 import { apiGet } from "@/lib/api";
@@ -8,6 +10,7 @@ import BuyerSafetyCard from "@/components/listings/BuyerSafetyCard";
 import AdSellerCard from "@/components/sellers/AdSellerCard";
 import { formatDateTime, formatRelativeTime } from "@/lib/dateTime";
 import { backendJson, getAccessToken } from "@/lib/authCookies";
+import { getPrimaryListingImage } from "@/lib/listingImages";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +19,8 @@ type PageProps = {
         id: string;
     }>;
 };
+
+const SITE_URL = "https://qot.ug";
 
 function getArray(data: any) {
     if (Array.isArray(data)) return data;
@@ -140,6 +145,69 @@ async function getListingForRequest(id: string) {
     return apiGet(`/listings/${encodeURIComponent(id)}/`).catch(() => null);
 }
 
+function getListingFromPayload(payload: any) {
+    return payload?.listing || payload?.data || payload || null;
+}
+
+function getShareDescription(listing: any) {
+    const description = String(listing?.description || "")
+        .replace(/\s+/g, " ")
+        .trim();
+    const price = formatPrice(listing?.price, listing?.currency || "UGX");
+    const location = getLocation(listing);
+    const summary = [price, location, description].filter(Boolean).join(" · ");
+
+    return summary.length > 200 ? `${summary.slice(0, 197).trimEnd()}...` : summary;
+}
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+    const { id } = await params;
+    const canonicalUrl = `${SITE_URL}/ads/${encodeURIComponent(id)}`;
+    const listingPayload = await apiGet(`/listings/${encodeURIComponent(id)}/`).catch(
+        () => null
+    );
+    const listing = getListingFromPayload(listingPayload);
+
+    if (!listing) {
+        return {
+            title: "Ad unavailable",
+            description: "This QOT ad is no longer available.",
+            alternates: { canonical: canonicalUrl },
+            robots: { index: false, follow: false },
+        };
+    }
+
+    const adName = String(listing?.title || "QOT ad").trim();
+    const price = formatPrice(listing?.price, listing?.currency || "UGX");
+    const shareTitle = `${adName} - ${price}`;
+    const shareDescription = getShareDescription(listing);
+    const coverImage = getPrimaryListingImage(listing);
+    const images = coverImage
+        ? [{ url: coverImage, alt: adName }]
+        : undefined;
+
+    return {
+        title: shareTitle,
+        description: shareDescription,
+        alternates: { canonical: canonicalUrl },
+        openGraph: {
+            title: shareTitle,
+            description: shareDescription,
+            url: canonicalUrl,
+            siteName: "QOT",
+            locale: "en_UG",
+            type: "website",
+            images,
+        },
+        twitter: {
+            card: "summary_large_image",
+            title: shareTitle,
+            description: shareDescription,
+            images: coverImage ? [coverImage] : undefined,
+        },
+    };
+}
+
 export default async function ListingDetailsPage({ params }: PageProps) {
     const { id } = await params;
 
@@ -153,7 +221,7 @@ export default async function ListingDetailsPage({ params }: PageProps) {
     let listing: any = null;
 
     const listingPayload = await getListingForRequest(id);
-    listing = listingPayload?.listing || listingPayload?.data || listingPayload;
+    listing = getListingFromPayload(listingPayload);
 
     if (!listing) {
         return (
@@ -171,12 +239,12 @@ export default async function ListingDetailsPage({ params }: PageProps) {
                                 This ad may have been removed, expired, or is no longer available.
                             </p>
 
-                            <a
+                            <Link
                                 href="/ads"
                                 className="mt-6 inline-flex rounded-2xl bg-orange-500 px-5 py-3 text-sm font-black text-white hover:bg-orange-600"
                             >
                                 Back to Ads
-                            </a>
+                            </Link>
                         </div>
                     </section>
 
@@ -211,12 +279,12 @@ export default async function ListingDetailsPage({ params }: PageProps) {
                 <Navbar categories={categories} cities={cities} />
 
                 <section className="py-6">
-                    <a
+                    <Link
                         href="/ads"
                         className="inline-flex rounded-2xl bg-white px-4 py-2 text-sm font-black text-orange-600 shadow-sm ring-1 ring-black/5 hover:bg-orange-50"
                     >
                         ← Back to Ads
-                    </a>
+                    </Link>
 
                     {!isPublicListing && (
                         <div className="mt-4 flex flex-col gap-3 rounded-[22px] border border-amber-200 bg-amber-50 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
@@ -228,12 +296,12 @@ export default async function ListingDetailsPage({ params }: PageProps) {
                                     Only you and QOT administrators can view this page until the ad is approved.
                                 </p>
                             </div>
-                            <a
+                            <Link
                                 href={`/my-ads/${id}`}
                                 className="inline-flex h-10 shrink-0 items-center justify-center rounded-[14px] bg-white px-4 text-xs font-black text-amber-800 ring-1 ring-amber-200 hover:bg-amber-100"
                             >
                                 Manage Ad
-                            </a>
+                            </Link>
                         </div>
                     )}
 
