@@ -82,9 +82,9 @@ export default function HomeHero({ featuredAds = [] }: HomeHeroProps) {
                     </div>
 
                     <h1 className="mt-4 max-w-xl text-3xl font-black leading-[1.05] tracking-tight text-slate-950 md:text-5xl">
-                        Buy. Sell. Connect. All in{" "}
+                        Buy &amp; Sell{" "}
                         <span className="relative inline-block text-orange-600">
-                            One Place
+                            For Free
                             <span className="absolute -bottom-2 left-2 h-1 w-24 rounded-full bg-orange-500" />
                         </span>
                     </h1>

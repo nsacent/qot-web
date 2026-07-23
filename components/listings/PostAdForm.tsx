@@ -7,6 +7,7 @@ import {
     useRef,
     useState,
     type ChangeEvent,
+    type DragEvent,
     type FormEvent,
     type ReactNode,
 } from "react";
@@ -19,6 +20,7 @@ import {
     faChevronDown,
     faCircleCheck,
     faFileLines,
+    faGripVertical,
     faLayerGroup,
     faLocationDot,
     faMoneyBillWave,
@@ -313,6 +315,8 @@ export default function PostAdForm() {
     const [draftReady, setDraftReady] = useState(false);
     const [draftSaving, setDraftSaving] = useState(false);
     const [draftMessage, setDraftMessage] = useState("");
+    const [draggedPhotoId, setDraggedPhotoId] = useState<number | null>(null);
+    const [dragOverPhotoId, setDragOverPhotoId] = useState<number | null>(null);
     const pendingDraftFilterValues = useRef<Record<string, string>>({});
 
     const [categoryModalOpen, setCategoryModalOpen] = useState(false);
@@ -724,6 +728,51 @@ export default function PostAdForm() {
         }
     }
 
+    function movePhoto(sourceId: number, targetIndex: number) {
+        setPhotos((current) => {
+            const sourceIndex = current.findIndex((photo) => photo.id === sourceId);
+
+            if (
+                sourceIndex < 0 ||
+                targetIndex < 0 ||
+                targetIndex >= current.length ||
+                sourceIndex === targetIndex
+            ) {
+                return current;
+            }
+
+            const reordered = [...current];
+            const [movedPhoto] = reordered.splice(sourceIndex, 1);
+            reordered.splice(targetIndex, 0, movedPhoto);
+            return reordered;
+        });
+
+        setUploadProgress(
+            targetIndex === 0
+                ? "Main photo updated. This photo will appear first on your ad."
+                : "Photo order updated."
+        );
+    }
+
+    function handlePhotoDragStart(event: DragEvent<HTMLDivElement>, photoId: number) {
+        event.dataTransfer.effectAllowed = "move";
+        event.dataTransfer.setData("text/plain", String(photoId));
+        setDraggedPhotoId(photoId);
+    }
+
+    function handlePhotoDrop(event: DragEvent<HTMLDivElement>, targetIndex: number) {
+        event.preventDefault();
+        const transferredId = Number(event.dataTransfer.getData("text/plain"));
+        const sourceId = Number.isFinite(transferredId) && transferredId > 0
+            ? transferredId
+            : draggedPhotoId;
+
+        if (sourceId) movePhoto(sourceId, targetIndex);
+
+        setDraggedPhotoId(null);
+        setDragOverPhotoId(null);
+    }
+
     function handlePreview(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
         setError("");
@@ -908,33 +957,73 @@ export default function PostAdForm() {
                     </label>
 
                     {photoPreviews.length > 0 && (
-                        <div className="mt-3 grid grid-cols-3 gap-2 border-t border-orange-200/70 pt-3 sm:grid-cols-4">
-                            {photoPreviews.map((photo, index) => (
-                                <div
-                                    key={`${photo.id}-${index}`}
-                                    className="group relative aspect-[4/3] overflow-hidden rounded-[12px] bg-slate-100 ring-1 ring-slate-200"
-                                >
-                                    <img
-                                        src={photo.url}
-                                        alt={`Selected photo ${index + 1}`}
-                                        className="h-full w-full object-cover"
-                                    />
-                                    {index === 0 && (
-                                        <span className="absolute left-1.5 top-1.5 rounded-full bg-orange-500 px-2 py-0.5 text-[8px] font-black uppercase text-white">
-                                            Cover
-                                        </span>
-                                    )}
-                                    <button
-                                        type="button"
-                                        onClick={() => removePhoto(index)}
-                                        disabled={photosUploading}
-                                        aria-label={`Remove ${photo.name}`}
-                                        className="absolute right-1.5 top-1.5 flex h-7 w-7 items-center justify-center rounded-full bg-slate-950/80 text-white transition hover:bg-red-600"
+                        <div className="mt-3 border-t border-orange-200/70 pt-3">
+                            <p className="mb-2.5 flex items-center gap-2 text-[10px] font-bold leading-4 text-slate-500">
+                                <FontAwesomeIcon icon={faGripVertical} className="h-3 w-3 text-orange-500" />
+                                Drag photos to reorder them. The first photo is your main cover.
+                            </p>
+
+                            <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+                                {photoPreviews.map((photo, index) => (
+                                    <div
+                                        key={photo.id}
+                                        draggable={!photosUploading}
+                                        onDragStart={(event) => handlePhotoDragStart(event, photo.id)}
+                                        onDragEnter={() => setDragOverPhotoId(photo.id)}
+                                        onDragOver={(event) => {
+                                            event.preventDefault();
+                                            event.dataTransfer.dropEffect = "move";
+                                        }}
+                                        onDrop={(event) => handlePhotoDrop(event, index)}
+                                        onDragEnd={() => {
+                                            setDraggedPhotoId(null);
+                                            setDragOverPhotoId(null);
+                                        }}
+                                        title="Drag to reorder this photo"
+                                        className={`group relative aspect-[4/3] cursor-grab overflow-hidden rounded-[12px] bg-slate-100 ring-1 transition active:cursor-grabbing ${draggedPhotoId === photo.id
+                                            ? "scale-95 opacity-50 ring-orange-300"
+                                            : dragOverPhotoId === photo.id
+                                                ? "ring-2 ring-orange-500"
+                                                : "ring-slate-200"
+                                        }`}
                                     >
-                                        <FontAwesomeIcon icon={faXmark} className="h-3.5 w-3.5" />
-                                    </button>
-                                </div>
-                            ))}
+                                        <img
+                                            src={photo.url}
+                                            alt={`Selected photo ${index + 1}`}
+                                            className="pointer-events-none h-full w-full object-cover"
+                                        />
+
+                                        {index === 0 ? (
+                                            <span className="absolute left-1.5 top-1.5 rounded-full bg-orange-500 px-2 py-0.5 text-[8px] font-black uppercase text-white shadow-sm">
+                                                Main photo
+                                            </span>
+                                        ) : (
+                                            <button
+                                                type="button"
+                                                onClick={() => movePhoto(photo.id, 0)}
+                                                disabled={photosUploading}
+                                                className="absolute bottom-1.5 left-1.5 rounded-full bg-white/95 px-2 py-1 text-[8px] font-black uppercase text-orange-600 shadow-sm transition hover:bg-orange-500 hover:text-white disabled:opacity-50"
+                                            >
+                                                Make cover
+                                            </button>
+                                        )}
+
+                                        <span className="pointer-events-none absolute bottom-1.5 right-1.5 flex h-7 w-7 items-center justify-center rounded-full bg-slate-950/70 text-white">
+                                            <FontAwesomeIcon icon={faGripVertical} className="h-3 w-3" />
+                                        </span>
+
+                                        <button
+                                            type="button"
+                                            onClick={() => removePhoto(index)}
+                                            disabled={photosUploading}
+                                            aria-label={`Remove ${photo.name}`}
+                                            className="absolute right-1.5 top-1.5 flex h-7 w-7 items-center justify-center rounded-full bg-slate-950/80 text-white transition hover:bg-red-600 disabled:opacity-50"
+                                        >
+                                            <FontAwesomeIcon icon={faXmark} className="h-3.5 w-3.5" />
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
                     )}
 

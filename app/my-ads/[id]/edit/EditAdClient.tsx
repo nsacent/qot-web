@@ -6,8 +6,11 @@ import {
     useMemo,
     useRef,
     useState,
+    type DragEvent,
     type ReactNode,
 } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
     faArrowLeft,
@@ -17,6 +20,7 @@ import {
     faChevronDown,
     faCircleCheck,
     faFileLines,
+    faGripVertical,
     faLayerGroup,
     faLock,
     faLocationDot,
@@ -54,6 +58,15 @@ type ExistingImage = {
     url: string;
     isPrimary: boolean;
 };
+
+type NewImageItem = {
+    key: string;
+    file: File;
+};
+
+type EditablePhoto =
+    | (ExistingImage & { key: string; kind: "existing"; name: string })
+    | { key: string; kind: "new"; name: string; url: string; file: File };
 
 function getArray(data: any): any[] {
     if (Array.isArray(data)) return data;
@@ -254,6 +267,7 @@ const selectClass =
     "w-full appearance-none rounded-[16px] border-0 bg-white px-4 py-3 pr-10 text-sm font-bold text-slate-800 outline-none ring-1 ring-slate-200 focus:ring-2 focus:ring-orange-200";
 
 function EditAdForm({ id }: { id: string }) {
+    const router = useRouter();
     const [checkingSession, setCheckingSession] = useState(true);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -274,8 +288,11 @@ function EditAdForm({ id }: { id: string }) {
     const [description, setDescription] = useState("");
     const [isNegotiable, setIsNegotiable] = useState(false);
 
-    const [newImages, setNewImages] = useState<File[]>([]);
+    const [newImages, setNewImages] = useState<NewImageItem[]>([]);
     const [deletedImageIds, setDeletedImageIds] = useState<string[]>([]);
+    const [photoOrder, setPhotoOrder] = useState<string[]>([]);
+    const [draggedPhotoKey, setDraggedPhotoKey] = useState<string | null>(null);
+    const [dragOverPhotoKey, setDragOverPhotoKey] = useState<string | null>(null);
 
     const [message, setMessage] = useState("");
     const [error, setError] = useState("");
@@ -305,9 +322,10 @@ function EditAdForm({ id }: { id: string }) {
     }, [ad, deletedImageIds]);
 
     const newImagePreviews = useMemo(
-        () => newImages.map((file) => ({
-            name: file.name,
-            url: URL.createObjectURL(file),
+        () => newImages.map((item) => ({
+            ...item,
+            name: item.file.name,
+            url: URL.createObjectURL(item.file),
         })),
         [newImages]
     );
@@ -318,11 +336,42 @@ function EditAdForm({ id }: { id: string }) {
         };
     }, [newImagePreviews]);
 
-    const totalPhotos = existingImages.length + newImagePreviews.length;
-    const allPreviewImages = [
-        ...existingImages.map((image) => ({ ...image, name: "Existing ad photo" })),
-        ...newImagePreviews.map((image) => ({ ...image, id: "", isPrimary: false })),
-    ];
+    const orderedPhotos = useMemo<EditablePhoto[]>(() => {
+        const photosByKey = new Map<string, EditablePhoto>();
+
+        existingImages.forEach((image) => {
+            const key = `existing:${image.id}`;
+            photosByKey.set(key, {
+                ...image,
+                key,
+                kind: "existing",
+                name: "Existing ad photo",
+            });
+        });
+        newImagePreviews.forEach((image) => {
+            photosByKey.set(image.key, {
+                ...image,
+                kind: "new",
+            });
+        });
+
+        const ordered = photoOrder
+            .map((key) => photosByKey.get(key))
+            .filter((photo): photo is EditablePhoto => Boolean(photo));
+        const missing = [...photosByKey.values()].filter(
+            (photo) => !photoOrder.includes(photo.key)
+        );
+
+        return [...ordered, ...missing];
+    }, [existingImages, newImagePreviews, photoOrder]);
+
+    const totalPhotos = orderedPhotos.length;
+    const allPreviewImages = orderedPhotos.map((photo, index) => ({
+        id: photo.kind === "existing" ? photo.id : "",
+        url: photo.url,
+        name: photo.name,
+        isPrimary: index === 0,
+    }));
 
     async function checkSession() {
         try {
@@ -378,9 +427,16 @@ function EditAdForm({ id }: { id: string }) {
 
             const listing = normalizeListing(data);
             const restoredAttributes = getAttributeValues(listing);
+            const initialPhotoOrder = getOrderedListingImages(listing)
+                .map((image: any) => String(image.id || ""))
+                .filter(Boolean)
+                .map((imageId: string) => `existing:${imageId}`);
 
             pendingAttributeValues.current = restoredAttributes;
             setAd(listing);
+            setNewImages([]);
+            setDeletedImageIds([]);
+            setPhotoOrder(initialPhotoOrder);
             setTitle(getValue(listing?.title));
             setPrice(getValue(listing?.price));
             setCondition(getValue(listing?.condition) || "used");
@@ -535,7 +591,9 @@ function EditAdForm({ id }: { id: string }) {
         }
 
         try {
-            const currentHashes = new Set(await Promise.all(newImages.map(getFileFingerprint)));
+            const currentHashes = new Set(
+                await Promise.all(newImages.map((item) => getFileFingerprint(item.file)))
+            );
             const incomingHashes = await Promise.all(files.map(getFileFingerprint));
             const seenHashes = new Set(currentHashes);
             const duplicateIndex = incomingHashes.findIndex((hash) => {
@@ -554,11 +612,21 @@ function EditAdForm({ id }: { id: string }) {
 
         setError("");
         setMessage("");
-        setNewImages((current) => [...current, ...files]);
+        const batchKey = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+        const additions = files.map((file, index) => ({
+            key: `new:${batchKey}:${index}`,
+            file,
+        }));
+        setNewImages((current) => [...current, ...additions]);
+        setPhotoOrder((current) => [
+            ...current,
+            ...additions.map((item) => item.key),
+        ]);
     }
 
-    function removeNewImage(index: number) {
-        setNewImages((current) => current.filter((_, itemIndex) => itemIndex !== index));
+    function removeNewImage(photoKey: string) {
+        setNewImages((current) => current.filter((item) => item.key !== photoKey));
+        setPhotoOrder((current) => current.filter((key) => key !== photoKey));
         setMessage("Photo removed from the pending changes.");
     }
 
@@ -568,13 +636,18 @@ function EditAdForm({ id }: { id: string }) {
         setDeletedImageIds((current) =>
             current.includes(imageId) ? current : [...current, imageId]
         );
+        setPhotoOrder((current) =>
+            current.filter((key) => key !== `existing:${imageId}`)
+        );
         setMessage("Photo will be removed when you save the changes.");
     }
 
     async function uploadNewImages() {
-        for (const file of newImages) {
+        const uploadedIds = new Map<string, string>();
+
+        for (const item of newImages) {
             const formData = new FormData();
-            formData.append("image", file);
+            formData.append("image", item.file);
 
             const response = await fetch(`/api/proxy/listings/${id}/images/`, {
                 method: "POST",
@@ -584,9 +657,17 @@ function EditAdForm({ id }: { id: string }) {
             const data = await response.json().catch(() => ({}));
 
             if (!response.ok) {
-                throw new Error(getApiErrorMessage(data, `Failed to upload ${file.name}.`));
+                throw new Error(getApiErrorMessage(data, `Failed to upload ${item.file.name}.`));
             }
+
+            if (!data?.id) {
+                throw new Error(`Failed to confirm the upload for ${item.file.name}.`);
+            }
+
+            uploadedIds.set(item.key, String(data.id));
         }
+
+        return uploadedIds;
     }
 
     async function deleteRemovedImages() {
@@ -603,51 +684,63 @@ function EditAdForm({ id }: { id: string }) {
         }
     }
 
-    async function setPrimaryImage(imageId: string) {
-        setSaving(true);
-        setError("");
-        setMessage("");
+    function movePhoto(sourceKey: string, targetIndex: number) {
+        setPhotoOrder((current) => {
+            const sourceIndex = current.indexOf(sourceKey);
 
-        try {
-            const response = await fetch(
-                `/api/proxy/listings/${id}/images/${imageId}/set-primary/`,
-                {
-                    method: "POST",
-                    credentials: "include",
-                }
-            );
-            const data = await response.json().catch(() => ({}));
-
-            if (response.status === 401) {
-                window.location.href = `/login?next=/my-ads/${id}/edit`;
-                return;
+            if (
+                sourceIndex < 0 ||
+                targetIndex < 0 ||
+                targetIndex >= current.length ||
+                sourceIndex === targetIndex
+            ) {
+                return current;
             }
 
-            if (!response.ok) {
-                throw new Error(getApiErrorMessage(data, "Failed to set cover photo."));
-            }
+            const reordered = [...current];
+            const [movedKey] = reordered.splice(sourceIndex, 1);
+            reordered.splice(targetIndex, 0, movedKey);
+            return reordered;
+        });
+        setMessage(
+            targetIndex === 0
+                ? "Main photo updated. It will become the ad cover when you save."
+                : "Photo order updated. Save the ad to keep this order."
+        );
+    }
 
-            setAd((current: any) => {
-                if (!current) return current;
+    function handlePhotoDragStart(event: DragEvent<HTMLDivElement>, photoKey: string) {
+        event.dataTransfer.effectAllowed = "move";
+        event.dataTransfer.setData("text/plain", photoKey);
+        setDraggedPhotoKey(photoKey);
+    }
 
-                const images = Array.isArray(current.images)
-                    ? current.images.map((image: any) => ({
-                        ...image,
-                        is_primary: String(image?.id) === String(imageId),
-                    }))
-                    : current.images;
+    function handlePhotoDrop(event: DragEvent<HTMLDivElement>, targetIndex: number) {
+        event.preventDefault();
+        const sourceKey = event.dataTransfer.getData("text/plain") || draggedPhotoKey;
 
-                return {
-                    ...current,
-                    images,
-                    primary_image_id: imageId,
-                };
-            });
-            setMessage("Cover photo updated without changing your unsaved details.");
-        } catch (requestError: any) {
-            setError(requestError.message || "Failed to set cover photo.");
-        } finally {
-            setSaving(false);
+        if (sourceKey) movePhoto(sourceKey, targetIndex);
+
+        setDraggedPhotoKey(null);
+        setDragOverPhotoKey(null);
+    }
+
+    async function savePhotoOrder(uploadedIds: Map<string, string>) {
+        const imageIds = photoOrder.map((key) => {
+            if (key.startsWith("existing:")) return key.slice("existing:".length);
+            return uploadedIds.get(key) || "";
+        }).filter(Boolean);
+
+        const response = await fetch(`/api/proxy/listings/${id}/images/reorder/`, {
+            method: "POST",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ image_ids: imageIds }),
+        });
+        const data = await response.json().catch(() => ({}));
+
+        if (!response.ok) {
+            throw new Error(getApiErrorMessage(data, "Failed to save the photo order."));
         }
     }
 
@@ -713,14 +806,10 @@ function EditAdForm({ id }: { id: string }) {
             }
 
             await deleteRemovedImages();
-            await uploadNewImages();
-
-            setNewImages([]);
-            setDeletedImageIds([]);
-            await loadAd(false);
-            setShowPreview(false);
-            setMessage("Ad updated successfully and sent for review.");
-            window.scrollTo({ top: 0, behavior: "smooth" });
+            const uploadedIds = await uploadNewImages();
+            await savePhotoOrder(uploadedIds);
+            router.replace("/my-ads");
+            router.refresh();
         } catch (requestError: any) {
             setError(requestError.message || "Failed to save ad.");
         } finally {
@@ -735,9 +824,9 @@ function EditAdForm({ id }: { id: string }) {
             <div className="rounded-[28px] bg-white p-8 text-center shadow-sm ring-1 ring-black/5">
                 <h2 className="text-2xl font-black">Ad unavailable</h2>
                 <p className="mt-2 text-sm font-bold text-red-600">{error}</p>
-                <a href="/my-ads" className="mt-6 inline-flex rounded-2xl bg-orange-500 px-5 py-3 text-sm font-black text-white">
+                <Link href="/my-ads" className="mt-6 inline-flex rounded-2xl bg-orange-500 px-5 py-3 text-sm font-black text-white">
                     Back to My Ads
-                </a>
+                </Link>
             </div>
         );
     }
@@ -816,30 +905,84 @@ function EditAdForm({ id }: { id: string }) {
                     </label>
 
                     {totalPhotos > 0 && (
-                        <div className="mt-3 grid grid-cols-3 gap-2 border-t border-orange-200/70 pt-3 sm:grid-cols-4">
-                            {existingImages.map((image, index) => (
-                                <div key={image.id || image.url} className="group relative aspect-[4/3] overflow-hidden rounded-[12px] bg-slate-100 ring-1 ring-slate-200">
-                                    <img src={image.url} alt={`Current ad photo ${index + 1}`} className="h-full w-full object-cover" />
-                                    {image.isPrimary ? (
-                                        <span className="absolute left-1.5 top-1.5 rounded-full bg-orange-500 px-2 py-0.5 text-[8px] font-black uppercase text-white">Cover</span>
-                                    ) : (
-                                        <button type="button" onClick={() => setPrimaryImage(image.id)} disabled={saving} className="absolute bottom-1.5 left-1.5 rounded-full bg-white/95 px-2 py-1 text-[8px] font-black uppercase text-orange-600 shadow-sm disabled:opacity-50">Set cover</button>
-                                    )}
-                                    <button type="button" onClick={() => removeExistingImage(image.id)} disabled={saving} aria-label="Remove existing photo" className="absolute right-1.5 top-1.5 flex h-7 w-7 items-center justify-center rounded-full bg-slate-950/80 text-white transition hover:bg-red-600 disabled:opacity-50">
-                                        <FontAwesomeIcon icon={faXmark} className="h-3.5 w-3.5" />
-                                    </button>
-                                </div>
-                            ))}
+                        <div className="mt-3 border-t border-orange-200/70 pt-3">
+                            <p className="mb-2.5 flex items-center gap-2 text-[10px] font-bold leading-4 text-slate-500">
+                                <FontAwesomeIcon icon={faGripVertical} className="h-3 w-3 text-orange-500" />
+                                Drag photos to reorder them. The first photo is your main cover.
+                            </p>
 
-                            {newImagePreviews.map((image, index) => (
-                                <div key={`${image.name}-${index}`} className="relative aspect-[4/3] overflow-hidden rounded-[12px] bg-slate-100 ring-1 ring-orange-200">
-                                    <img src={image.url} alt={`New photo ${index + 1}`} className="h-full w-full object-cover" />
-                                    <span className="absolute left-1.5 top-1.5 rounded-full bg-emerald-500 px-2 py-0.5 text-[8px] font-black uppercase text-white">New</span>
-                                    <button type="button" onClick={() => removeNewImage(index)} aria-label={`Remove ${image.name}`} className="absolute right-1.5 top-1.5 flex h-7 w-7 items-center justify-center rounded-full bg-slate-950/80 text-white transition hover:bg-red-600">
-                                        <FontAwesomeIcon icon={faXmark} className="h-3.5 w-3.5" />
-                                    </button>
-                                </div>
-                            ))}
+                            <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+                                {orderedPhotos.map((photo, index) => (
+                                    <div
+                                        key={photo.key}
+                                        draggable={!saving}
+                                        onDragStart={(event) => handlePhotoDragStart(event, photo.key)}
+                                        onDragEnter={() => setDragOverPhotoKey(photo.key)}
+                                        onDragOver={(event) => {
+                                            event.preventDefault();
+                                            event.dataTransfer.dropEffect = "move";
+                                        }}
+                                        onDrop={(event) => handlePhotoDrop(event, index)}
+                                        onDragEnd={() => {
+                                            setDraggedPhotoKey(null);
+                                            setDragOverPhotoKey(null);
+                                        }}
+                                        title="Drag to reorder this photo"
+                                        className={`group relative aspect-[4/3] cursor-grab overflow-hidden rounded-[12px] bg-slate-100 ring-1 transition active:cursor-grabbing ${draggedPhotoKey === photo.key
+                                            ? "scale-95 opacity-50 ring-orange-300"
+                                            : dragOverPhotoKey === photo.key
+                                                ? "ring-2 ring-orange-500"
+                                                : photo.kind === "new"
+                                                    ? "ring-orange-200"
+                                                    : "ring-slate-200"
+                                        }`}
+                                    >
+                                        <img
+                                            src={photo.url}
+                                            alt={`Ad photo ${index + 1}`}
+                                            className="pointer-events-none h-full w-full object-cover"
+                                        />
+
+                                        {index === 0 ? (
+                                            <span className="absolute left-1.5 top-1.5 rounded-full bg-orange-500 px-2 py-0.5 text-[8px] font-black uppercase text-white shadow-sm">
+                                                Main photo
+                                            </span>
+                                        ) : (
+                                            <button
+                                                type="button"
+                                                onClick={() => movePhoto(photo.key, 0)}
+                                                disabled={saving}
+                                                className="absolute bottom-1.5 left-1.5 rounded-full bg-white/95 px-2 py-1 text-[8px] font-black uppercase text-orange-600 shadow-sm transition hover:bg-orange-500 hover:text-white disabled:opacity-50"
+                                            >
+                                                Make cover
+                                            </button>
+                                        )}
+
+                                        {photo.kind === "new" && (
+                                            <span className="absolute left-1.5 top-8 rounded-full bg-emerald-500 px-2 py-0.5 text-[8px] font-black uppercase text-white">
+                                                New
+                                            </span>
+                                        )}
+
+                                        <span className="pointer-events-none absolute bottom-1.5 right-1.5 flex h-7 w-7 items-center justify-center rounded-full bg-slate-950/70 text-white">
+                                            <FontAwesomeIcon icon={faGripVertical} className="h-3 w-3" />
+                                        </span>
+
+                                        <button
+                                            type="button"
+                                            onClick={() => photo.kind === "existing"
+                                                ? removeExistingImage(photo.id)
+                                                : removeNewImage(photo.key)
+                                            }
+                                            disabled={saving}
+                                            aria-label={`Remove ${photo.name}`}
+                                            className="absolute right-1.5 top-1.5 flex h-7 w-7 items-center justify-center rounded-full bg-slate-950/80 text-white transition hover:bg-red-600 disabled:opacity-50"
+                                        >
+                                            <FontAwesomeIcon icon={faXmark} className="h-3.5 w-3.5" />
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
                     )}
                 </div>
@@ -946,10 +1089,10 @@ function EditAdForm({ id }: { id: string }) {
             </div>
 
             <div className="order-7 grid gap-3 sm:grid-cols-[auto_1fr] lg:col-span-2">
-                <a href={`/my-ads/${id}`} className="inline-flex h-12 items-center justify-center gap-2 rounded-[18px] bg-white px-5 text-sm font-black text-slate-700 ring-1 ring-slate-200 hover:bg-slate-50">
+                <Link href={`/my-ads/${id}`} className="inline-flex h-12 items-center justify-center gap-2 rounded-[18px] bg-white px-5 text-sm font-black text-slate-700 ring-1 ring-slate-200 hover:bg-slate-50">
                     <FontAwesomeIcon icon={faArrowLeft} className="h-4 w-4" />
                     Cancel
-                </a>
+                </Link>
                 <button type="submit" disabled={saving} className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-[18px] bg-orange-500 px-5 text-sm font-black text-white hover:bg-orange-600 disabled:opacity-50">
                     Preview Changes
                     <FontAwesomeIcon icon={faArrowRight} className="h-4 w-4" />
