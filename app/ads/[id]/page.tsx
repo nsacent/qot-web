@@ -334,6 +334,7 @@ export default async function ListingDetailsPage({ params }: PageProps) {
                                                     "Detail";
 
                                                 const value =
+                                                    item?.display_value ??
                                                     item?.value_text ??
                                                     item?.value_number ??
                                                     item?.value_boolean ??

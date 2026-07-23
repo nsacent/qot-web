@@ -59,7 +59,7 @@ function getAttributeDetails(ad: any) {
 
     return ad.attributes.flatMap((item: any) => {
         const label = item?.filter_name || item?.name || item?.label || item?.key || "Detail";
-        const rawValue = item?.value_text ?? item?.value_number ?? item?.value_boolean ?? item?.value;
+        const rawValue = item?.display_value ?? item?.value_text ?? item?.value_number ?? item?.value_boolean ?? item?.value;
 
         if (rawValue === "" || rawValue === null || rawValue === undefined) return [];
 

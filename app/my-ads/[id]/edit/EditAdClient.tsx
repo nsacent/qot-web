@@ -33,6 +33,12 @@ import { getCurrentUser } from "@/lib/sessionClient";
 import { LocationPickerModal } from "@/components/listings/MarketplacePickerModals";
 import { fetchAllProxyPages } from "@/lib/marketplaceCatalog";
 import { getOrderedListingImages } from "@/lib/listingImages";
+import {
+    getCategoryFilterDisplayValue,
+    getCategoryFilterOptionLabel,
+    getCategoryFilterOptionValue,
+    normalizeCategoryFilterValue,
+} from "@/lib/categoryFilterValues";
 
 type CategoryFilterField = {
     id: number | string;
@@ -439,7 +445,13 @@ function EditAdForm({ id }: { id: string }) {
                 setCategoryFilters(normalized);
                 setCategoryFilterValues(
                     Object.fromEntries(
-                        normalized.map((field) => [field.key, restoredValues[field.key] || ""])
+                        normalized.map((field) => [
+                            field.key,
+                            normalizeCategoryFilterValue(
+                                field.options,
+                                restoredValues[field.key]
+                            ),
+                        ])
                     )
                 );
                 pendingAttributeValues.current = {};
@@ -753,7 +765,7 @@ function EditAdForm({ id }: { id: string }) {
                             label: field.label,
                             value: isBooleanType(field.type)
                                 ? value === "true" ? "Yes" : "No"
-                                : value,
+                                : getCategoryFilterDisplayValue(field.options, value),
                         }];
                     })}
                 />
@@ -911,7 +923,7 @@ function EditAdForm({ id }: { id: string }) {
                                                 <select value={value} onChange={(event) => updateCategoryFilter(field.key, event.target.value)} className={selectClass}>
                                                     <option value="">Select {field.label.toLowerCase()}</option>
                                                     {field.options.map((option, index) => (
-                                                        <option key={getOptionValue(option) || index} value={typeof option === "string" ? option : getOptionValue(option)}>{typeof option === "string" ? option : getOptionLabel(option)}</option>
+                                                        <option key={getCategoryFilterOptionValue(option) || index} value={getCategoryFilterOptionValue(option)}>{getCategoryFilterOptionLabel(option)}</option>
                                                     ))}
                                                 </select>
                                             </SelectWrap>

@@ -49,6 +49,7 @@ type ListingAttribute = {
     filter_name?: string | null;
     filter_key?: string | null;
     filter_type?: string | null;
+    display_value?: string | null;
     value_text?: string | null;
     value_number?: string | number | null;
     value_boolean?: boolean | null;
@@ -152,7 +153,7 @@ function attributeValue(attribute: ListingAttribute) {
         return Number(attribute.value_number).toLocaleString("en-UG");
     }
 
-    return attribute.value_text || "Not specified";
+    return attribute.display_value || attribute.value_text || "Not specified";
 }
 
 function imageSource(image: ListingImage) {

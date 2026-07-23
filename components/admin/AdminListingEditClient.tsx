@@ -22,6 +22,7 @@ import {
     LocationPickerModal,
 } from "@/components/listings/MarketplacePickerModals";
 import { fetchAllProxyPages } from "@/lib/marketplaceCatalog";
+import { normalizeCategoryFilterValue } from "@/lib/categoryFilterValues";
 import {
     AdminErrorState,
     AdminLoadingState,
@@ -71,6 +72,7 @@ type City = {
 };
 
 type FilterOption = {
+    id: string;
     label: string;
     value: string;
 };
@@ -188,7 +190,8 @@ function normalizeFilter(value: unknown): CategoryFilter | null {
             if (!optionRecord) return null;
             const label = String(optionRecord.label || "");
             const optionValue = String(optionRecord.value || "");
-            return label && optionValue ? { label, value: optionValue } : null;
+            const id = String(optionRecord.id || "");
+            return label && optionValue ? { id, label, value: optionValue } : null;
         })
         .filter((option): option is FilterOption => Boolean(option));
 
@@ -299,7 +302,10 @@ export default function AdminListingEditClient({
                 Object.fromEntries(
                     normalizedFilters.map((filter) => [
                         String(filter.id),
-                        existingValues[String(filter.id)] || "",
+                        normalizeCategoryFilterValue(
+                            filter.options,
+                            existingValues[String(filter.id)]
+                        ),
                     ])
                 )
             );

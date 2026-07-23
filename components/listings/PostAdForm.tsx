@@ -34,6 +34,12 @@ import {
 } from "@/components/listings/MarketplacePickerModals";
 import AdPreviewPanel from "@/components/listings/AdPreviewPanel";
 import { fetchAllProxyPages } from "@/lib/marketplaceCatalog";
+import {
+    getCategoryFilterDisplayValue,
+    getCategoryFilterOptionLabel,
+    getCategoryFilterOptionValue,
+    normalizeCategoryFilterValue,
+} from "@/lib/categoryFilterValues";
 
 type CategoryFilterField = {
     id: number | string;
@@ -434,7 +440,10 @@ export default function PostAdForm() {
                     Object.fromEntries(
                         normalized.map((field) => [
                             field.key,
-                            pendingDraftFilterValues.current[field.key] || "",
+                            normalizeCategoryFilterValue(
+                                field.options,
+                                pendingDraftFilterValues.current[field.key]
+                            ),
                         ])
                     )
                 );
@@ -808,7 +817,7 @@ export default function PostAdForm() {
                             label: field.label,
                             value: isBooleanType(field.type)
                                 ? value === "true" ? "Yes" : "No"
-                                : value,
+                                : getCategoryFilterDisplayValue(field.options, value),
                         }];
                     })}
                 />
@@ -1144,16 +1153,10 @@ export default function PostAdForm() {
 
                                                     {field.options.map((option, index) => (
                                                         <option
-                                                            key={getOptionValue(option) || index}
-                                                            value={
-                                                                typeof option === "string"
-                                                                    ? option
-                                                                    : getOptionValue(option)
-                                                            }
+                                                            key={getCategoryFilterOptionValue(option) || index}
+                                                            value={getCategoryFilterOptionValue(option)}
                                                         >
-                                                            {typeof option === "string"
-                                                                ? option
-                                                                : getOptionLabel(option)}
+                                                            {getCategoryFilterOptionLabel(option)}
                                                         </option>
                                                     ))}
                                                 </select>
