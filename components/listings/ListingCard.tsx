@@ -63,6 +63,8 @@ export default function ListingCard({ listing }: ListingCardProps) {
                             <img
                                 src={image}
                                 alt={listing.title || "Ad image"}
+                                loading="lazy"
+                                decoding="async"
                                 className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
                             />
                         ) : (

@@ -1,4 +1,5 @@
 import ThreadMessagesClient from "@/components/chats/ThreadMessagesClient";
+import RequireAccountSession from "@/components/account/RequireAccountSession";
 import QotMarketplaceFooter from "@/components/layout/QotMarketplaceFooter";
 import QotMarketplaceNav from "@/components/layout/QotMarketplaceNav";
 
@@ -12,6 +13,7 @@ export default async function AccountMessageThreadPage({ params }: PageProps) {
     const { threadId } = await params;
 
     return (
+        <RequireAccountSession>
         <main className="min-h-screen bg-[#fff7f2] text-slate-950 antialiased">
             <div className="mx-auto max-w-[1500px] px-4 py-4 sm:px-6">
                 <QotMarketplaceNav />
@@ -21,5 +23,6 @@ export default async function AccountMessageThreadPage({ params }: PageProps) {
             </div>
             <QotMarketplaceFooter />
         </main>
+        </RequireAccountSession>
     );
 }

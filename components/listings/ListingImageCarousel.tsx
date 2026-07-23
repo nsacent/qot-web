@@ -147,6 +147,8 @@ export default function ListingImageCarousel({
                                 <img
                                     src={image.url}
                                     alt=""
+                                    loading="lazy"
+                                    decoding="async"
                                     className="aspect-square w-full object-cover"
                                 />
 

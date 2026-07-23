@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, useEffect, useState } from "react";
+import dynamic from "next/dynamic";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
     faCircleCheck,
@@ -13,17 +14,48 @@ import {
     faStar,
 } from "@/lib/faIcons";
 import QotLoader from "@/components/common/QotLoader";
-import SellerDashboardClient from "@/components/dashboard/SellerDashboardClient";
-import SellerAnalyticsClient from "@/components/dashboard/SellerAnalyticsClient";
-import SellerRenewalsClient from "@/components/dashboard/SellerRenewalsClient";
-import SavedAdsClient from "@/app/account/saved/SavedAdsClient";
-import MyListingsClient from "@/app/my-ads/MyListingsClient";
-import NotificationPreferencesClient from "@/components/notifications/NotificationPreferencesClient";
-import ProfileSettingsClient from "@/components/account/ProfileSettingsClient";
 import {
     getCurrentUser,
     logoutUser,
 } from "@/lib/sessionClient";
+
+function AccountPanelLoader() {
+    return (
+        <div className="rounded-[30px] bg-white p-8 shadow-sm ring-1 ring-black/5">
+            <div className="h-6 w-40 animate-pulse rounded-full bg-slate-200" />
+            <div className="mt-5 h-32 animate-pulse rounded-3xl bg-slate-100" />
+        </div>
+    );
+}
+
+const ProfileSettingsClient = dynamic(
+    () => import("@/components/account/ProfileSettingsClient"),
+    { loading: AccountPanelLoader }
+);
+const SellerDashboardClient = dynamic(
+    () => import("@/components/dashboard/SellerDashboardClient"),
+    { loading: AccountPanelLoader }
+);
+const SellerAnalyticsClient = dynamic(
+    () => import("@/components/dashboard/SellerAnalyticsClient"),
+    { loading: AccountPanelLoader }
+);
+const SellerRenewalsClient = dynamic(
+    () => import("@/components/dashboard/SellerRenewalsClient"),
+    { loading: AccountPanelLoader }
+);
+const SavedAdsClient = dynamic(
+    () => import("@/app/account/saved/SavedAdsClient"),
+    { loading: AccountPanelLoader }
+);
+const MyListingsClient = dynamic(
+    () => import("@/app/my-ads/MyListingsClient"),
+    { loading: AccountPanelLoader }
+);
+const NotificationPreferencesClient = dynamic(
+    () => import("@/components/notifications/NotificationPreferencesClient"),
+    { loading: AccountPanelLoader }
+);
 
 function getUserObject(data: any) {
     return data?.user || data?.data || data;

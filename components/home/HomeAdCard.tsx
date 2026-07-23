@@ -1,5 +1,5 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faLocationDot } from "@/lib/faIcons";
+import { faEye, faLocationDot } from "@/lib/faIcons";
 import HomeAdFavoriteButton from "@/components/home/HomeAdFavoriteButton";
 import ListingCardImage from "@/components/listings/ListingCardImage";
 
@@ -168,6 +168,14 @@ function formatDate(value: any) {
     return `${months[date.getUTCMonth()]} ${date.getUTCDate()}`;
 }
 
+function getViewCount(ad: any) {
+    const value = Number(
+        ad?.views_count ?? ad?.view_count ?? ad?.views ?? ad?.total_views ?? 0
+    );
+
+    return Number.isFinite(value) && value > 0 ? value : 0;
+}
+
 export default function HomeAdCard({ ad, favoriteIds, featured }: HomeAdCardProps) {
     const id = getAdId(ad);
     const title = getAdTitle(ad);
@@ -182,6 +190,7 @@ export default function HomeAdCard({ ad, favoriteIds, featured }: HomeAdCardProp
 
     const isFavorited = favoriteIds?.has(String(id)) === true;
     const showFeatured = featured ?? isFeaturedAd(ad);
+    const viewCount = getViewCount(ad);
 
     return (
         <article className="group relative flex h-full flex-col overflow-hidden rounded-[20px] bg-white shadow-[0_8px_24px_rgba(15,23,42,0.08)] ring-1 ring-black/5 transition duration-300 hover:-translate-y-1 hover:shadow-[0_18px_38px_rgba(15,23,42,0.14)] hover:ring-orange-200">
@@ -265,7 +274,13 @@ export default function HomeAdCard({ ad, favoriteIds, featured }: HomeAdCardProp
                         <span className="truncate">{getAdLocation(ad)}</span>
                     </span>
 
-                    <span className="shrink-0 text-slate-400">{formatDate(date)}</span>
+                    <span className="flex shrink-0 items-center gap-2 text-slate-400">
+                        <span className="inline-flex items-center gap-1" title={`${viewCount.toLocaleString()} views`}>
+                            <FontAwesomeIcon icon={faEye} className="h-2.5 w-2.5" />
+                            {viewCount.toLocaleString()}
+                        </span>
+                        <span>{formatDate(date)}</span>
+                    </span>
                 </div>
             </div>
         </article>

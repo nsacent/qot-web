@@ -9,6 +9,7 @@ import {
     faBars,
     faChartPie,
     faCreditCard,
+    faDatabase,
     faFlag,
     faListCheck,
     faRightFromBracket,
@@ -17,6 +18,7 @@ import {
     faXmark,
 } from "@fortawesome/free-solid-svg-icons";
 import {
+    clearAuthStorage,
     getUserDisplayName,
     getUserRole,
     isAdminOrModerator,
@@ -28,30 +30,42 @@ const links = [
         description: "Platform health",
         href: "/admin",
         icon: faChartPie,
+        adminOnly: false,
     },
     {
         label: "Ads",
         description: "Review adverts",
         href: "/admin/ads",
         icon: faListCheck,
+        adminOnly: false,
     },
     {
         label: "Reports",
         description: "Moderation queue",
         href: "/admin/reports",
         icon: faFlag,
+        adminOnly: false,
     },
     {
         label: "Users",
         description: "Manage accounts",
         href: "/admin/users",
         icon: faUsers,
+        adminOnly: false,
     },
     {
         label: "Payments",
         description: "Revenue records",
         href: "/admin/payments",
         icon: faCreditCard,
+        adminOnly: false,
+    },
+    {
+        label: "Backups",
+        description: "Protect platform data",
+        href: "/admin/backups",
+        icon: faDatabase,
+        adminOnly: true,
     },
 ];
 
@@ -138,6 +152,20 @@ export default function AdminShell({ children }: AdminShellProps) {
         window.location.href = "/";
     }
 
+    async function switchToAdminLogin() {
+        setChecking(true);
+
+        await fetch("/api/auth/logout", {
+            method: "POST",
+            credentials: "include",
+        }).catch(() => null);
+
+        clearAuthStorage();
+
+        const nextUrl = encodeURIComponent(pathname || "/admin");
+        window.location.replace(`/login?next=${nextUrl}`);
+    }
+
     if (checking) {
         return (
             <main className="flex min-h-screen items-center justify-center bg-[#f7f8fc] px-5">
@@ -182,21 +210,25 @@ export default function AdminShell({ children }: AdminShellProps) {
                         >
                             Back to marketplace
                         </a>
-                        <a
-                            href="/login?next=/admin"
+                        <button
+                            type="button"
+                            onClick={switchToAdminLogin}
                             className="rounded-2xl bg-orange-500 px-5 py-3.5 text-sm font-black text-white shadow-lg shadow-orange-200 transition hover:bg-orange-600"
                         >
                             Sign in as admin
-                        </a>
+                        </button>
                     </div>
                 </div>
             </main>
         );
     }
 
-    const activeLink = links.find((link) => isActivePath(pathname, link.href));
     const name = getUserDisplayName(user);
     const role = getUserRole(user) || "staff";
+    const canManageBackups =
+        role === "admin" || user?.is_superuser === true || user?.superuser === true;
+    const visibleLinks = links.filter((link) => !link.adminOnly || canManageBackups);
+    const activeLink = visibleLinks.find((link) => isActivePath(pathname, link.href));
 
     const sidebar = (
         <div className="flex h-full flex-col">
@@ -224,7 +256,7 @@ export default function AdminShell({ children }: AdminShellProps) {
             </div>
 
             <nav className="mt-8 grid gap-2" aria-label="Admin navigation">
-                {links.map((link) => {
+                {visibleLinks.map((link) => {
                     const active = isActivePath(pathname, link.href);
 
                     return (

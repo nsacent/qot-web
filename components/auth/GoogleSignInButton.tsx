@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import Script from "next/script";
 import { getCurrentUser, loginWithGoogle } from "@/lib/sessionClient";
 
@@ -76,10 +76,8 @@ export default function GoogleSignInButton({
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
 
-    useEffect(() => {
-        keepSignedInRef.current = keepSignedIn;
-        nextUrlRef.current = nextUrl;
-    }, [keepSignedIn, nextUrl]);
+    keepSignedInRef.current = keepSignedIn;
+    nextUrlRef.current = nextUrl;
 
     const handleCredential = useCallback(async (response: GoogleCredentialResponse) => {
         const credential = response.credential || "";
@@ -93,9 +91,11 @@ export default function GoogleSignInButton({
         setError("");
 
         try {
+            const persistSession = keepSignedInRef.current === true;
+
             await loginWithGoogle({
                 credential,
-                keep_signed_in: keepSignedInRef.current,
+                keep_signed_in: persistSession,
             });
 
             try {

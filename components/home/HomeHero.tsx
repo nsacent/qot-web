@@ -68,7 +68,7 @@ function FeaturedAdMiniCard({ ad }: { ad: HeroListing }) {
 
 export default function HomeHero({ featuredAds = [] }: HomeHeroProps) {
     return (
-        <section className="relative overflow-hidden rounded-[2rem] bg-white shadow-[0_12px_45px_rgba(15,23,42,0.08)]">
+        <section className="relative hidden overflow-hidden rounded-[2rem] bg-white shadow-[0_12px_45px_rgba(15,23,42,0.08)] md:block">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_8%_20%,rgba(255,103,0,0.12),transparent_26%),linear-gradient(90deg,rgba(255,255,255,0.96)_0%,rgba(255,255,255,0.9)_50%,rgba(255,237,213,0.55)_100%)]" />
 
             <div className="relative grid min-h-[300px] gap-4 lg:grid-cols-[1fr_0.8fr]">

@@ -6,6 +6,7 @@ type ListingCardImageProps = {
     title?: string;
     href?: string;
     className?: string;
+    priority?: boolean;
 };
 
 export default function ListingCardImage({
@@ -13,6 +14,7 @@ export default function ListingCardImage({
     title = "Ad image",
     href = "#",
     className = "",
+    priority = false,
 }: ListingCardImageProps) {
     const image = getPrimaryListingImage(listing);
 
@@ -25,6 +27,9 @@ export default function ListingCardImage({
                     <img
                         src={image}
                         alt={title}
+                        loading={priority ? "eager" : "lazy"}
+                        fetchPriority={priority ? "high" : "auto"}
+                        decoding="async"
                         className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
                     />
                 ) : (

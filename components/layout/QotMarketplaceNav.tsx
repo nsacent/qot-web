@@ -379,18 +379,24 @@ export default function QotMarketplaceNav({
     async function loadNavData() {
         setNavDataLoading(true);
 
-        const [sessionResponse, favoritesData, messagesData, notificationsData] =
-            await Promise.all([
-                fetch("/api/auth/me", {
-                    credentials: "include",
-                    cache: "no-store",
-                }).catch(() => null),
+        const sessionResponse = await fetch("/api/auth/me", {
+            credentials: "include",
+            cache: "no-store",
+        }).catch(() => null);
+
+        const signedIn = Boolean(sessionResponse?.ok);
+        let favoritesData: any = null;
+        let messagesData: any = null;
+        let notificationsData: any = null;
+
+        if (signedIn) {
+            [favoritesData, messagesData, notificationsData] = await Promise.all([
                 firstWorking(["/favorites/"]),
                 firstWorking(["/chats/threads/"]),
                 firstWorking(["/notifications/"]),
             ]);
+        }
 
-        const signedIn = Boolean(sessionResponse?.ok);
         const favorites = favoritesData ? getArray(favoritesData) : [];
         const threads = messagesData ? getArray(messagesData) : [];
         const notifications = notificationsData ? getArray(notificationsData) : [];
@@ -735,7 +741,7 @@ export default function QotMarketplaceNav({
                         className="hidden items-center gap-1 md:flex"
                     >
                         <NavDropdown
-                            href="/account/messages"
+                            href={isSignedIn ? "/account/messages" : "/login?next=/account/messages"}
                             icon={faEnvelope}
                             label="Messages"
                             count={counts.messages}
@@ -822,7 +828,7 @@ export default function QotMarketplaceNav({
                         </NavDropdown>
 
                         <NavDropdown
-                            href="/account/saved"
+                            href={isSignedIn ? "/account/saved" : "/login?next=/account/saved"}
                             icon={faHeartRegular}
                             label="Favorites"
                             count={counts.favorites}
@@ -915,7 +921,7 @@ export default function QotMarketplaceNav({
                         </NavDropdown>
 
                         <NavDropdown
-                            href="/account/notifications"
+                            href={isSignedIn ? "/account/notifications" : "/login?next=/account/notifications"}
                             icon={faBell}
                             label="Notifications"
                             count={counts.notifications}

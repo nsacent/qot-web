@@ -103,7 +103,8 @@ async function handleAuthRequest(
             payload = {};
         }
 
-        const keepSignedIn = payload.keep_signed_in === true;
+        const keepSignedIn =
+            payload.keep_signed_in === true || payload.keepSignedIn === true;
         const result = await backendJson("/auth/google/", {
             method: "POST",
             body: JSON.stringify({
