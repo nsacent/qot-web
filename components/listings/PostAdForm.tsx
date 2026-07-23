@@ -19,6 +19,7 @@ import {
     faCamera,
     faChevronDown,
     faCircleCheck,
+    faCropSimple,
     faFileLines,
     faGripVertical,
     faLayerGroup,
@@ -35,6 +36,7 @@ import {
     LocationPickerModal,
 } from "@/components/listings/MarketplacePickerModals";
 import AdPreviewPanel from "@/components/listings/AdPreviewPanel";
+import PhotoCropModal, { type PhotoCrop } from "@/components/listings/PhotoCropModal";
 import { fetchAllProxyPages } from "@/lib/marketplaceCatalog";
 import {
     getCategoryFilterDisplayValue,
@@ -42,6 +44,7 @@ import {
     getCategoryFilterOptionValue,
     normalizeCategoryFilterValue,
 } from "@/lib/categoryFilterValues";
+import { findLowResolutionPhoto } from "@/lib/photoValidation";
 
 type CategoryFilterField = {
     id: number | string;
@@ -56,6 +59,8 @@ type DraftPhoto = {
     id: number;
     name: string;
     url: string;
+    sourceUrl?: string;
+    crop?: PhotoCrop;
     file?: File;
 };
 
@@ -162,6 +167,26 @@ async function clientApiPut(path: string, payload: any) {
 
     if (!response.ok) {
         throw new Error(data?.detail || data?.message || data?.error || "Failed to save draft.");
+    }
+
+    return data;
+}
+
+async function clientApiPatch(path: string, payload: any) {
+    const response = await fetch(`/api/proxy${path}`, {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+    });
+    const data = await response.json().catch(() => null);
+
+    if (response.status === 401 || response.status === 403) {
+        throw new Error("__AUTH__");
+    }
+
+    if (!response.ok) {
+        throw new Error(data?.detail || data?.message || data?.error || "Failed to update photo.");
     }
 
     return data;
@@ -317,6 +342,10 @@ export default function PostAdForm() {
     const [draftMessage, setDraftMessage] = useState("");
     const [draggedPhotoId, setDraggedPhotoId] = useState<number | null>(null);
     const [dragOverPhotoId, setDragOverPhotoId] = useState<number | null>(null);
+    const [cropQueue, setCropQueue] = useState<File[]>([]);
+    const [cropBatchTotal, setCropBatchTotal] = useState(0);
+    const [cropSaving, setCropSaving] = useState(false);
+    const [editingCropPhotoId, setEditingCropPhotoId] = useState<number | null>(null);
     const pendingDraftFilterValues = useRef<Record<string, string>>({});
 
     const [categoryModalOpen, setCategoryModalOpen] = useState(false);
@@ -341,6 +370,12 @@ export default function PostAdForm() {
     }, [cities, city]);
 
     const stagedPhotoIds = useMemo(() => photos.map((photo) => photo.id), [photos]);
+    const activeCropFile = cropQueue[0] || null;
+    const editingCropPhoto = photos.find((photo) => photo.id === editingCropPhotoId) || null;
+    const activeCropFileUrl = useMemo(
+        () => activeCropFile ? URL.createObjectURL(activeCropFile) : "",
+        [activeCropFile]
+    );
     const photoPreviews = useMemo(
         () => photos.map((photo) => ({
             ...photo,
@@ -348,6 +383,12 @@ export default function PostAdForm() {
         })),
         [photos]
     );
+
+    useEffect(() => {
+        return () => {
+            if (activeCropFileUrl) URL.revokeObjectURL(activeCropFileUrl);
+        };
+    }, [activeCropFileUrl]);
 
     useEffect(() => {
         return () => {
@@ -393,7 +434,13 @@ export default function PostAdForm() {
                         getArray(draft.staged_images).map((photo: any) => ({
                             id: Number(photo.id),
                             name: String(photo.image_url || "draft-photo").split("/").pop() || "draft-photo",
-                            url: photo.image_url,
+                            url: photo.card_image_url || photo.image_url,
+                            sourceUrl: photo.source_image_url || photo.image_url,
+                            crop: {
+                                x: Number(photo.crop_x ?? 0.5),
+                                y: Number(photo.crop_y ?? 0.5),
+                                zoom: Number(photo.crop_zoom ?? 1),
+                            },
                         }))
                     );
                     setDraftMessage("Your saved draft has been restored.");
@@ -658,10 +705,10 @@ export default function PostAdForm() {
             return;
         }
 
-        const oversized = selectedFiles.find((file) => file.size > 5 * 1024 * 1024);
+        const oversized = selectedFiles.find((file) => file.size > 10 * 1024 * 1024);
 
         if (oversized) {
-            setError(`${oversized.name} is larger than the 5MB limit.`);
+            setError(`${oversized.name} is larger than the 10MB limit.`);
             return;
         }
 
@@ -670,41 +717,112 @@ export default function PostAdForm() {
             return;
         }
 
+        try {
+            const lowResolutionPhoto = await findLowResolutionPhoto(selectedFiles);
+            if (lowResolutionPhoto) {
+                setError(`${lowResolutionPhoto.name} is too small. Use a photo of at least 600 × 450 pixels.`);
+                return;
+            }
+        } catch {
+            setError("One of the selected files could not be read as a photo.");
+            return;
+        }
+
         setError("");
+        setCropBatchTotal(selectedFiles.length);
+        setCropQueue(selectedFiles);
         setPhotosUploading(true);
-        setUploadProgress(`Uploading 1 of ${selectedFiles.length} new photos...`);
-        const uploadedPhotos: DraftPhoto[] = [];
+        setUploadProgress(`Position photo 1 of ${selectedFiles.length}.`);
+    }
+
+    function advanceCropQueue(message: string) {
+        const remaining = cropQueue.slice(1);
+        setCropQueue(remaining);
+
+        if (remaining.length === 0) {
+            setPhotosUploading(false);
+            setCropBatchTotal(0);
+            setUploadProgress(message);
+        } else {
+            const completed = cropBatchTotal - remaining.length;
+            setUploadProgress(`Position photo ${completed + 1} of ${cropBatchTotal}.`);
+        }
+    }
+
+    function cancelPhotoCrop() {
+        if (activeCropFile) {
+            advanceCropQueue("Photo selection updated. Continue filling in the advert details.");
+            return;
+        }
+
+        setEditingCropPhotoId(null);
+    }
+
+    async function confirmPhotoCrop(crop: PhotoCrop) {
+        setCropSaving(true);
+        setError("");
 
         try {
-            for (let index = 0; index < selectedFiles.length; index += 1) {
-                setUploadProgress(
-                    `Uploading photo ${index + 1} of ${selectedFiles.length} in the background...`
-                );
-
+            if (activeCropFile) {
+                const uploadNumber = cropBatchTotal - cropQueue.length + 1;
+                setUploadProgress(`Optimizing photo ${uploadNumber} of ${cropBatchTotal}...`);
                 const formData = new FormData();
-                formData.append("image", selectedFiles[index]);
+                formData.append("image", activeCropFile);
+                formData.append("crop_x", String(crop.x));
+                formData.append("crop_y", String(crop.y));
+                formData.append("crop_zoom", String(crop.zoom));
                 const data = await clientApiPostForm("/listings/images/stage/", formData);
-                const stagedId = Number(data.id);
-                uploadedPhotos.push({
-                    id: stagedId,
-                    name: selectedFiles[index].name,
-                    url: data.image_url || "",
-                    file: selectedFiles[index],
-                });
+
+                setPhotos((current) => [...current, {
+                    id: Number(data.id),
+                    name: activeCropFile.name,
+                    url: data.card_image_url || data.image_url || "",
+                    sourceUrl: data.source_image_url || data.image_url || "",
+                    crop: {
+                        x: Number(data.crop_x ?? crop.x),
+                        y: Number(data.crop_y ?? crop.y),
+                        zoom: Number(data.crop_zoom ?? crop.zoom),
+                    },
+                }]);
+                advanceCropQueue("Photos optimized. Continue filling in the advert details.");
+                return;
             }
 
-            setPhotos((current) => [...current, ...uploadedPhotos]);
-            setUploadProgress("Photos uploaded. Continue filling in the advert details.");
+            if (editingCropPhoto) {
+                const data = await clientApiPatch(
+                    `/listings/images/stage/${editingCropPhoto.id}/`,
+                    {
+                        crop_x: crop.x,
+                        crop_y: crop.y,
+                        crop_zoom: crop.zoom,
+                    }
+                );
+                setPhotos((current) => current.map((photo) =>
+                    photo.id === editingCropPhoto.id
+                        ? {
+                            ...photo,
+                            url: data.card_image_url || data.image_url || photo.url,
+                            sourceUrl: data.source_image_url || photo.sourceUrl,
+                            crop: {
+                                x: Number(data.crop_x ?? crop.x),
+                                y: Number(data.crop_y ?? crop.y),
+                                zoom: Number(data.crop_zoom ?? crop.zoom),
+                            },
+                        }
+                        : photo
+                ));
+                setEditingCropPhotoId(null);
+                setUploadProgress("Photo crop updated.");
+            }
         } catch (err: any) {
-            await Promise.allSettled(
-                uploadedPhotos.map((photo) =>
-                    clientApiDelete(`/listings/images/stage/${photo.id}/`)
-                )
-            );
-            setError(err.message || "A photo failed to upload.");
-            setUploadProgress("Photo upload failed. Please choose those photos again.");
+            if (err.message === "__AUTH__") {
+                window.location.href = "/login?next=/post-ad";
+                return;
+            }
+            setError(err.message || "Failed to optimize the photo.");
+            setUploadProgress("Photo optimization failed. Adjust the crop and try again.");
         } finally {
-            setPhotosUploading(false);
+            setCropSaving(false);
         }
     }
 
@@ -940,7 +1058,7 @@ export default function PostAdForm() {
                                 {photosUploading ? "Uploading photos..." : "Tap to add photos"}
                             </span>
                             <span className="mt-0.5 block text-xs font-semibold text-slate-500">
-                                JPG, PNG or WEBP · 5MB maximum each
+                                JPG, PNG or WEBP · 10MB maximum each
                             </span>
                         </span>
                         <span className="hidden rounded-full bg-orange-500 px-3 py-1.5 text-xs font-black text-white sm:inline-flex">
@@ -994,7 +1112,7 @@ export default function PostAdForm() {
                                         />
 
                                         {index === 0 ? (
-                                            <span className="absolute left-1.5 top-1.5 rounded-full bg-orange-500 px-2 py-0.5 text-[8px] font-black uppercase text-white shadow-sm">
+                                            <span className="absolute bottom-1.5 left-1.5 rounded-full bg-orange-500 px-2 py-0.5 text-[8px] font-black uppercase text-white shadow-sm">
                                                 Main photo
                                             </span>
                                         ) : (
@@ -1007,6 +1125,17 @@ export default function PostAdForm() {
                                                 Make cover
                                             </button>
                                         )}
+
+                                        <button
+                                            type="button"
+                                            onClick={() => setEditingCropPhotoId(photo.id)}
+                                            disabled={photosUploading}
+                                            aria-label={`Adjust crop for ${photo.name}`}
+                                            title="Adjust crop"
+                                            className="absolute left-1.5 top-1.5 flex h-7 w-7 items-center justify-center rounded-full bg-white/95 text-orange-600 shadow-sm transition hover:bg-orange-500 hover:text-white disabled:opacity-50"
+                                        >
+                                            <FontAwesomeIcon icon={faCropSimple} className="h-3 w-3" />
+                                        </button>
 
                                         <span className="pointer-events-none absolute bottom-1.5 right-1.5 flex h-7 w-7 items-center justify-center rounded-full bg-slate-950/70 text-white">
                                             <FontAwesomeIcon icon={faGripVertical} className="h-3 w-3" />
@@ -1296,6 +1425,19 @@ export default function PostAdForm() {
                     <FontAwesomeIcon icon={faArrowRight} className="h-4 w-4" />
                 </button>
             </div>
+
+            <PhotoCropModal
+                open={Boolean(activeCropFile || editingCropPhoto)}
+                sourceUrl={activeCropFileUrl || editingCropPhoto?.sourceUrl || editingCropPhoto?.url || ""}
+                title={activeCropFile
+                    ? `Position ${activeCropFile.name}`
+                    : `Adjust ${editingCropPhoto?.name || "photo"}`
+                }
+                initialCrop={editingCropPhoto?.crop || { x: 0.5, y: 0.5, zoom: 1 }}
+                isSaving={cropSaving}
+                onCancel={cancelPhotoCrop}
+                onConfirm={confirmPhotoCrop}
+            />
         </form>
     );
 }

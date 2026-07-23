@@ -1,16 +1,12 @@
 "use client";
 
 import { Suspense, useEffect, useState } from "react";
+import Link from "next/link";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faList, faPlus, faStore } from "@/lib/faIcons";
 import QotLoader from "@/components/common/QotLoader";
 import { getCurrentUser } from "@/lib/sessionClient";
 import ListingCardImage from "@/components/listings/ListingCardImage";
-
-const API_BASE_URL =
-    process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000/api/v1";
-
-const API_ORIGIN = API_BASE_URL.replace(/\/api\/v1\/?$/, "");
 
 function getArray(data: any) {
     if (Array.isArray(data)) return data;
@@ -18,6 +14,45 @@ function getArray(data: any) {
     if (Array.isArray(data?.data)) return data.data;
     if (Array.isArray(data?.listings)) return data.listings;
     return [];
+}
+
+function getNextProxyPath(value: unknown) {
+    if (typeof value !== "string" || !value) return "";
+
+    if (value.startsWith("http")) {
+        const url = new URL(value);
+        return `${url.pathname}${url.search}`.replace(/^\/api\/v1/, "");
+    }
+
+    return value.replace(/^\/api\/v1/, "");
+}
+
+async function fetchAllMyAds() {
+    const loadedAds: any[] = [];
+    const visited = new Set<string>();
+    let path = "/seller/listings/?page_size=50";
+
+    while (path && !visited.has(path) && visited.size < 100) {
+        visited.add(path);
+        const response = await fetch(`/api/proxy${path}`, {
+            credentials: "include",
+            cache: "no-store",
+        });
+        const data = await response.json().catch(() => ({}));
+
+        if (response.status === 401) {
+            throw new Error("__AUTH__");
+        }
+
+        if (!response.ok) {
+            throw new Error(data?.detail || data?.message || "Failed to load your ads.");
+        }
+
+        loadedAds.push(...getArray(data));
+        path = getNextProxyPath(data?.next);
+    }
+
+    return loadedAds;
 }
 
 function getAdId(ad: any) {
@@ -69,20 +104,68 @@ function getStatus(ad: any) {
     );
 }
 
+function normalizeStatus(ad: any) {
+    const status = String(getStatus(ad) || "").toLowerCase().replaceAll(" ", "_");
+
+    if (["pending", "pending_approval", "under_review"].includes(status)) {
+        return "pending";
+    }
+
+    return status || "draft";
+}
+
+const statusTabs = [
+    { value: "all", label: "All ads" },
+    { value: "active", label: "Active" },
+    { value: "pending", label: "Pending approval" },
+    { value: "draft", label: "Drafts" },
+    { value: "rejected", label: "Rejected" },
+    { value: "sold", label: "Sold" },
+    { value: "unavailable", label: "Unavailable" },
+    { value: "expired", label: "Expired" },
+];
+
+const statusTone: Record<string, string> = {
+    active: "bg-emerald-50 text-emerald-700 ring-emerald-100",
+    pending: "bg-amber-50 text-amber-700 ring-amber-100",
+    draft: "bg-blue-50 text-blue-700 ring-blue-100",
+    rejected: "bg-red-50 text-red-700 ring-red-100",
+    sold: "bg-violet-50 text-violet-700 ring-violet-100",
+    unavailable: "bg-slate-100 text-slate-600 ring-slate-200",
+    expired: "bg-slate-100 text-slate-600 ring-slate-200",
+};
+
+const statusPriority: Record<string, number> = {
+    active: 0,
+    pending: 1,
+    draft: 2,
+    rejected: 3,
+    sold: 4,
+    unavailable: 5,
+    expired: 6,
+};
+
 function SellerAdCard({ ad }: { ad: any }) {
     const id = getAdId(ad);
     const title = getAdTitle(ad);
-    const status = String(getStatus(ad)).replaceAll("_", " ");
+    const status = normalizeStatus(ad);
+    const isDraft = status === "draft" && ad?.is_incomplete_draft;
+    const manageHref = isDraft ? "/post-ad" : `/my-ads/${id}`;
+    const viewHref = isDraft ? "/post-ad" : `/ads/${id}`;
+    const statusLabel = statusTabs.find((tab) => tab.value === status)?.label || status.replaceAll("_", " ");
 
     return (
         <article className="overflow-hidden rounded-[26px] bg-white shadow-sm ring-1 ring-black/5">
-            <a href={`/my-ads/${ad.id}`} className="block">
+            <Link href={manageHref} className="block">
                 <div className="relative aspect-[4/3] overflow-hidden bg-slate-100">
                     <ListingCardImage
                         listing={ad}
                         title={title}
-                        href={`/my-ads/${id}`}
+                        href={manageHref}
                     />
+                    <span className={`absolute left-2.5 top-2.5 rounded-full px-2.5 py-1 text-[9px] font-black uppercase tracking-wide ring-1 ${statusTone[status] || statusTone.unavailable}`}>
+                        {statusLabel}
+                    </span>
                 </div>
 
                 <div className="p-4">
@@ -98,22 +181,22 @@ function SellerAdCard({ ad }: { ad: any }) {
                         {getLocation(ad)}
                     </p>
                 </div>
-            </a>
+            </Link>
 
             <div className="grid grid-cols-2 gap-2 border-t border-slate-100 p-3">
-                <a
-                    href={`/ads/${id}`}
+                <Link
+                    href={viewHref}
                     className="rounded-2xl bg-slate-50 px-3 py-2 text-center text-xs font-black text-slate-700 hover:bg-orange-50 hover:text-orange-600"
                 >
-                    View
-                </a>
+                    {isDraft ? "Continue" : "View"}
+                </Link>
 
-                <a
-                    href={`/my-ads/${id}`}
+                <Link
+                    href={manageHref}
                     className="rounded-2xl bg-orange-50 px-3 py-2 text-center text-xs font-black text-orange-600 hover:bg-orange-100"
                 >
-                    Manage
-                </a>
+                    {isDraft ? "Edit draft" : "Manage"}
+                </Link>
             </div>
         </article>
     );
@@ -124,6 +207,7 @@ function MyListingsContent() {
     const [loading, setLoading] = useState(true);
 
     const [ads, setAds] = useState<any[]>([]);
+    const [selectedStatus, setSelectedStatus] = useState("all");
     const [error, setError] = useState("");
 
     async function checkSession() {
@@ -140,24 +224,39 @@ function MyListingsContent() {
         setError("");
 
         try {
-            const response = await fetch("/api/proxy/seller/listings/?page_size=1000", {
-                credentials: "include",
-                cache: "no-store",
-            });
+            const [loadedAds, draftResponse] = await Promise.all([
+                fetchAllMyAds(),
+                fetch("/api/proxy/listings/draft/", {
+                    credentials: "include",
+                    cache: "no-store",
+                }),
+            ]);
 
-            if (response.status === 401) {
+            const draftPayload = draftResponse.ok
+                ? await draftResponse.json().catch(() => ({}))
+                : {};
+            const incompleteDraft = draftPayload?.draft;
+            const draftData = incompleteDraft?.data || {};
+            const draftImage = getArray(incompleteDraft?.staged_images)[0];
+            const draftAd = incompleteDraft
+                ? {
+                    id: "incomplete-draft",
+                    title: draftData.title || "Unfinished ad",
+                    price: draftData.price || "",
+                    city_name: "Continue where you stopped",
+                    status: "draft",
+                    is_incomplete_draft: true,
+                    primary_image: draftImage?.card_image_url || draftImage?.image_url || null,
+                    updated_at: incompleteDraft.updated_at,
+                }
+                : null;
+            setAds(draftAd ? [draftAd, ...loadedAds] : loadedAds);
+        } catch (err: any) {
+            if (err?.message === "__AUTH__") {
                 window.location.href = "/login?next=/my-ads";
                 return;
             }
 
-            const data = await response.json().catch(() => ({}));
-
-            if (!response.ok) {
-                throw new Error(data?.detail || data?.message || "Failed to load your ads.");
-            }
-
-            setAds(getArray(data));
-        } catch (err: any) {
             setError(err.message || "Failed to load your ads.");
             setAds([]);
         } finally {
@@ -179,6 +278,22 @@ function MyListingsContent() {
         return <QotLoader />;
     }
 
+    const statusCounts = Object.fromEntries(
+        statusTabs.map((tab) => [
+            tab.value,
+            tab.value === "all"
+                ? ads.length
+                : ads.filter((ad) => normalizeStatus(ad) === tab.value).length,
+        ])
+    );
+    const sortedAds = [...ads].sort((firstAd, secondAd) => (
+        (statusPriority[normalizeStatus(firstAd)] ?? 99) -
+        (statusPriority[normalizeStatus(secondAd)] ?? 99)
+    ));
+    const filteredAds = selectedStatus === "all"
+        ? sortedAds
+        : sortedAds.filter((ad) => normalizeStatus(ad) === selectedStatus);
+
     return (
         <section className="py-6 text-slate-950">
             <div className="rounded-[34px] bg-white p-5 shadow-[0_18px_60px_rgba(15,23,42,0.10)] ring-1 ring-black/5 sm:p-7">
@@ -197,14 +312,46 @@ function MyListingsContent() {
                         </p>
                     </div>
 
-                    <a
+                    <Link
                         href="/post-ad"
                         className="inline-flex items-center justify-center gap-2 rounded-2xl bg-orange-500 px-5 py-3 text-sm font-black text-white hover:bg-orange-600"
                     >
                         <FontAwesomeIcon icon={faPlus} className="h-4 w-4" />
                         Post New Ad
-                    </a>
+                    </Link>
                 </div>
+
+                {!loading && ads.length > 0 && (
+                    <div className="-mx-5 mt-7 overflow-x-auto px-5 pb-2 [scrollbar-width:none] sm:-mx-7 sm:px-7 [&::-webkit-scrollbar]:hidden">
+                        <div className="flex min-w-max gap-2">
+                            {statusTabs.map((tab) => {
+                                const isSelected = selectedStatus === tab.value;
+                                const count = statusCounts[tab.value] || 0;
+
+                                return (
+                                    <button
+                                        key={tab.value}
+                                        type="button"
+                                        onClick={() => setSelectedStatus(tab.value)}
+                                        aria-pressed={isSelected}
+                                        className={`inline-flex h-11 items-center gap-2 rounded-full px-4 text-xs font-black transition ${isSelected
+                                            ? "bg-orange-500 text-white shadow-lg shadow-orange-100"
+                                            : "bg-slate-50 text-slate-600 ring-1 ring-slate-200 hover:bg-orange-50 hover:text-orange-600 hover:ring-orange-100"
+                                        }`}
+                                    >
+                                        {tab.label}
+                                        <span className={`rounded-full px-2 py-0.5 text-[10px] ${isSelected
+                                            ? "bg-white/20 text-white"
+                                            : "bg-white text-slate-500 ring-1 ring-slate-200"
+                                        }`}>
+                                            {count}
+                                        </span>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+                )}
 
                 {error && (
                     <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
@@ -216,9 +363,9 @@ function MyListingsContent() {
                     <div className="py-16">
                         <QotLoader />
                     </div>
-                ) : ads.length > 0 ? (
+                ) : filteredAds.length > 0 ? (
                     <div className="mt-7 grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-                        {ads.map((ad) => (
+                        {filteredAds.map((ad) => (
                             <SellerAdCard key={String(getAdId(ad))} ad={ad} />
                         ))}
                     </div>
@@ -229,20 +376,23 @@ function MyListingsContent() {
                         </div>
 
                         <h2 className="mt-5 text-xl font-black text-slate-950">
-                            No ads posted yet
+                            {ads.length > 0 ? `No ${statusTabs.find((tab) => tab.value === selectedStatus)?.label.toLowerCase() || "ads"}` : "No ads posted yet"}
                         </h2>
 
                         <p className="mx-auto mt-2 max-w-md text-sm font-semibold leading-6 text-slate-500">
-                            Start selling by posting your first ad on QOT.
+                            {ads.length > 0
+                                ? "Choose another status above to see the rest of your ads."
+                                : "Start selling by posting your first ad on QOT."
+                            }
                         </p>
 
-                        <a
+                        <Link
                             href="/post-ad"
                             className="mt-6 inline-flex items-center gap-2 rounded-2xl bg-orange-500 px-5 py-3 text-sm font-black text-white hover:bg-orange-600"
                         >
                             <FontAwesomeIcon icon={faPlus} className="h-4 w-4" />
                             Post Your First Ad
-                        </a>
+                        </Link>
                     </div>
                 )}
             </div>

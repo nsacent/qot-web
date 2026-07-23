@@ -10,7 +10,7 @@ import BuyerSafetyCard from "@/components/listings/BuyerSafetyCard";
 import AdSellerCard from "@/components/sellers/AdSellerCard";
 import { formatDateTime, formatRelativeTime } from "@/lib/dateTime";
 import { backendJson, getAccessToken } from "@/lib/authCookies";
-import { getPrimaryListingImage } from "@/lib/listingImages";
+import { getPrimaryListingSocialImage } from "@/lib/listingImages";
 
 export const dynamic = "force-dynamic";
 
@@ -181,7 +181,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     const price = formatPrice(listing?.price, listing?.currency || "UGX");
     const shareTitle = `${adName} - ${price}`;
     const shareDescription = getShareDescription(listing);
-    const coverImage = getPrimaryListingImage(listing);
+    const coverImage = getPrimaryListingSocialImage(listing);
     const images = coverImage
         ? [{ url: coverImage, alt: adName }]
         : undefined;

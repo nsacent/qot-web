@@ -4,7 +4,7 @@ const API_BASE_URL =
 const API_ORIGIN = API_BASE_URL.replace(/\/api\/v1\/?$/, "");
 
 export function getImageUrl(value: any) {
-    const image = value?.image || value?.url || value;
+    const image = value?.image_url || value?.image || value?.url || value;
 
     if (!image) return "";
 
@@ -68,6 +68,14 @@ export function getOrderedListingImages(ad: any) {
                 return {
                     id,
                     url,
+                    sourceUrl: getImageUrl(item?.source_image_url || item?.source_image),
+                    cardUrl: getImageUrl(item?.card_image_url || item?.card_image || url),
+                    socialUrl: getImageUrl(
+                        item?.social_image_url || item?.social_image || item?.card_image_url || url
+                    ),
+                    cropX: Number(item?.crop_x ?? 0.5),
+                    cropY: Number(item?.crop_y ?? 0.5),
+                    cropZoom: Number(item?.crop_zoom ?? 1),
                     index,
                     backendSaysPrimary: getImageIsPrimary(item),
                     matchesPrimaryId: Boolean(primaryId && id && String(primaryId) === id),
@@ -81,6 +89,12 @@ export function getOrderedListingImages(ad: any) {
         images.unshift({
             id: String(primaryId || ""),
             url: primaryUrl,
+            sourceUrl: "",
+            cardUrl: primaryUrl,
+            socialUrl: primaryUrl,
+            cropX: 0.5,
+            cropY: 0.5,
+            cropZoom: 1,
             index: -1,
             backendSaysPrimary: false,
             matchesPrimaryId: true,
@@ -121,6 +135,11 @@ export function getOrderedListingImages(ad: any) {
 
 export function getPrimaryListingImage(ad: any) {
     return getOrderedListingImages(ad)[0]?.url || "";
+}
+
+export function getPrimaryListingSocialImage(ad: any) {
+    const primaryImage = getOrderedListingImages(ad)[0];
+    return primaryImage?.socialUrl || primaryImage?.cardUrl || primaryImage?.url || "";
 }
 
 export function getListingImageCount(ad: any) {
