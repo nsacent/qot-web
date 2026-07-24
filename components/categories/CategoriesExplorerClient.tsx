@@ -233,10 +233,6 @@ export default function CategoriesExplorerClient({
             return matches;
         }, []);
     }, [categories, query]);
-    const activeCategory = visibleCategories.find(
-        (category) => getCategorySlug(category) === activeSlug
-    );
-
     return (
         <div className="pb-8 pt-1 sm:pt-4">
             <section className="relative overflow-hidden rounded-[24px] bg-slate-950 px-4 py-3 text-white shadow-[0_18px_48px_rgba(15,23,42,0.18)] sm:rounded-[30px] sm:px-8 sm:py-8 lg:px-10 lg:py-9">
@@ -401,21 +397,13 @@ export default function CategoriesExplorerClient({
                                             <SubcategoryPanel
                                                 category={category}
                                                 slug={slug}
-                                                className="col-span-full lg:hidden"
+                                                className="col-span-full"
                                             />
                                         )}
                                     </Fragment>
                                 );
                             })}
                         </div>
-
-                        {activeCategory && (activeCategory.children || []).length > 0 && (
-                            <SubcategoryPanel
-                                category={activeCategory}
-                                slug={activeSlug}
-                                className="mt-3 hidden lg:block"
-                            />
-                        )}
                     </div>
                 ) : categories.length > 0 ? (
                     <div className="rounded-[30px] bg-white px-6 py-14 text-center shadow-[0_16px_45px_rgba(15,23,42,0.08)] ring-1 ring-black/5">
