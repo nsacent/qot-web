@@ -12,6 +12,7 @@ import {
     faStore,
     faTag,
     faTrash,
+    faTriangleExclamation,
 } from "@fortawesome/free-solid-svg-icons";
 import QotLoader from "@/components/common/QotLoader";
 import { getCurrentUser } from "@/lib/sessionClient";
@@ -366,6 +367,14 @@ function MyAdViewContent({ id }: { id: string }) {
     const updatedValue = ad?.updated_at || ad?.modified_at || ad?.created_at;
     const viewCount = ad?.views_count ?? ad?.view_count ?? ad?.views ?? 0;
     const savedCount = ad?.favorites_count ?? ad?.favourites_count ?? ad?.saved_count ?? 0;
+    const isRejected = ["rejected", "declined"].includes(status);
+    const rejectionReason = String(
+        ad?.rejection_reason ||
+        ad?.moderation_reason ||
+        ad?.review_note ||
+        ad?.admin_note ||
+        ""
+    ).trim();
 
     return (
         <section className="pb-10 pt-5 text-slate-950">
@@ -428,6 +437,39 @@ function MyAdViewContent({ id }: { id: string }) {
                         </div>
                     </div>
                 </div>
+
+                {isRejected && (
+                    <div className="border-t border-red-100 bg-red-50 px-5 py-5 sm:px-7">
+                        <div className="flex items-start gap-3">
+                            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-red-100 text-red-600">
+                                <FontAwesomeIcon icon={faTriangleExclamation} className="h-5 w-5" />
+                            </span>
+                            <div className="min-w-0 flex-1">
+                                <p className="text-[10px] font-black uppercase tracking-[0.14em] text-red-500">
+                                    Why your ad was rejected
+                                </p>
+                                <p className="mt-1 whitespace-pre-wrap text-sm font-bold leading-6 text-red-900">
+                                    {rejectionReason || "A specific moderation reason was not included. Review QOT posting rules or contact support before resubmitting this ad."}
+                                </p>
+                                <div className="mt-3 flex flex-wrap gap-2">
+                                    <a
+                                        href={`/my-ads/${id}/edit`}
+                                        className="inline-flex items-center gap-2 rounded-xl bg-red-600 px-4 py-2.5 text-xs font-black text-white transition hover:bg-red-700"
+                                    >
+                                        <FontAwesomeIcon icon={faPenToSquare} className="h-3.5 w-3.5" />
+                                        Edit and resubmit
+                                    </a>
+                                    <a
+                                        href="mailto:info@qot.ug"
+                                        className="inline-flex items-center rounded-xl bg-white px-4 py-2.5 text-xs font-black text-red-700 ring-1 ring-red-200 transition hover:bg-red-100"
+                                    >
+                                        Contact QOT support
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 <div className="grid divide-y divide-slate-100 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
                     <div className="flex items-center gap-3 px-5 py-4 sm:px-6">
@@ -519,7 +561,11 @@ function MyAdViewContent({ id }: { id: string }) {
                                 <FontAwesomeIcon icon={faClock} className="h-4 w-4" />
                             </div>
                         </div>
-                        <p className="mt-3 text-sm font-semibold leading-6 text-slate-500">{statusInfo.description}</p>
+                        <p className="mt-3 text-sm font-semibold leading-6 text-slate-500">
+                            {isRejected && rejectionReason
+                                ? rejectionReason
+                                : statusInfo.description}
+                        </p>
 
                         <div className="mt-5 grid gap-2">
                             <a href={`/my-ads/${id}/edit`} className="inline-flex h-12 items-center justify-center gap-2 rounded-[16px] bg-orange-500 px-5 text-sm font-black text-white hover:bg-orange-600">

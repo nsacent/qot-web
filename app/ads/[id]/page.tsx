@@ -269,7 +269,16 @@ export default async function ListingDetailsPage({ params }: PageProps) {
     const postedValue =
         listing?.created_at || listing?.published_at || listing?.date_posted
     const postedDate = formatRelativeTime(postedValue);
-    const isPublicListing = String(listing?.status || "").toLowerCase() === "active";
+    const listingStatus = String(listing?.status || "").toLowerCase();
+    const isPublicListing = listingStatus === "active";
+    const isRejected = ["rejected", "declined"].includes(listingStatus);
+    const rejectionReason = String(
+        listing?.rejection_reason ||
+        listing?.moderation_reason ||
+        listing?.review_note ||
+        listing?.admin_note ||
+        ""
+    ).trim();
 
     return (
         <main className="min-h-screen bg-[#fff7f2] text-slate-950 antialiased">
@@ -287,21 +296,53 @@ export default async function ListingDetailsPage({ params }: PageProps) {
                     </Link>
 
                     {!isPublicListing && (
-                        <div className="mt-4 flex flex-col gap-3 rounded-[22px] border border-amber-200 bg-amber-50 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+                        <div className={`mt-4 flex flex-col gap-3 rounded-[22px] border px-5 py-4 sm:flex-row sm:items-center sm:justify-between ${
+                            isRejected
+                                ? "border-red-200 bg-red-50"
+                                : "border-amber-200 bg-amber-50"
+                        }`}>
                             <div>
-                                <p className="text-sm font-black text-amber-900">
+                                <p className={`text-sm font-black ${isRejected ? "text-red-900" : "text-amber-900"}`}>
                                     This ad is {statusLabel.toLowerCase()}
                                 </p>
-                                <p className="mt-1 text-xs font-semibold leading-5 text-amber-700">
+                                <p className={`mt-1 text-xs font-semibold leading-5 ${isRejected ? "text-red-700" : "text-amber-700"}`}>
                                     Only you and QOT administrators can view this page until the ad is approved.
                                 </p>
                             </div>
                             <Link
                                 href={`/my-ads/${id}`}
-                                className="inline-flex h-10 shrink-0 items-center justify-center rounded-[14px] bg-white px-4 text-xs font-black text-amber-800 ring-1 ring-amber-200 hover:bg-amber-100"
+                                className={`inline-flex h-10 shrink-0 items-center justify-center rounded-[14px] bg-white px-4 text-xs font-black ring-1 ${
+                                    isRejected
+                                        ? "text-red-800 ring-red-200 hover:bg-red-100"
+                                        : "text-amber-800 ring-amber-200 hover:bg-amber-100"
+                                }`}
                             >
                                 Manage Ad
                             </Link>
+                        </div>
+                    )}
+
+                    {isRejected && (
+                        <div className="mt-4 rounded-[24px] border border-red-200 bg-white p-5 shadow-[0_12px_30px_rgba(127,29,29,0.08)] sm:p-6">
+                            <div className="flex items-start gap-3">
+                                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-red-100 text-lg font-black text-red-600">
+                                    !
+                                </span>
+                                <div className="min-w-0 flex-1">
+                                    <p className="text-[10px] font-black uppercase tracking-[0.14em] text-red-500">
+                                        Why your ad was rejected
+                                    </p>
+                                    <p className="mt-2 whitespace-pre-wrap text-sm font-bold leading-6 text-red-900">
+                                        {rejectionReason || "A specific moderation reason was not included. Review QOT posting rules or contact support before resubmitting this ad."}
+                                    </p>
+                                    <Link
+                                        href={`/my-ads/${id}/edit`}
+                                        className="mt-4 inline-flex rounded-xl bg-red-600 px-4 py-2.5 text-xs font-black text-white transition hover:bg-red-700"
+                                    >
+                                        Edit and resubmit
+                                    </Link>
+                                </div>
+                            </div>
                         </div>
                     )}
 
