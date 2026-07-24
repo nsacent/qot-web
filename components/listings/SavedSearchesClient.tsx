@@ -1,6 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+    faArrowRight,
+    faBookmark,
+    faCalendarDays,
+    faMagnifyingGlass,
+    faTrash,
+} from "@fortawesome/free-solid-svg-icons";
+import QotLoader from "@/components/common/QotLoader";
 
 function getArray(data: any): any[] {
     if (Array.isArray(data)) return data;
@@ -64,6 +73,8 @@ export default function SavedSearchesClient() {
     const [items, setItems] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
+    const [confirmClearOpen, setConfirmClearOpen] = useState(false);
+    const [clearing, setClearing] = useState(false);
 
     async function loadItems() {
         setLoading(true);
@@ -98,6 +109,8 @@ export default function SavedSearchesClient() {
     }, []);
 
     async function removeItem(id: number | string) {
+        setError("");
+
         const response = await fetch(`/api/proxy/searches/saved/${id}/`, {
             method: "DELETE",
             credentials: "include",
@@ -113,9 +126,9 @@ export default function SavedSearchesClient() {
     }
 
     async function clearAll() {
-        if (!window.confirm("Clear all saved searches?")) return;
-
+        setClearing(true);
         setError("");
+
         const results = await Promise.allSettled(
             items.map((item) =>
                 fetch(`/api/proxy/searches/saved/${item.id}/`, {
@@ -128,6 +141,9 @@ export default function SavedSearchesClient() {
             (result) => result.status === "rejected" || !result.value.ok
         );
 
+        setClearing(false);
+        setConfirmClearOpen(false);
+
         if (failed) {
             setError("Some saved searches could not be removed. Please try again.");
             await loadItems();
@@ -138,60 +154,173 @@ export default function SavedSearchesClient() {
     }
 
     return (
-        <section className="mx-auto max-w-6xl px-6 py-10">
-            <div className="mb-8 flex flex-col justify-between gap-4 md:flex-row md:items-end">
-                <div>
-                    <p className="text-sm font-semibold uppercase tracking-wide text-orange-600">Saved Searches</p>
-                    <h1 className="mt-2 text-3xl font-bold text-slate-900">Your Saved Search Filters</h1>
-                    <p className="mt-2 text-slate-600">Quickly reopen adverts you frequently search for.</p>
+        <section className="py-4 text-slate-950 sm:py-6">
+            <div className="rounded-[30px] bg-white p-5 shadow-[0_18px_60px_rgba(15,23,42,0.09)] ring-1 ring-black/5 sm:p-7">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+                    <div>
+                        <span className="flex h-14 w-14 items-center justify-center rounded-[19px] bg-orange-50 text-orange-600 ring-1 ring-orange-100">
+                            <FontAwesomeIcon icon={faBookmark} className="h-5 w-5" />
+                        </span>
+                        <h2 className="mt-5 text-2xl font-black tracking-tight text-slate-950 sm:text-3xl">
+                            Saved Searches
+                        </h2>
+                        <p className="mt-2 max-w-xl text-sm font-semibold leading-6 text-slate-500">
+                            Reopen your favourite searches without selecting every filter again.
+                        </p>
+                    </div>
+
+                    <div className="flex flex-col gap-2 sm:flex-row">
+                        {items.length > 0 && (
+                            <button
+                                type="button"
+                                onClick={() => setConfirmClearOpen(true)}
+                                className="inline-flex h-11 items-center justify-center gap-2 rounded-[15px] bg-red-50 px-4 text-xs font-black text-red-700 ring-1 ring-red-100 transition hover:bg-red-100"
+                            >
+                                <FontAwesomeIcon icon={faTrash} className="h-3.5 w-3.5" />
+                                Clear all
+                            </button>
+                        )}
+                        <a
+                            href="/ads"
+                            className="inline-flex h-11 items-center justify-center gap-2 rounded-[15px] bg-slate-950 px-4 text-xs font-black text-white transition hover:bg-orange-500"
+                        >
+                            <FontAwesomeIcon icon={faMagnifyingGlass} className="h-3.5 w-3.5" />
+                            Find ads
+                        </a>
+                    </div>
                 </div>
 
-                {items.length > 0 && (
-                    <button type="button" onClick={clearAll} className="rounded-xl border border-red-200 bg-red-50 px-5 py-3 font-semibold text-red-700 hover:bg-red-100">
-                        Clear All
-                    </button>
+                {error && (
+                    <div role="alert" className="mt-6 rounded-2xl bg-red-50 p-4 text-sm font-bold text-red-700 ring-1 ring-red-100">
+                        {error}
+                    </div>
+                )}
+
+                {loading ? (
+                    <div className="py-16">
+                        <QotLoader />
+                    </div>
+                ) : items.length === 0 ? (
+                    <div className="mt-7 rounded-[26px] bg-slate-50 px-5 py-12 text-center ring-1 ring-slate-100 sm:px-8">
+                        <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-[22px] bg-white text-orange-500 shadow-sm ring-1 ring-slate-100">
+                            <FontAwesomeIcon icon={faBookmark} className="h-6 w-6" />
+                        </span>
+                        <h3 className="mt-5 text-xl font-black text-slate-950">
+                            No saved searches yet
+                        </h3>
+                        <p className="mx-auto mt-2 max-w-md text-sm font-semibold leading-6 text-slate-500">
+                            Apply filters while browsing ads, then tap “Save search” to keep them here.
+                        </p>
+                        <a
+                            href="/ads"
+                            className="mt-6 inline-flex h-11 items-center justify-center gap-2 rounded-[15px] bg-orange-500 px-5 text-sm font-black text-white shadow-[0_10px_24px_rgba(249,115,22,0.22)] hover:bg-orange-600"
+                        >
+                            Browse ads
+                            <FontAwesomeIcon icon={faArrowRight} className="h-3.5 w-3.5" />
+                        </a>
+                    </div>
+                ) : (
+                    <div className="mt-7 grid gap-3 sm:gap-4">
+                        {items.map((item) => {
+                            const params = getSearchParams(item);
+                            const savedDate = formatDate(item.created_at);
+
+                            return (
+                                <article
+                                    key={item.id}
+                                    className="overflow-hidden rounded-[24px] bg-slate-50 p-4 ring-1 ring-slate-100 transition hover:ring-orange-200 sm:p-5"
+                                >
+                                    <div className="flex items-start gap-3">
+                                        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[15px] bg-white text-orange-500 shadow-sm ring-1 ring-slate-100">
+                                            <FontAwesomeIcon icon={faMagnifyingGlass} className="h-4 w-4" />
+                                        </span>
+
+                                        <div className="min-w-0 flex-1">
+                                            <h3 className="truncate text-base font-black text-slate-950 sm:text-lg">
+                                                {item.name || "Saved search"}
+                                            </h3>
+                                            {savedDate && (
+                                                <p className="mt-1 flex items-center gap-1.5 text-[11px] font-bold text-slate-400">
+                                                    <FontAwesomeIcon icon={faCalendarDays} className="h-3 w-3" />
+                                                    Saved {savedDate}
+                                                </p>
+                                            )}
+                                        </div>
+
+                                        <button
+                                            type="button"
+                                            onClick={() => removeItem(item.id)}
+                                            aria-label={`Remove ${item.name || "saved search"}`}
+                                            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-slate-400 transition hover:bg-red-50 hover:text-red-600"
+                                        >
+                                            <FontAwesomeIcon icon={faTrash} className="h-3.5 w-3.5" />
+                                        </button>
+                                    </div>
+
+                                    {Object.keys(params).length > 0 && (
+                                        <div className="mt-4 flex flex-wrap gap-2">
+                                            {Object.entries(params).map(([key, value]) => (
+                                                <span
+                                                    key={key}
+                                                    className="max-w-full truncate rounded-full bg-white px-3 py-1.5 text-[10px] font-black text-slate-600 ring-1 ring-slate-200"
+                                                >
+                                                    <span className="text-slate-400">{getParamLabel(key)}:</span>{" "}
+                                                    {String(value)}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    <a
+                                        href={getSearchUrl(item)}
+                                        className="mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-[15px] bg-white text-xs font-black text-orange-600 shadow-sm ring-1 ring-orange-100 transition hover:bg-orange-500 hover:text-white"
+                                    >
+                                        Open this search
+                                        <FontAwesomeIcon icon={faArrowRight} className="h-3.5 w-3.5" />
+                                    </a>
+                                </article>
+                            );
+                        })}
+                    </div>
                 )}
             </div>
 
-            {error && <div className="mb-5 rounded-2xl bg-red-50 p-4 text-sm font-bold text-red-700 ring-1 ring-red-100">{error}</div>}
-
-            {loading ? (
-                <div className="rounded-2xl bg-white p-8 text-slate-600 ring-1 ring-black/5">Loading saved searches...</div>
-            ) : items.length === 0 ? (
-                <div className="rounded-2xl border bg-white p-8 text-slate-600">
-                    You have not saved any searches yet. Go to ads, apply filters, then click “Save search”.
-                </div>
-            ) : (
-                <div className="grid gap-5">
-                    {items.map((item) => {
-                        const params = getSearchParams(item);
-
-                        return (
-                            <article key={item.id} className="rounded-2xl border bg-white p-6 shadow-sm">
-                                <div className="flex flex-col justify-between gap-4 md:flex-row md:items-start">
-                                    <div>
-                                        <h2 className="text-xl font-bold text-slate-900">{item.name || "Saved search"}</h2>
-                                        {item.created_at && <p className="mt-1 text-sm text-slate-500">Saved on {formatDate(item.created_at)}</p>}
-
-                                        {Object.keys(params).length > 0 && (
-                                            <div className="mt-4 flex flex-wrap gap-2">
-                                                {Object.entries(params).map(([key, value]) => (
-                                                    <span key={key} className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
-                                                        {getParamLabel(key)}: {String(value)}
-                                                    </span>
-                                                ))}
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    <div className="grid gap-2 sm:min-w-40">
-                                        <a href={getSearchUrl(item)} className="rounded-xl bg-orange-500 px-5 py-3 text-center text-sm font-semibold text-white hover:bg-orange-600">Open Search</a>
-                                        <button type="button" onClick={() => removeItem(item.id)} className="rounded-xl border border-red-200 bg-red-50 px-5 py-3 text-sm font-semibold text-red-700 hover:bg-red-100">Remove</button>
-                                    </div>
-                                </div>
-                            </article>
-                        );
-                    })}
+            {confirmClearOpen && (
+                <div className="fixed inset-0 z-[90] flex items-end justify-center bg-slate-950/55 p-3 backdrop-blur-sm sm:items-center sm:p-5">
+                    <div
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="clear-saved-searches-title"
+                        className="w-full max-w-md rounded-[28px] bg-white p-5 shadow-[0_28px_80px_rgba(15,23,42,0.28)] sm:p-6"
+                    >
+                        <span className="flex h-12 w-12 items-center justify-center rounded-[17px] bg-red-50 text-red-600">
+                            <FontAwesomeIcon icon={faTrash} className="h-4 w-4" />
+                        </span>
+                        <h2 id="clear-saved-searches-title" className="mt-5 text-xl font-black text-slate-950">
+                            Clear all saved searches?
+                        </h2>
+                        <p className="mt-2 text-sm font-semibold leading-6 text-slate-500">
+                            This removes every saved filter. You cannot undo this action.
+                        </p>
+                        <div className="mt-6 grid grid-cols-2 gap-3">
+                            <button
+                                type="button"
+                                onClick={() => setConfirmClearOpen(false)}
+                                disabled={clearing}
+                                className="h-12 rounded-[16px] bg-slate-100 text-sm font-black text-slate-700 disabled:opacity-60"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                onClick={clearAll}
+                                disabled={clearing}
+                                className="h-12 rounded-[16px] bg-red-600 text-sm font-black text-white disabled:opacity-60"
+                            >
+                                {clearing ? "Clearing…" : "Clear all"}
+                            </button>
+                        </div>
+                    </div>
                 </div>
             )}
         </section>

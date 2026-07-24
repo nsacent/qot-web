@@ -1,5 +1,6 @@
 import {
     faBell,
+    faBookmark,
     faChartLine,
     faClock,
     faClockRotateLeft,
@@ -45,6 +46,12 @@ export const accountQuickActions: AccountNavigationItem[] = [
         label: "Saved",
         description: "Ads you saved",
         icon: faHeart,
+    },
+    {
+        href: "/account/saved?tab=searches",
+        label: "Saved Searches",
+        description: "Filters you saved",
+        icon: faBookmark,
     },
     {
         href: "/account/dashboard",
