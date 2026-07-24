@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useDeferredValue, useEffect, useRef, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
     faBoxArchive,
@@ -13,6 +13,7 @@ import {
     faRotateLeft,
     faShieldHalved,
     faStar,
+    faXmark,
 } from "@fortawesome/free-solid-svg-icons";
 import { formatDateTime, formatRelativeTime } from "@/lib/dateTime";
 import InlineError from "@/components/forms/InlineError";
@@ -88,6 +89,8 @@ export default function MessagesClient() {
     const [tabCounts, setTabCounts] = useState<TabCounts>(EMPTY_COUNTS);
     const [activeFolder, setActiveFolder] = useState<ChatFolder>("all");
     const [search, setSearch] = useState("");
+    const deferredSearch = useDeferredValue(search.trim());
+    const [searchLoading, setSearchLoading] = useState(false);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [actionError, setActionError] = useState<{ threadId: string; message: string } | null>(null);
@@ -96,14 +99,20 @@ export default function MessagesClient() {
     const [spamTarget, setSpamTarget] = useState<any>(null);
     const [liveConnected, setLiveConnected] = useState(false);
     const menuAreaRef = useRef<HTMLDivElement | null>(null);
+    const loadRequestRef = useRef(0);
 
     const loadThreads = useCallback(async (showLoader = false) => {
+        const requestId = ++loadRequestRef.current;
         if (showLoader) setLoading(true);
+        if (deferredSearch) setSearchLoading(true);
         setError("");
 
         try {
+            const query = new URLSearchParams({ filter: activeFolder });
+            if (deferredSearch) query.set("search", deferredSearch);
+
             const response = await fetch(
-                `/api/proxy/chats/threads/?filter=${encodeURIComponent(activeFolder)}`,
+                `/api/proxy/chats/threads/?${query.toString()}`,
                 {
                     credentials: "include",
                     cache: "no-store",
@@ -121,14 +130,21 @@ export default function MessagesClient() {
                 throw new Error(data?.detail || data?.message || "Failed to load messages.");
             }
 
-            setThreads(getArray(data));
-            setTabCounts({ ...EMPTY_COUNTS, ...(data?.tabs || {}) });
+            if (requestId === loadRequestRef.current) {
+                setThreads(getArray(data));
+                setTabCounts({ ...EMPTY_COUNTS, ...(data?.tabs || {}) });
+            }
         } catch (requestError: any) {
-            setError(requestError?.message || "Something went wrong.");
+            if (requestId === loadRequestRef.current) {
+                setError(requestError?.message || "Something went wrong.");
+            }
         } finally {
-            setLoading(false);
+            if (requestId === loadRequestRef.current) {
+                setLoading(false);
+                setSearchLoading(false);
+            }
         }
-    }, [activeFolder]);
+    }, [activeFolder, deferredSearch]);
 
     useEffect(() => {
         void loadThreads(true);
@@ -187,17 +203,8 @@ export default function MessagesClient() {
         return () => document.removeEventListener("pointerdown", closeOutside);
     }, [menuThreadId]);
 
-    const visibleThreads = useMemo(() => {
-        const term = search.trim().toLowerCase();
-        if (!term) return threads;
-
-        return threads.filter((thread) => [
-            getParticipantName(thread),
-            getListingTitle(thread),
-            getLastMessage(thread),
-            thread?.other_user_phone,
-        ].some((value) => String(value || "").toLowerCase().includes(term)));
-    }, [search, threads]);
+    const visibleThreads = threads;
+    const searchPending = search.trim() !== deferredSearch || searchLoading;
 
     async function updateThreadState(thread: any, payload: Record<string, boolean>) {
         const threadId = String(thread.id);
@@ -301,7 +308,12 @@ export default function MessagesClient() {
                 <label className="relative min-w-0 flex-1">
                     <span className="sr-only">Search conversations</span>
                     <FontAwesomeIcon icon={faMagnifyingGlass} className="pointer-events-none absolute left-4 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
-                    <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search chats, ads or phone numbers" className="h-11 w-full rounded-[16px] border-0 bg-slate-50 pl-11 pr-4 text-sm font-bold text-slate-800 outline-none ring-1 ring-slate-200 focus:bg-white focus:ring-2 focus:ring-orange-200" />
+                    <input type="search" value={search} onChange={(event) => setSearch(event.target.value)} onKeyDown={(event) => { if (event.key === "Escape") setSearch(""); }} placeholder="Search names, ads, phones or messages" className="h-11 w-full rounded-[16px] border-0 bg-slate-50 pl-11 pr-11 text-sm font-bold text-slate-800 outline-none ring-1 ring-slate-200 focus:bg-white focus:ring-2 focus:ring-orange-200 [&::-webkit-search-cancel-button]:hidden" />
+                    {search && (
+                        <button type="button" onClick={() => setSearch("")} aria-label="Clear message search" className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-[10px] text-slate-400 transition hover:bg-slate-100 hover:text-slate-700">
+                            <FontAwesomeIcon icon={faXmark} className="h-3.5 w-3.5" />
+                        </button>
+                    )}
                 </label>
                 <span className={`hidden shrink-0 items-center gap-1.5 rounded-full px-3 py-2 text-[9px] font-black uppercase tracking-wider sm:flex ${liveConnected ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>
                     <span className={`h-2 w-2 rounded-full ${liveConnected ? "bg-emerald-500" : "bg-slate-400"}`} />
@@ -329,7 +341,7 @@ export default function MessagesClient() {
             </div>
 
             <p className="mb-3 mt-1 text-xs font-bold text-slate-500">
-                {visibleThreads.length} {visibleThreads.length === 1 ? "conversation" : "conversations"}
+                {searchPending ? "Searching conversations…" : <>{visibleThreads.length} {visibleThreads.length === 1 ? "conversation" : "conversations"}{deferredSearch ? ` found for “${deferredSearch}”` : ""}</>}
             </p>
 
             {visibleThreads.length > 0 ? (
@@ -426,10 +438,15 @@ export default function MessagesClient() {
                     <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-[22px] bg-orange-50 text-orange-600">
                         <FontAwesomeIcon icon={activeFolder === "spam" ? faShieldHalved : faEnvelope} className="h-6 w-6" />
                     </span>
-                    <h2 className="mt-5 text-xl font-black text-slate-950">Nothing here yet</h2>
+                    <h2 className="mt-5 text-xl font-black text-slate-950">{search ? "No matching conversations" : "Nothing here yet"}</h2>
                     <p className="mx-auto mt-2 max-w-md text-sm font-semibold leading-6 text-slate-500">
-                        {search ? "No conversations match your search." : folderEmptyMessage(activeFolder)}
+                        {search ? "Try a seller name, phone number, ad title, attachment name, or words from any message." : folderEmptyMessage(activeFolder)}
                     </p>
+                    {search && (
+                        <button type="button" onClick={() => setSearch("")} className="mt-5 rounded-[14px] bg-slate-950 px-5 py-3 text-sm font-black text-white">
+                            Clear search
+                        </button>
+                    )}
                     {activeFolder === "all" && !search && (
                         <Link href="/ads" className="mt-5 inline-flex items-center gap-2 rounded-[14px] bg-orange-500 px-5 py-3 text-sm font-black text-white">
                             <FontAwesomeIcon icon={faMagnifyingGlass} className="h-4 w-4" />
