@@ -10,8 +10,10 @@ import {
     faFileLines,
     faPaperclip,
     faPaperPlane,
+    faReply,
     faRotateLeft,
     faStar,
+    faTrash,
     faXmark,
 } from "@fortawesome/free-solid-svg-icons";
 import InlineError from "@/components/forms/InlineError";
@@ -121,12 +123,18 @@ export default function ThreadMessagesClient({ threadId }: { threadId: string })
     const [otherUserTyping, setOtherUserTyping] = useState(false);
     const [menuOpen, setMenuOpen] = useState(false);
     const [spamModalOpen, setSpamModalOpen] = useState(false);
+    const [deleteThreadOpen, setDeleteThreadOpen] = useState(false);
+    const [deleteMessageTarget, setDeleteMessageTarget] = useState<any>(null);
+    const [replyingTo, setReplyingTo] = useState<any>(null);
+    const [deleteLoading, setDeleteLoading] = useState(false);
+    const [deleteError, setDeleteError] = useState("");
     const [previewAttachment, setPreviewAttachment] = useState<{
         url: string;
         name: string;
     } | null>(null);
     const messageListRef = useRef<HTMLDivElement | null>(null);
     const fileInputRef = useRef<HTMLInputElement | null>(null);
+    const composerRef = useRef<HTMLTextAreaElement | null>(null);
     const chatSocketRef = useRef<ChatSocketController | null>(null);
     const typingStopTimerRef = useRef<number | null>(null);
     const otherTypingTimerRef = useRef<number | null>(null);
@@ -285,6 +293,17 @@ export default function ThreadMessagesClient({ threadId }: { threadId: string })
                     }
                 }
 
+                if (event.type === "message_deleted" && event.message_id) {
+                    const deletedId = String(event.message_id);
+                    setMessages((current) => current.filter(
+                        (message) => String(message?.id) !== deletedId
+                    ));
+                    setReplyingTo((current: any) => (
+                        String(current?.id) === deletedId ? null : current
+                    ));
+                    window.dispatchEvent(new Event("qot_messages_updated"));
+                }
+
                 if (event.type === "error" && event.message) {
                     setSendError(String(event.message));
                 }
@@ -394,6 +413,74 @@ export default function ThreadMessagesClient({ threadId }: { threadId: string })
         if (updated) setSpamModalOpen(false);
     }
 
+    async function deleteThread() {
+        setDeleteLoading(true);
+        setDeleteError("");
+
+        try {
+            const response = await fetch(`/api/proxy/chats/threads/${threadId}/`, {
+                method: "DELETE",
+                credentials: "include",
+            });
+            const data = response.status === 204
+                ? {}
+                : await response.json().catch(() => ({}));
+
+            if (response.status === 401) {
+                window.location.assign(`/login?next=/account/messages/${threadId}`);
+                return;
+            }
+            if (!response.ok) {
+                throw new Error(data?.detail || data?.message || "Failed to delete this conversation.");
+            }
+
+            window.dispatchEvent(new Event("qot_messages_updated"));
+            window.location.assign("/account/messages");
+        } catch (requestError: any) {
+            setDeleteError(requestError?.message || "Failed to delete this conversation.");
+        } finally {
+            setDeleteLoading(false);
+        }
+    }
+
+    async function deleteMessage() {
+        if (!deleteMessageTarget?.id) return;
+
+        setDeleteLoading(true);
+        setDeleteError("");
+
+        try {
+            const response = await fetch(
+                `/api/proxy/chats/threads/${threadId}/messages/${deleteMessageTarget.id}/`,
+                { method: "DELETE", credentials: "include" }
+            );
+            const data = response.status === 204
+                ? {}
+                : await response.json().catch(() => ({}));
+
+            if (!response.ok) {
+                throw new Error(data?.detail || data?.message || "Failed to delete this message.");
+            }
+
+            const deletedId = String(deleteMessageTarget.id);
+            setMessages((current) => current.filter(
+                (message) => String(message?.id) !== deletedId
+            ));
+            if (String(replyingTo?.id) === deletedId) setReplyingTo(null);
+            setDeleteMessageTarget(null);
+            window.dispatchEvent(new Event("qot_messages_updated"));
+        } catch (requestError: any) {
+            setDeleteError(requestError?.message || "Failed to delete this message.");
+        } finally {
+            setDeleteLoading(false);
+        }
+    }
+
+    function startReply(message: any) {
+        setReplyingTo(message);
+        window.setTimeout(() => composerRef.current?.focus(), 0);
+    }
+
     async function sendMessage(event: React.FormEvent<HTMLFormElement>) {
         event.preventDefault();
 
@@ -410,6 +497,7 @@ export default function ThreadMessagesClient({ threadId }: { threadId: string })
             if (attachments.length > 0) {
                 const formData = new FormData();
                 if (cleanBody) formData.append("message", cleanBody);
+                if (replyingTo?.id) formData.append("reply_to", String(replyingTo.id));
                 attachments.forEach((file) => formData.append("files", file));
 
                 response = await fetch(`/api/proxy/chats/threads/${threadId}/attachments/`, {
@@ -422,7 +510,10 @@ export default function ThreadMessagesClient({ threadId }: { threadId: string })
                     method: "POST",
                     credentials: "include",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ body: cleanBody }),
+                    body: JSON.stringify({
+                        body: cleanBody,
+                        reply_to: replyingTo?.id || null,
+                    }),
                 });
             }
 
@@ -445,6 +536,7 @@ export default function ThreadMessagesClient({ threadId }: { threadId: string })
 
             setBody("");
             setAttachments([]);
+            setReplyingTo(null);
             if (fileInputRef.current) fileInputRef.current.value = "";
             setMessages((current) => mergeMessage(current, data?.chat_message || data));
             window.dispatchEvent(new Event("qot_messages_updated"));
@@ -572,6 +664,13 @@ export default function ThreadMessagesClient({ threadId }: { threadId: string })
                                 }} className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-xs font-black text-red-600 hover:bg-red-50">
                                     <FontAwesomeIcon icon={thread?.is_spam ? faRotateLeft : faShieldHalved} className="h-3.5 w-3.5" />{thread?.is_spam ? "Not spam" : "Report as spam"}
                                 </button>
+                                <button type="button" onClick={() => {
+                                    setMenuOpen(false);
+                                    setDeleteError("");
+                                    setDeleteThreadOpen(true);
+                                }} className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-xs font-black text-red-600 hover:bg-red-50">
+                                    <FontAwesomeIcon icon={faTrash} className="h-3.5 w-3.5" />Delete conversation
+                                </button>
                             </div>
                         )}
                     </div>
@@ -608,6 +707,14 @@ export default function ThreadMessagesClient({ threadId }: { threadId: string })
                         <div key={message.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
                             <div className={`max-w-[86%] sm:max-w-[70%] ${mine ? "text-right" : "text-left"}`}>
                                 <p className="mb-1.5 px-1 text-[10px] font-black text-slate-400">{mine ? "You" : message?.sender_name || participantName}</p>
+                                {message?.reply_to_message && (
+                                    <div className={`mb-2 rounded-[14px] border-l-4 px-3 py-2 text-left ${mine ? "border-orange-300 bg-orange-50 text-orange-950" : "border-slate-300 bg-white text-slate-600 ring-1 ring-slate-200"}`}>
+                                        <p className="text-[9px] font-black uppercase tracking-wide opacity-70">
+                                            Reply to {String(message.reply_to_message.sender) === String(currentUser?.id) ? "you" : message.reply_to_message.sender_name || participantName}
+                                        </p>
+                                        <p className="mt-0.5 line-clamp-2 text-[11px] font-bold leading-4">{message.reply_to_message.body || "Attachment"}</p>
+                                    </div>
+                                )}
                                 {(legacyImage || messageAttachments.length > 0) && (
                                     <div className={`flex flex-col gap-2 ${messageBody ? "mb-2" : ""} ${mine ? "items-end" : "items-start"}`}>
                                         {legacyImage && (
@@ -642,7 +749,20 @@ export default function ThreadMessagesClient({ threadId }: { threadId: string })
                                         <MessageText text={messageBody} mine={mine} />
                                     </div>
                                 )}
-                                <p className="mt-1.5 px-1 text-[9px] font-bold text-slate-400">{formatMessageTime(message?.created_at)}</p>
+                                <div className={`mt-1.5 flex items-center gap-2 px-1 ${mine ? "justify-end" : "justify-start"}`}>
+                                    <span className="text-[9px] font-bold text-slate-400">{formatMessageTime(message?.created_at)}</span>
+                                    <button type="button" onClick={() => startReply(message)} className="inline-flex items-center gap-1 text-[9px] font-black text-slate-400 transition hover:text-orange-600" aria-label="Reply to message">
+                                        <FontAwesomeIcon icon={faReply} className="h-2.5 w-2.5" />Reply
+                                    </button>
+                                    {mine && (
+                                        <button type="button" onClick={() => {
+                                            setDeleteError("");
+                                            setDeleteMessageTarget(message);
+                                        }} className="inline-flex items-center gap-1 text-[9px] font-black text-slate-400 transition hover:text-red-600" aria-label="Delete message">
+                                            <FontAwesomeIcon icon={faTrash} className="h-2.5 w-2.5" />Delete
+                                        </button>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     );
@@ -665,6 +785,17 @@ export default function ThreadMessagesClient({ threadId }: { threadId: string })
 
             <form onSubmit={sendMessage} className="border-t border-slate-100 bg-white p-3.5 sm:p-5">
                 {sendError && <InlineError message={sendError} onDismiss={() => setSendError("")} className="mb-3" />}
+                {replyingTo && (
+                    <div className="mb-3 flex items-center gap-3 rounded-[14px] border-l-4 border-orange-400 bg-orange-50 px-3 py-2.5 text-left">
+                        <div className="min-w-0 flex-1">
+                            <p className="text-[9px] font-black uppercase tracking-wide text-orange-600">Replying to {String(getSenderId(replyingTo)) === String(currentUser?.id) ? "yourself" : replyingTo?.sender_name || participantName}</p>
+                            <p className="mt-0.5 truncate text-xs font-bold text-slate-700">{replyingTo?.body || replyingTo?.attachments?.[0]?.original_name || "Attachment"}</p>
+                        </div>
+                        <button type="button" onClick={() => setReplyingTo(null)} aria-label="Cancel reply" className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-slate-500 transition hover:bg-white hover:text-red-600">
+                            <FontAwesomeIcon icon={faXmark} className="h-3 w-3" />
+                        </button>
+                    </div>
+                )}
                 <div className="mb-3 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                     {QUICK_MESSAGES.map((message) => (
                         <button key={message} type="button" onClick={() => updateComposer(message)} className="shrink-0 rounded-full bg-orange-50 px-3 py-2 text-[11px] font-black text-orange-700 ring-1 ring-orange-100 transition hover:bg-orange-100">{message.trim()}</button>
@@ -685,7 +816,7 @@ export default function ThreadMessagesClient({ threadId }: { threadId: string })
                 <div className="flex items-end gap-2 rounded-[20px] bg-slate-100 p-2 ring-1 ring-slate-200 focus-within:bg-white focus-within:ring-2 focus-within:ring-orange-200 sm:gap-3">
                     <input ref={fileInputRef} type="file" multiple accept="image/jpeg,image/png,image/webp,image/gif,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv" onChange={chooseAttachments} className="hidden" />
                     <button type="button" onClick={() => fileInputRef.current?.click()} disabled={sending || attachments.length >= 5} aria-label="Attach files" title="Attach up to 5 files, 10 MB each" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[15px] bg-white text-slate-500 ring-1 ring-slate-200 transition hover:text-orange-600 disabled:opacity-40"><FontAwesomeIcon icon={faPaperclip} className="h-4 w-4" /></button>
-                    <textarea value={body} onChange={(event) => updateComposer(event.target.value)} onBlur={stopTyping} placeholder="Write a message..." rows={1} maxLength={1000} className="max-h-28 min-h-11 min-w-0 flex-1 resize-none bg-transparent px-2 py-3 text-sm font-semibold text-slate-900 outline-none placeholder:text-slate-400 sm:px-3" />
+                    <textarea ref={composerRef} value={body} onChange={(event) => updateComposer(event.target.value)} onBlur={stopTyping} placeholder="Write a message..." rows={1} maxLength={1000} className="max-h-28 min-h-11 min-w-0 flex-1 resize-none bg-transparent px-2 py-3 text-sm font-semibold text-slate-900 outline-none placeholder:text-slate-400 sm:px-3" />
                     <button type="submit" disabled={sending || (!body.trim() && attachments.length === 0)} aria-label="Send message" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[15px] bg-orange-500 text-white shadow-[0_8px_18px_rgba(249,115,22,0.20)] transition hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-45 sm:w-auto sm:px-5">
                         {sending ? <span className="text-xs font-black">...</span> : <><FontAwesomeIcon icon={faPaperPlane} className="h-4 w-4" /><span className="ml-2 hidden text-sm font-black sm:inline">Send</span></>}
                     </button>
@@ -693,6 +824,8 @@ export default function ThreadMessagesClient({ threadId }: { threadId: string })
             </form>
 
             <AdActionModal open={spamModalOpen} title="Report this chat as spam?" description={`This moves the conversation with ${participantName} to Spam and sends a report to QOT moderation. You can restore it later.`} confirmLabel="Report spam" destructive loading={actionLoading} error={actionError} onClose={() => { if (actionLoading) return; setSpamModalOpen(false); setActionError(""); }} onConfirm={() => void confirmSpam()} />
+            <AdActionModal open={deleteThreadOpen} title="Delete this conversation?" description={`This removes the conversation with ${participantName} from your inbox. It will remain available to the other participant and can return if they send a new message.`} confirmLabel="Delete conversation" destructive loading={deleteLoading} error={deleteError} onClose={() => { if (deleteLoading) return; setDeleteThreadOpen(false); setDeleteError(""); }} onConfirm={() => void deleteThread()} />
+            <AdActionModal open={Boolean(deleteMessageTarget)} title="Delete this message?" description="This message will be permanently removed from the conversation for both participants." confirmLabel="Delete message" destructive loading={deleteLoading} error={deleteError} onClose={() => { if (deleteLoading) return; setDeleteMessageTarget(null); setDeleteError(""); }} onConfirm={() => void deleteMessage()} />
 
             {previewAttachment && (
                 <div role="dialog" aria-modal="true" aria-label={previewAttachment.name} onMouseDown={(event) => { if (event.target === event.currentTarget) setPreviewAttachment(null); }} className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/90 p-4 sm:p-8">

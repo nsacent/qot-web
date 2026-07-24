@@ -13,6 +13,7 @@ import {
     faRotateLeft,
     faShieldHalved,
     faStar,
+    faTrash,
     faXmark,
 } from "@fortawesome/free-solid-svg-icons";
 import { formatDateTime, formatRelativeTime } from "@/lib/dateTime";
@@ -97,6 +98,7 @@ export default function MessagesClient() {
     const [actionLoadingId, setActionLoadingId] = useState("");
     const [menuThreadId, setMenuThreadId] = useState("");
     const [spamTarget, setSpamTarget] = useState<any>(null);
+    const [deleteTarget, setDeleteTarget] = useState<any>(null);
     const [liveConnected, setLiveConnected] = useState(false);
     const menuAreaRef = useRef<HTMLDivElement | null>(null);
     const loadRequestRef = useRef(0);
@@ -273,6 +275,40 @@ export default function MessagesClient() {
         if (updated) setSpamTarget(null);
     }
 
+    async function deleteThread() {
+        if (!deleteTarget?.id) return;
+
+        const threadId = String(deleteTarget.id);
+        setActionLoadingId(threadId);
+        setActionError(null);
+
+        try {
+            const response = await fetch(`/api/proxy/chats/threads/${threadId}/`, {
+                method: "DELETE",
+                credentials: "include",
+            });
+            const data = response.status === 204
+                ? {}
+                : await response.json().catch(() => ({}));
+
+            if (!response.ok) {
+                throw new Error(data?.detail || data?.message || "Failed to delete this conversation.");
+            }
+
+            setDeleteTarget(null);
+            setMenuThreadId("");
+            await loadThreads();
+            window.dispatchEvent(new Event("qot_messages_updated"));
+        } catch (requestError: any) {
+            setActionError({
+                threadId,
+                message: requestError?.message || "Failed to delete this conversation.",
+            });
+        } finally {
+            setActionLoadingId("");
+        }
+    }
+
     if (loading) {
         return (
             <div className="space-y-3">
@@ -421,6 +457,14 @@ export default function MessagesClient() {
                                                     <FontAwesomeIcon icon={thread?.is_spam ? faRotateLeft : faShieldHalved} className="h-3.5 w-3.5" />
                                                     {thread?.is_spam ? "Not spam" : "Report as spam"}
                                                 </button>
+                                                <button type="button" onClick={() => {
+                                                    setMenuThreadId("");
+                                                    setActionError(null);
+                                                    setDeleteTarget(thread);
+                                                }} className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-xs font-black text-red-600 hover:bg-red-50">
+                                                    <FontAwesomeIcon icon={faTrash} className="h-3.5 w-3.5" />
+                                                    Delete conversation
+                                                </button>
                                             </div>
                                         )}
                                     </div>
@@ -470,6 +514,21 @@ export default function MessagesClient() {
                     setActionError(null);
                 }}
                 onConfirm={() => void confirmSpam()}
+            />
+            <AdActionModal
+                open={Boolean(deleteTarget)}
+                title="Delete this conversation?"
+                description={`This removes the conversation with ${deleteTarget ? getParticipantName(deleteTarget) : "this user"} from your inbox. It remains available to the other participant and can return if they message you again.`}
+                confirmLabel="Delete conversation"
+                destructive
+                loading={Boolean(deleteTarget && actionLoadingId === String(deleteTarget.id))}
+                error={deleteTarget && actionError?.threadId === String(deleteTarget.id) ? actionError.message : ""}
+                onClose={() => {
+                    if (actionLoadingId) return;
+                    setDeleteTarget(null);
+                    setActionError(null);
+                }}
+                onConfirm={() => void deleteThread()}
             />
         </section>
     );

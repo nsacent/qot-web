@@ -52,6 +52,12 @@ import {
     getPhotoRequirementText,
 } from "@/lib/categoryPhotoRequirements";
 import { uploadFormWithProgress } from "@/lib/uploadWithProgress";
+import {
+    AD_DESCRIPTION_MIN_LENGTH,
+    AD_TITLE_MAX_LENGTH,
+    AD_TITLE_MIN_LENGTH,
+    getAdCopyValidationError,
+} from "@/lib/listingValidation";
 
 type CategoryFilterField = {
     id: number | string;
@@ -801,8 +807,8 @@ function EditAdForm({ id }: { id: string }) {
     }
 
     function validateForm() {
-        if (!title.trim()) return "Please enter an ad title.";
-        if (!description.trim()) return "Please enter an ad description.";
+        const copyError = getAdCopyValidationError(title, description);
+        if (copyError) return copyError;
         if (!price || Number(price) <= 0) return "Please enter a valid price.";
         if (!category) return "Please select a category.";
         if (!city) return "Please select a location.";
@@ -828,7 +834,10 @@ function EditAdForm({ id }: { id: string }) {
 
         const validationError = validateForm();
         if (validationError) {
-            if (!title.trim() || !description.trim()) {
+            if (
+                title.trim().length < AD_TITLE_MIN_LENGTH ||
+                description.trim().length < AD_DESCRIPTION_MIN_LENGTH
+            ) {
                 setDetailsError(validationError);
                 revealSection(detailsSectionRef);
             } else if (!price || Number(price) <= 0 || !condition) {
@@ -859,7 +868,10 @@ function EditAdForm({ id }: { id: string }) {
             setDetailsError("");
             setPricingError("");
             setPhotoError("");
-            if (!title.trim() || !description.trim()) {
+            if (
+                title.trim().length < AD_TITLE_MIN_LENGTH ||
+                description.trim().length < AD_DESCRIPTION_MIN_LENGTH
+            ) {
                 setDetailsError(validationError);
                 revealSection(detailsSectionRef);
             } else if (!price || Number(price) <= 0 || !condition) {
@@ -1159,13 +1171,15 @@ function EditAdForm({ id }: { id: string }) {
                     <input value={title} onChange={(event) => {
                         setTitle(event.target.value);
                         setDetailsError("");
-                    }} placeholder="Example: HP EliteBook Core i5" className={inputClass} required />
+                    }} placeholder="Example: HP EliteBook Core i5" minLength={AD_TITLE_MIN_LENGTH} maxLength={AD_TITLE_MAX_LENGTH} className={inputClass} required />
+                    <p className="mt-1.5 text-[10px] font-bold text-slate-400">Minimum {AD_TITLE_MIN_LENGTH} characters · {title.length}/{AD_TITLE_MAX_LENGTH}</p>
                 </Field>
                 <Field label="Description" icon={faFileLines}>
                     <textarea value={description} onChange={(event) => {
                         setDescription(event.target.value);
                         setDetailsError("");
-                    }} placeholder="Describe the item, condition and useful features..." rows={4} className={inputClass} required />
+                    }} placeholder="Describe the item, condition and useful features..." rows={4} minLength={AD_DESCRIPTION_MIN_LENGTH} className={inputClass} required />
+                    <p className="mt-1.5 text-[10px] font-bold text-slate-400">Minimum {AD_DESCRIPTION_MIN_LENGTH} characters</p>
                 </Field>
             </FormCard>
 

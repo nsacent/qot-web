@@ -53,6 +53,12 @@ import {
     getPhotoRequirementText,
 } from "@/lib/categoryPhotoRequirements";
 import { uploadFormWithProgress } from "@/lib/uploadWithProgress";
+import {
+    AD_DESCRIPTION_MIN_LENGTH,
+    AD_TITLE_MAX_LENGTH,
+    AD_TITLE_MIN_LENGTH,
+    getAdCopyValidationError,
+} from "@/lib/listingValidation";
 
 type CategoryFilterField = {
     id: number | string;
@@ -695,8 +701,8 @@ export default function PostAdForm() {
     ]);
 
     function validateForm() {
-        if (!title.trim()) return "Please enter advert title.";
-        if (!description.trim()) return "Please enter advert description.";
+        const copyError = getAdCopyValidationError(title, description);
+        if (copyError) return copyError;
         if (!price) return "Please enter advert price.";
         if (!category) return "Please select category.";
         if (!city) return "Please select city.";
@@ -903,7 +909,10 @@ export default function PostAdForm() {
         const validationError = validateForm();
 
         if (validationError) {
-            if (!title.trim() || !description.trim()) {
+            if (
+                title.trim().length < AD_TITLE_MIN_LENGTH ||
+                description.trim().length < AD_DESCRIPTION_MIN_LENGTH
+            ) {
                 setDetailsError(validationError);
                 revealSection(detailsSectionRef);
             } else if (!price || !condition) {
@@ -1250,9 +1259,14 @@ export default function PostAdForm() {
                             setDetailsError("");
                         }}
                         placeholder="Example: HP EliteBook Core i5"
+                        minLength={AD_TITLE_MIN_LENGTH}
+                        maxLength={AD_TITLE_MAX_LENGTH}
                         className={inputClass}
                         required
                     />
+                    <p className="mt-1.5 text-[10px] font-bold text-slate-400">
+                        Minimum {AD_TITLE_MIN_LENGTH} characters · {title.length}/{AD_TITLE_MAX_LENGTH}
+                    </p>
                 </Field>
 
                 <Field label="Description" icon={faFileLines}>
@@ -1264,9 +1278,13 @@ export default function PostAdForm() {
                         }}
                         placeholder="Describe the item, condition, features, and location..."
                         rows={4}
+                        minLength={AD_DESCRIPTION_MIN_LENGTH}
                         className={inputClass}
                         required
                     />
+                    <p className="mt-1.5 text-[10px] font-bold text-slate-400">
+                        Minimum {AD_DESCRIPTION_MIN_LENGTH} characters
+                    </p>
                 </Field>
             </FormCard>
 

@@ -28,6 +28,12 @@ import {
     AdminLoadingState,
 } from "@/components/admin/AdminUi";
 import InlineError from "@/components/forms/InlineError";
+import {
+    AD_DESCRIPTION_MIN_LENGTH,
+    AD_TITLE_MAX_LENGTH,
+    AD_TITLE_MIN_LENGTH,
+    getAdCopyValidationError,
+} from "@/lib/listingValidation";
 
 type ListingAttribute = {
     id: number;
@@ -422,8 +428,8 @@ export default function AdminListingEditClient({
     }
 
     function validateForm() {
-        if (!form.title.trim()) return "Enter an ad title.";
-        if (!form.description.trim()) return "Enter an ad description.";
+        const copyError = getAdCopyValidationError(form.title, form.description);
+        if (copyError) return copyError;
         if (!form.category) return "Select a category.";
         if (!form.city) return "Select a city.";
         if (!form.condition) return "Select the item condition.";
@@ -451,7 +457,10 @@ export default function AdminListingEditClient({
             setSpecificationsError("");
             setSaveError("");
 
-            if (!form.title.trim() || !form.description.trim()) {
+            if (
+                form.title.trim().length < AD_TITLE_MIN_LENGTH ||
+                form.description.trim().length < AD_DESCRIPTION_MIN_LENGTH
+            ) {
                 setCoreError(validationError);
                 revealSection(coreSectionRef);
             } else if (
@@ -588,12 +597,13 @@ export default function AdminListingEditClient({
                             <input
                                 value={form.title}
                                 onChange={(event) => updateForm("title", event.target.value)}
-                                maxLength={180}
+                                minLength={AD_TITLE_MIN_LENGTH}
+                                maxLength={AD_TITLE_MAX_LENGTH}
                                 required
                                 className={inputClass}
                             />
                             <p className="mt-2 text-right text-[10px] font-bold text-slate-400">
-                                {form.title.length}/180
+                                Minimum {AD_TITLE_MIN_LENGTH} characters · {form.title.length}/{AD_TITLE_MAX_LENGTH}
                             </p>
                         </label>
 
@@ -603,9 +613,13 @@ export default function AdminListingEditClient({
                                 value={form.description}
                                 onChange={(event) => updateForm("description", event.target.value)}
                                 rows={9}
+                                minLength={AD_DESCRIPTION_MIN_LENGTH}
                                 required
                                 className="w-full resize-y rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium leading-6 text-slate-900 outline-none transition focus:border-orange-400 focus:bg-white focus:ring-4 focus:ring-orange-50"
                             />
+                            <p className="mt-2 text-[10px] font-bold text-slate-400">
+                                Minimum {AD_DESCRIPTION_MIN_LENGTH} characters
+                            </p>
                         </label>
                     </FormSection>
 
