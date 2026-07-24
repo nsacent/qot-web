@@ -19,9 +19,8 @@ import {
     faCamera,
     faChevronDown,
     faCircleCheck,
-    faCropSimple,
+    faExpand,
     faFileLines,
-    faGripVertical,
     faLayerGroup,
     faLocationDot,
     faMoneyBillWave,
@@ -29,6 +28,7 @@ import {
     faShieldHalved,
     faSliders,
     faTag,
+    faTrash,
     faXmark,
 } from "@fortawesome/free-solid-svg-icons";
 import {
@@ -36,7 +36,8 @@ import {
     LocationPickerModal,
 } from "@/components/listings/MarketplacePickerModals";
 import AdPreviewPanel from "@/components/listings/AdPreviewPanel";
-import PhotoCropModal, { type PhotoCrop } from "@/components/listings/PhotoCropModal";
+import AdActionModal from "@/components/listings/AdActionModal";
+import PhotoViewerModal from "@/components/listings/PhotoViewerModal";
 import { fetchAllProxyPages } from "@/lib/marketplaceCatalog";
 import {
     getCategoryFilterDisplayValue,
@@ -45,6 +46,11 @@ import {
     normalizeCategoryFilterValue,
 } from "@/lib/categoryFilterValues";
 import { findLowResolutionPhoto } from "@/lib/photoValidation";
+import {
+    getCategoryPhotoRequirements,
+    getPhotoRequirementText,
+} from "@/lib/categoryPhotoRequirements";
+import { uploadFormWithProgress } from "@/lib/uploadWithProgress";
 
 type CategoryFilterField = {
     id: number | string;
@@ -59,9 +65,13 @@ type DraftPhoto = {
     id: number;
     name: string;
     url: string;
-    sourceUrl?: string;
-    crop?: PhotoCrop;
-    file?: File;
+};
+
+type UploadingPhoto = {
+    key: string;
+    file: File;
+    url: string;
+    progress: number;
 };
 
 function getArray(data: any): any[] {
@@ -167,26 +177,6 @@ async function clientApiPut(path: string, payload: any) {
 
     if (!response.ok) {
         throw new Error(data?.detail || data?.message || data?.error || "Failed to save draft.");
-    }
-
-    return data;
-}
-
-async function clientApiPatch(path: string, payload: any) {
-    const response = await fetch(`/api/proxy${path}`, {
-        method: "PATCH",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-    });
-    const data = await response.json().catch(() => null);
-
-    if (response.status === 401 || response.status === 403) {
-        throw new Error("__AUTH__");
-    }
-
-    if (!response.ok) {
-        throw new Error(data?.detail || data?.message || data?.error || "Failed to update photo.");
     }
 
     return data;
@@ -340,12 +330,13 @@ export default function PostAdForm() {
     const [draftReady, setDraftReady] = useState(false);
     const [draftSaving, setDraftSaving] = useState(false);
     const [draftMessage, setDraftMessage] = useState("");
+    const [clearDraftOpen, setClearDraftOpen] = useState(false);
+    const [clearDraftLoading, setClearDraftLoading] = useState(false);
+    const [clearDraftError, setClearDraftError] = useState("");
     const [draggedPhotoId, setDraggedPhotoId] = useState<number | null>(null);
     const [dragOverPhotoId, setDragOverPhotoId] = useState<number | null>(null);
-    const [cropQueue, setCropQueue] = useState<File[]>([]);
-    const [cropBatchTotal, setCropBatchTotal] = useState(0);
-    const [cropSaving, setCropSaving] = useState(false);
-    const [editingCropPhotoId, setEditingCropPhotoId] = useState<number | null>(null);
+    const [uploadingPhotos, setUploadingPhotos] = useState<UploadingPhoto[]>([]);
+    const [viewerPhoto, setViewerPhoto] = useState<{ url: string; name: string } | null>(null);
     const pendingDraftFilterValues = useRef<Record<string, string>>({});
 
     const [categoryModalOpen, setCategoryModalOpen] = useState(false);
@@ -368,37 +359,12 @@ export default function PostAdForm() {
             (item: any) => String(getOptionValue(item)) === String(city)
         );
     }, [cities, city]);
+    const photoRequirements = useMemo(
+        () => getCategoryPhotoRequirements(selectedCategory),
+        [selectedCategory],
+    );
 
     const stagedPhotoIds = useMemo(() => photos.map((photo) => photo.id), [photos]);
-    const activeCropFile = cropQueue[0] || null;
-    const editingCropPhoto = photos.find((photo) => photo.id === editingCropPhotoId) || null;
-    const activeCropFileUrl = useMemo(
-        () => activeCropFile ? URL.createObjectURL(activeCropFile) : "",
-        [activeCropFile]
-    );
-    const photoPreviews = useMemo(
-        () => photos.map((photo) => ({
-            ...photo,
-            url: photo.file ? URL.createObjectURL(photo.file) : photo.url,
-        })),
-        [photos]
-    );
-
-    useEffect(() => {
-        return () => {
-            if (activeCropFileUrl) URL.revokeObjectURL(activeCropFileUrl);
-        };
-    }, [activeCropFileUrl]);
-
-    useEffect(() => {
-        return () => {
-            photoPreviews.forEach((photo) => {
-                if (photo.file && photo.url.startsWith("blob:")) {
-                    URL.revokeObjectURL(photo.url);
-                }
-            });
-        };
-    }, [photoPreviews]);
 
     useEffect(() => {
         async function loadFormData() {
@@ -435,12 +401,6 @@ export default function PostAdForm() {
                             id: Number(photo.id),
                             name: String(photo.image_url || "draft-photo").split("/").pop() || "draft-photo",
                             url: photo.card_image_url || photo.image_url,
-                            sourceUrl: photo.source_image_url || photo.image_url,
-                            crop: {
-                                x: Number(photo.crop_x ?? 0.5),
-                                y: Number(photo.crop_y ?? 0.5),
-                                zoom: Number(photo.crop_zoom ?? 1),
-                            },
                         }))
                     );
                     setDraftMessage("Your saved draft has been restored.");
@@ -617,6 +577,51 @@ export default function PostAdForm() {
         }
     }
 
+    async function clearDraft() {
+        setDraftReady(false);
+        setClearDraftLoading(true);
+        setClearDraftError("");
+
+        try {
+            const response = await fetch("/api/proxy/listings/draft/", {
+                method: "DELETE",
+                credentials: "include",
+            });
+            const data = response.status === 204
+                ? {}
+                : await response.json().catch(() => ({}));
+
+            if (response.status === 401) {
+                router.push("/login?next=/post-ad");
+                return;
+            }
+            if (!response.ok) {
+                throw new Error(data?.detail || data?.message || "Failed to clear draft.");
+            }
+
+            setTitle("");
+            setDescription("");
+            setPrice("");
+            setCategory("");
+            setCity("");
+            setCondition("used");
+            setIsNegotiable(false);
+            setPhotos([]);
+            setCategoryFilters([]);
+            setCategoryFilterValues({});
+            pendingDraftFilterValues.current = {};
+            setUploadProgress("");
+            setError("");
+            setDraftMessage("Draft cleared. You can start a fresh ad.");
+            setClearDraftOpen(false);
+        } catch (err: any) {
+            setClearDraftError(err.message || "Failed to clear draft.");
+        } finally {
+            setDraftReady(true);
+            setClearDraftLoading(false);
+        }
+    }
+
     useEffect(() => {
         const hasContent = Boolean(
             title.trim() || description.trim() || price || category || photos.length
@@ -673,7 +678,12 @@ export default function PostAdForm() {
         if (!category) return "Please select category.";
         if (!city) return "Please select city.";
         if (!condition) return "Please select condition.";
-        if (!photos.length) return "Please add at least one advert photo.";
+        if (photos.length < photoRequirements.minimum) {
+            return `${getSelectedCategoryName()} requires at least ${photoRequirements.minimum} photos.`;
+        }
+        if (photos.length > photoRequirements.maximum) {
+            return `${getSelectedCategoryName()} allows a maximum of ${photoRequirements.maximum} photos.`;
+        }
         if (photosUploading) return "Please wait for your photos to finish uploading.";
         return "";
     }
@@ -695,6 +705,10 @@ export default function PostAdForm() {
         event.target.value = "";
 
         if (!selectedFiles.length) return;
+        if (!category) {
+            setError("Choose a category before adding photos so QOT can apply the correct photo limit.");
+            return;
+        }
 
         const invalidType = selectedFiles.find(
             (file) => !["image/jpeg", "image/png", "image/webp"].includes(file.type)
@@ -705,15 +719,17 @@ export default function PostAdForm() {
             return;
         }
 
-        const oversized = selectedFiles.find((file) => file.size > 10 * 1024 * 1024);
+        const oversized = selectedFiles.find((file) => file.size > 8 * 1024 * 1024);
 
         if (oversized) {
-            setError(`${oversized.name} is larger than the 10MB limit.`);
+            setError(`${oversized.name} is larger than the 8MB limit.`);
             return;
         }
 
-        if (photos.length + selectedFiles.length > 10) {
-            setError("You can upload a maximum of 10 photos per advert.");
+        if (photos.length + selectedFiles.length > photoRequirements.maximum) {
+            setError(
+                `${getSelectedCategoryName()} allows a maximum of ${photoRequirements.maximum} photos.`
+            );
             return;
         }
 
@@ -729,100 +745,49 @@ export default function PostAdForm() {
         }
 
         setError("");
-        setCropBatchTotal(selectedFiles.length);
-        setCropQueue(selectedFiles);
         setPhotosUploading(true);
-        setUploadProgress(`Position photo 1 of ${selectedFiles.length}.`);
-    }
-
-    function advanceCropQueue(message: string) {
-        const remaining = cropQueue.slice(1);
-        setCropQueue(remaining);
-
-        if (remaining.length === 0) {
-            setPhotosUploading(false);
-            setCropBatchTotal(0);
-            setUploadProgress(message);
-        } else {
-            const completed = cropBatchTotal - remaining.length;
-            setUploadProgress(`Position photo ${completed + 1} of ${cropBatchTotal}.`);
-        }
-    }
-
-    function cancelPhotoCrop() {
-        if (activeCropFile) {
-            advanceCropQueue("Photo selection updated. Continue filling in the advert details.");
-            return;
-        }
-
-        setEditingCropPhotoId(null);
-    }
-
-    async function confirmPhotoCrop(crop: PhotoCrop) {
-        setCropSaving(true);
-        setError("");
+        const pendingPhotos = selectedFiles.map((file, index) => ({
+            key: `${Date.now()}-${index}-${file.name}`,
+            file,
+            url: URL.createObjectURL(file),
+            progress: 0,
+        }));
+        setUploadingPhotos(pendingPhotos);
 
         try {
-            if (activeCropFile) {
-                const uploadNumber = cropBatchTotal - cropQueue.length + 1;
-                setUploadProgress(`Optimizing photo ${uploadNumber} of ${cropBatchTotal}...`);
+            for (const [index, pendingPhoto] of pendingPhotos.entries()) {
+                const { file } = pendingPhoto;
+                setUploadProgress(`Optimizing photo ${index + 1} of ${selectedFiles.length}...`);
                 const formData = new FormData();
-                formData.append("image", activeCropFile);
-                formData.append("crop_x", String(crop.x));
-                formData.append("crop_y", String(crop.y));
-                formData.append("crop_zoom", String(crop.zoom));
-                const data = await clientApiPostForm("/listings/images/stage/", formData);
+                formData.append("image", file);
+                const data = await uploadFormWithProgress(
+                    "/listings/images/stage/",
+                    formData,
+                    (progress) => setUploadingPhotos((current) => current.map((item) => (
+                        item.key === pendingPhoto.key ? { ...item, progress } : item
+                    ))),
+                );
 
                 setPhotos((current) => [...current, {
                     id: Number(data.id),
-                    name: activeCropFile.name,
+                    name: file.name,
                     url: data.card_image_url || data.image_url || "",
-                    sourceUrl: data.source_image_url || data.image_url || "",
-                    crop: {
-                        x: Number(data.crop_x ?? crop.x),
-                        y: Number(data.crop_y ?? crop.y),
-                        zoom: Number(data.crop_zoom ?? crop.zoom),
-                    },
                 }]);
-                advanceCropQueue("Photos optimized. Continue filling in the advert details.");
-                return;
+                setUploadingPhotos((current) => current.filter((item) => item.key !== pendingPhoto.key));
+                URL.revokeObjectURL(pendingPhoto.url);
             }
-
-            if (editingCropPhoto) {
-                const data = await clientApiPatch(
-                    `/listings/images/stage/${editingCropPhoto.id}/`,
-                    {
-                        crop_x: crop.x,
-                        crop_y: crop.y,
-                        crop_zoom: crop.zoom,
-                    }
-                );
-                setPhotos((current) => current.map((photo) =>
-                    photo.id === editingCropPhoto.id
-                        ? {
-                            ...photo,
-                            url: data.card_image_url || data.image_url || photo.url,
-                            sourceUrl: data.source_image_url || photo.sourceUrl,
-                            crop: {
-                                x: Number(data.crop_x ?? crop.x),
-                                y: Number(data.crop_y ?? crop.y),
-                                zoom: Number(data.crop_zoom ?? crop.zoom),
-                            },
-                        }
-                        : photo
-                ));
-                setEditingCropPhotoId(null);
-                setUploadProgress("Photo crop updated.");
-            }
+            setUploadProgress("Photos optimized automatically. Continue filling in the advert details.");
         } catch (err: any) {
             if (err.message === "__AUTH__") {
                 window.location.href = "/login?next=/post-ad";
                 return;
             }
-            setError(err.message || "Failed to optimize the photo.");
-            setUploadProgress("Photo optimization failed. Adjust the crop and try again.");
+            setError(err.message || "Failed to upload and optimize the photo.");
+            setUploadProgress("Photo upload failed. Please try again.");
         } finally {
-            setCropSaving(false);
+            pendingPhotos.forEach((photo) => URL.revokeObjectURL(photo.url));
+            setUploadingPhotos([]);
+            setPhotosUploading(false);
         }
     }
 
@@ -964,7 +929,7 @@ export default function PostAdForm() {
 
                 <AdPreviewPanel
                     mode="create"
-                    images={photoPreviews.map((photo, index) => ({
+                    images={photos.map((photo, index) => ({
                         id: photo.id,
                         url: photo.url,
                         isPrimary: index === 0,
@@ -1012,7 +977,7 @@ export default function PostAdForm() {
                     <div className="hidden min-w-0 flex-1 px-2 sm:block">
                         <p className="text-sm font-black text-slate-900">Ready to publish?</p>
                         <p className="truncate text-xs font-semibold text-slate-500">
-                            {photoPreviews.length} photo{photoPreviews.length === 1 ? "" : "s"} · Review complete
+                            {photos.length} photo{photos.length === 1 ? "" : "s"} · Review complete
                         </p>
                     </div>
 
@@ -1042,23 +1007,33 @@ export default function PostAdForm() {
             )}
 
             <FormCard
-                className="order-1"
+                className="order-2"
                 icon={faCamera}
-                eyebrow="Step 1"
+                eyebrow="Step 2"
                 title="Add photos"
-                description="Up to 10 photos. Your first photo is the cover."
+                description={category
+                    ? `${getPhotoRequirementText(getSelectedCategoryName(), photoRequirements)} Your first photo is the cover.`
+                    : "Choose a category in Step 1 to unlock photos and see the correct limit."
+                }
             >
-                <div className="rounded-[18px] border-2 border-dashed border-orange-200 bg-orange-50/70 p-3 transition hover:border-orange-300 hover:bg-orange-50">
-                    <label className="flex min-h-20 cursor-pointer items-center gap-3 rounded-[14px] px-2 py-2 text-left">
+                <div className={`rounded-[18px] border-2 border-dashed p-3 transition ${category
+                    ? "border-orange-200 bg-orange-50/70 hover:border-orange-300 hover:bg-orange-50"
+                    : "border-slate-200 bg-slate-50"
+                }`}>
+                    <label className={`flex min-h-20 items-center gap-3 rounded-[14px] px-2 py-2 text-left ${category ? "cursor-pointer" : "cursor-not-allowed opacity-65"}`}>
                         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] bg-white text-orange-600 ring-1 ring-orange-100">
                             <FontAwesomeIcon icon={faCamera} className="h-4 w-4" />
                         </span>
                         <span className="min-w-0 flex-1">
                             <span className="block text-sm font-black text-slate-900">
-                                {photosUploading ? "Uploading photos..." : "Tap to add photos"}
+                                {!category
+                                    ? "Choose a category first"
+                                    : photosUploading
+                                        ? "Uploading photos..."
+                                        : "Tap to add photos"}
                             </span>
                             <span className="mt-0.5 block text-xs font-semibold text-slate-500">
-                                JPG, PNG or WEBP · 10MB maximum each
+                                JPG, PNG or WEBP · 8MB maximum each · optimized automatically
                             </span>
                         </span>
                         <span className="hidden rounded-full bg-orange-500 px-3 py-1.5 text-xs font-black text-white sm:inline-flex">
@@ -1069,20 +1044,19 @@ export default function PostAdForm() {
                             accept="image/jpeg,image/png,image/webp"
                             multiple
                             onChange={handlePhotoSelection}
-                            disabled={photosUploading}
+                            disabled={photosUploading || !category}
                             className="sr-only"
                         />
                     </label>
 
-                    {photoPreviews.length > 0 && (
+                    {(photos.length > 0 || uploadingPhotos.length > 0) && (
                         <div className="mt-3 border-t border-orange-200/70 pt-3">
-                            <p className="mb-2.5 flex items-center gap-2 text-[10px] font-bold leading-4 text-slate-500">
-                                <FontAwesomeIcon icon={faGripVertical} className="h-3 w-3 text-orange-500" />
+                            <p className="mb-2.5 text-[10px] font-bold leading-4 text-slate-500">
                                 Drag photos to reorder them. The first photo is your main cover.
                             </p>
 
                             <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-                                {photoPreviews.map((photo, index) => (
+                                {photos.map((photo, index) => (
                                     <div
                                         key={photo.id}
                                         draggable={!photosUploading}
@@ -1128,31 +1102,48 @@ export default function PostAdForm() {
 
                                         <button
                                             type="button"
-                                            onClick={() => setEditingCropPhotoId(photo.id)}
-                                            disabled={photosUploading}
-                                            aria-label={`Adjust crop for ${photo.name}`}
-                                            title="Adjust crop"
-                                            className="absolute left-1.5 top-1.5 flex h-7 w-7 items-center justify-center rounded-full bg-white/95 text-orange-600 shadow-sm transition hover:bg-orange-500 hover:text-white disabled:opacity-50"
+                                            onClick={() => setViewerPhoto({ url: photo.url, name: photo.name })}
+                                            aria-label={`View ${photo.name} full screen`}
+                                            title="View photo"
+                                            className="absolute left-1.5 top-1.5 flex h-7 w-7 items-center justify-center rounded-full bg-white/95 text-slate-700 shadow-sm transition hover:bg-orange-500 hover:text-white"
                                         >
-                                            <FontAwesomeIcon icon={faCropSimple} className="h-3 w-3" />
+                                            <FontAwesomeIcon icon={faExpand} className="h-3 w-3" />
                                         </button>
-
-                                        <span className="pointer-events-none absolute bottom-1.5 right-1.5 flex h-7 w-7 items-center justify-center rounded-full bg-slate-950/70 text-white">
-                                            <FontAwesomeIcon icon={faGripVertical} className="h-3 w-3" />
-                                        </span>
 
                                         <button
                                             type="button"
                                             onClick={() => removePhoto(index)}
                                             disabled={photosUploading}
                                             aria-label={`Remove ${photo.name}`}
-                                            className="absolute right-1.5 top-1.5 flex h-7 w-7 items-center justify-center rounded-full bg-slate-950/80 text-white transition hover:bg-red-600 disabled:opacity-50"
+                                            className="absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-slate-950/80 text-white transition hover:bg-red-600 disabled:opacity-50"
                                         >
-                                            <FontAwesomeIcon icon={faXmark} className="h-3.5 w-3.5" />
+                                            <FontAwesomeIcon icon={faXmark} className="h-2.5 w-2.5" />
                                         </button>
                                     </div>
                                 ))}
+
+                                {uploadingPhotos.map((photo) => (
+                                    <div key={photo.key} className="relative aspect-[4/3] overflow-hidden rounded-[12px] bg-slate-900 ring-1 ring-orange-200">
+                                        <img src={photo.url} alt={`Uploading ${photo.file.name}`} className="h-full w-full scale-105 object-cover blur-md" />
+                                        <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950/35 text-white">
+                                            <span className="text-lg font-black">{photo.progress}%</span>
+                                            <span className="mt-0.5 text-[8px] font-black uppercase tracking-wider">Uploading</span>
+                                        </div>
+                                        <div className="absolute inset-x-2 bottom-2 h-1.5 overflow-hidden rounded-full bg-white/25">
+                                            <div className="h-full rounded-full bg-orange-500 transition-[width] duration-150" style={{ width: `${photo.progress}%` }} />
+                                        </div>
+                                    </div>
+                                ))}
                             </div>
+
+                            {category && (
+                                <div className={`mt-3 rounded-xl px-3 py-2 text-[10px] font-black ring-1 ${photos.length >= photoRequirements.minimum && photos.length <= photoRequirements.maximum
+                                    ? "bg-emerald-50 text-emerald-700 ring-emerald-100"
+                                    : "bg-amber-50 text-amber-700 ring-amber-100"
+                                }`}>
+                                    {photos.length} uploaded · {getPhotoRequirementText(getSelectedCategoryName(), photoRequirements)}
+                                </div>
+                            )}
                         </div>
                     )}
 
@@ -1168,9 +1159,9 @@ export default function PostAdForm() {
             </FormCard>
 
             <FormCard
-                className="order-2"
+                className="order-3"
                 icon={faPenToSquare}
-                eyebrow="Step 2"
+                eyebrow="Step 3"
                 title="What are you selling?"
                 description="Add a short title and the important details."
             >
@@ -1197,9 +1188,9 @@ export default function PostAdForm() {
             </FormCard>
 
             <FormCard
-                className="order-3"
+                className="order-4"
                 icon={faMoneyBillWave}
-                eyebrow="Step 3"
+                eyebrow="Step 4"
                 title="Price and condition"
                 description="Set the price and item condition."
             >
@@ -1246,11 +1237,11 @@ export default function PostAdForm() {
             </FormCard>
 
             <FormCard
-                className="order-4"
+                className="order-1"
                 icon={faLayerGroup}
-                eyebrow="Step 4"
-                title="Category and location"
-                description="Help nearby buyers find your advert."
+                eyebrow="Step 1"
+                title="Choose category and location"
+                description="Choose the category first so QOT can apply the right photo requirement."
             >
                 <div className="grid gap-5 md:grid-cols-2">
                     <Field label="Category" icon={faLayerGroup}>
@@ -1407,7 +1398,19 @@ export default function PostAdForm() {
                 You&apos;ll preview everything before the advert goes live.
             </div>
 
-            <div className="order-7 grid gap-3 sm:grid-cols-[auto_1fr] lg:col-span-2">
+            <div className="order-7 grid gap-3 sm:grid-cols-[auto_auto_1fr] lg:col-span-2">
+                <button
+                    type="button"
+                    onClick={() => {
+                        setClearDraftError("");
+                        setClearDraftOpen(true);
+                    }}
+                    disabled={draftSaving || photosUploading}
+                    className="inline-flex h-12 items-center justify-center gap-2 rounded-[18px] bg-red-50 px-5 text-sm font-black text-red-600 ring-1 ring-red-100 hover:bg-red-100 disabled:opacity-60"
+                >
+                    <FontAwesomeIcon icon={faTrash} className="h-3.5 w-3.5" />
+                    Clear Draft
+                </button>
                 <button
                     type="button"
                     onClick={saveDraft}
@@ -1426,17 +1429,26 @@ export default function PostAdForm() {
                 </button>
             </div>
 
-            <PhotoCropModal
-                open={Boolean(activeCropFile || editingCropPhoto)}
-                sourceUrl={activeCropFileUrl || editingCropPhoto?.sourceUrl || editingCropPhoto?.url || ""}
-                title={activeCropFile
-                    ? `Position ${activeCropFile.name}`
-                    : `Adjust ${editingCropPhoto?.name || "photo"}`
-                }
-                initialCrop={editingCropPhoto?.crop || { x: 0.5, y: 0.5, zoom: 1 }}
-                isSaving={cropSaving}
-                onCancel={cancelPhotoCrop}
-                onConfirm={confirmPhotoCrop}
+            <PhotoViewerModal
+                open={Boolean(viewerPhoto)}
+                imageUrl={viewerPhoto?.url || ""}
+                title={viewerPhoto?.name || "Ad photo"}
+                onClose={() => setViewerPhoto(null)}
+            />
+            <AdActionModal
+                open={clearDraftOpen}
+                title="Clear this draft?"
+                description="All unfinished details and staged photos will be permanently removed so you can start again."
+                confirmLabel="Clear draft"
+                destructive
+                loading={clearDraftLoading}
+                error={clearDraftError}
+                onClose={() => {
+                    if (clearDraftLoading) return;
+                    setClearDraftOpen(false);
+                    setClearDraftError("");
+                }}
+                onConfirm={clearDraft}
             />
         </form>
     );

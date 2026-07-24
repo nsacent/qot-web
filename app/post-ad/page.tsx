@@ -23,7 +23,7 @@ export default function PostAdPage() {
                             </div>
 
                             <p className="mt-1 text-sm font-semibold text-slate-500 sm:mt-0">
-                                Start with photos, add the essentials, then preview.
+                                Choose a category, follow its photo requirements, then add the essentials and preview.
                             </p>
                         </div>
                         <PostAdForm />

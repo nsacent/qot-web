@@ -17,6 +17,7 @@ import QotLoader from "@/components/common/QotLoader";
 import { getCurrentUser } from "@/lib/sessionClient";
 import ListingImageCarousel from "@/components/listings/ListingImageCarousel";
 import ListingShareActions from "@/components/listings/ListingShareActions";
+import AdActionModal from "@/components/listings/AdActionModal";
 import { formatDateTime, formatRelativeTime } from "@/lib/dateTime";
 
 function formatPrice(value: any) {
@@ -76,6 +77,8 @@ function MyAdViewContent({ id }: { id: string }) {
     const [ad, setAd] = useState<any>(null);
     const [error, setError] = useState("");
     const [actionLoading, setActionLoading] = useState("");
+    const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+    const [deleteError, setDeleteError] = useState("");
 
     async function checkSession() {
         try {
@@ -305,11 +308,8 @@ function MyAdViewContent({ id }: { id: string }) {
     }
 
     async function handleDelete() {
-        const confirmed = window.confirm(
-            "Are you sure you want to delete this ad? This action cannot be undone."
-        );
-
-        if (!confirmed) return;
+        setActionLoading("delete");
+        setDeleteError("");
 
         try {
             const response = await fetch(`/api/proxy/seller/listings/${id}/`, {
@@ -324,7 +324,9 @@ function MyAdViewContent({ id }: { id: string }) {
 
             window.location.href = "/my-ads";
         } catch (err: any) {
-            alert(err.message || "Failed to delete ad.");
+            setDeleteError(err.message || "Failed to remove ad.");
+        } finally {
+            setActionLoading("");
         }
     }
 
@@ -560,13 +562,36 @@ function MyAdViewContent({ id }: { id: string }) {
                     <div className="rounded-[24px] border border-red-100 bg-red-50/70 p-5">
                         <p className="text-sm font-black text-red-700">Remove this ad</p>
                         <p className="mt-1 text-xs font-semibold leading-5 text-red-500">Deleting is permanent. Pause the ad instead if it may become available again.</p>
-                        <button type="button" onClick={handleDelete} className="mt-4 inline-flex h-11 w-full items-center justify-center gap-2 rounded-[14px] bg-white text-sm font-black text-red-600 ring-1 ring-red-100 hover:bg-red-100">
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setDeleteError("");
+                                setDeleteModalOpen(true);
+                            }}
+                            className="mt-4 inline-flex h-11 w-full items-center justify-center gap-2 rounded-[14px] bg-white text-sm font-black text-red-600 ring-1 ring-red-100 hover:bg-red-100"
+                        >
                             <FontAwesomeIcon icon={faTrash} className="h-4 w-4" />
-                            Delete Ad
+                            Remove Ad
                         </button>
                     </div>
                 </aside>
             </div>
+
+            <AdActionModal
+                open={deleteModalOpen}
+                title="Remove this ad?"
+                description="This permanently removes the ad from QOT. Pause it instead if the item may become available again."
+                confirmLabel="Remove ad"
+                destructive
+                loading={actionLoading === "delete"}
+                error={deleteError}
+                onClose={() => {
+                    if (actionLoading === "delete") return;
+                    setDeleteModalOpen(false);
+                    setDeleteError("");
+                }}
+                onConfirm={handleDelete}
+            />
         </section>
     );
 }

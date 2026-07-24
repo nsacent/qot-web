@@ -19,9 +19,8 @@ import {
     faCamera,
     faChevronDown,
     faCircleCheck,
-    faCropSimple,
+    faExpand,
     faFileLines,
-    faGripVertical,
     faLayerGroup,
     faLock,
     faLocationDot,
@@ -34,7 +33,7 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import QotLoader from "@/components/common/QotLoader";
 import AdPreviewPanel from "@/components/listings/AdPreviewPanel";
-import PhotoCropModal, { type PhotoCrop } from "@/components/listings/PhotoCropModal";
+import PhotoViewerModal from "@/components/listings/PhotoViewerModal";
 import { getCurrentUser } from "@/lib/sessionClient";
 import { LocationPickerModal } from "@/components/listings/MarketplacePickerModals";
 import { fetchAllProxyPages } from "@/lib/marketplaceCatalog";
@@ -46,6 +45,11 @@ import {
     normalizeCategoryFilterValue,
 } from "@/lib/categoryFilterValues";
 import { findLowResolutionPhoto } from "@/lib/photoValidation";
+import {
+    getCategoryPhotoRequirements,
+    getPhotoRequirementText,
+} from "@/lib/categoryPhotoRequirements";
+import { uploadFormWithProgress } from "@/lib/uploadWithProgress";
 
 type CategoryFilterField = {
     id: number | string;
@@ -59,20 +63,27 @@ type CategoryFilterField = {
 type ExistingImage = {
     id: string;
     url: string;
-    sourceUrl: string;
     isPrimary: boolean;
-    crop: PhotoCrop;
 };
 
 type NewImageItem = {
     key: string;
     file: File;
-    crop: PhotoCrop;
+    progress: number;
+    uploading: boolean;
 };
 
 type EditablePhoto =
     | (ExistingImage & { key: string; kind: "existing"; name: string })
-    | { key: string; kind: "new"; name: string; url: string; file: File; crop: PhotoCrop };
+    | {
+        key: string;
+        kind: "new";
+        name: string;
+        url: string;
+        file: File;
+        progress: number;
+        uploading: boolean;
+    };
 
 function getArray(data: any): any[] {
     if (Array.isArray(data)) return data;
@@ -299,14 +310,10 @@ function EditAdForm({ id }: { id: string }) {
     const [photoOrder, setPhotoOrder] = useState<string[]>([]);
     const [draggedPhotoKey, setDraggedPhotoKey] = useState<string | null>(null);
     const [dragOverPhotoKey, setDragOverPhotoKey] = useState<string | null>(null);
-    const [cropQueue, setCropQueue] = useState<File[]>([]);
-    const [cropBatchTotal, setCropBatchTotal] = useState(0);
-    const [cropSaving, setCropSaving] = useState(false);
-    const [editingCropPhotoKey, setEditingCropPhotoKey] = useState<string | null>(null);
-    const [existingCropChanges, setExistingCropChanges] = useState<Record<string, PhotoCrop>>({});
 
     const [message, setMessage] = useState("");
     const [error, setError] = useState("");
+    const [viewerPhoto, setViewerPhoto] = useState<{ url: string; name: string } | null>(null);
     const [locationModalOpen, setLocationModalOpen] = useState(false);
     const [locationSearch, setLocationSearch] = useState("");
     const pendingAttributeValues = useRef<Record<string, string>>({});
@@ -320,23 +327,21 @@ function EditAdForm({ id }: { id: string }) {
         () => cities.find((item: any) => String(getOptionValue(item)) === city),
         [cities, city]
     );
+    const photoRequirements = useMemo(
+        () => getCategoryPhotoRequirements(selectedCategory),
+        [selectedCategory],
+    );
 
     const existingImages = useMemo<ExistingImage[]>(() => {
         return getOrderedListingImages(ad)
             .map((image: any) => ({
                 id: String(image.id || ""),
                 url: String(image.url || ""),
-                sourceUrl: String(image.sourceUrl || image.url || ""),
                 isPrimary: image.isPrimary === true,
-                crop: existingCropChanges[String(image.id || "")] || {
-                    x: Number(image.cropX ?? 0.5),
-                    y: Number(image.cropY ?? 0.5),
-                    zoom: Number(image.cropZoom ?? 1),
-                },
             }))
             .filter((image: ExistingImage) => image.url)
             .filter((image: ExistingImage) => !deletedImageIds.includes(image.id));
-    }, [ad, deletedImageIds, existingCropChanges]);
+    }, [ad, deletedImageIds]);
 
     const newImagePreviews = useMemo(
         () => newImages.map((item) => ({
@@ -346,18 +351,6 @@ function EditAdForm({ id }: { id: string }) {
         })),
         [newImages]
     );
-    const activeCropFile = cropQueue[0] || null;
-    const activeCropFileUrl = useMemo(
-        () => activeCropFile ? URL.createObjectURL(activeCropFile) : "",
-        [activeCropFile]
-    );
-
-    useEffect(() => {
-        return () => {
-            if (activeCropFileUrl) URL.revokeObjectURL(activeCropFileUrl);
-        };
-    }, [activeCropFileUrl]);
-
     useEffect(() => {
         return () => {
             newImagePreviews.forEach((image) => URL.revokeObjectURL(image.url));
@@ -394,9 +387,6 @@ function EditAdForm({ id }: { id: string }) {
     }, [existingImages, newImagePreviews, photoOrder]);
 
     const totalPhotos = orderedPhotos.length;
-    const editingCropPhoto = orderedPhotos.find(
-        (photo) => photo.key === editingCropPhotoKey
-    ) || null;
     const allPreviewImages = orderedPhotos.map((photo, index) => ({
         id: photo.kind === "existing" ? photo.id : "",
         url: photo.url,
@@ -467,9 +457,6 @@ function EditAdForm({ id }: { id: string }) {
             setAd(listing);
             setNewImages([]);
             setDeletedImageIds([]);
-            setExistingCropChanges({});
-            setCropQueue([]);
-            setEditingCropPhotoKey(null);
             setPhotoOrder(initialPhotoOrder);
             setTitle(getValue(listing?.title));
             setPrice(getValue(listing?.price));
@@ -613,14 +600,16 @@ function EditAdForm({ id }: { id: string }) {
             return;
         }
 
-        const oversized = files.find((file) => file.size > 10 * 1024 * 1024);
+        const oversized = files.find((file) => file.size > 8 * 1024 * 1024);
         if (oversized) {
-            setError(`${oversized.name} is larger than the 10MB limit.`);
+            setError(`${oversized.name} is larger than the 8MB limit.`);
             return;
         }
 
-        if (totalPhotos + files.length > 10) {
-            setError("An ad can have a maximum of 10 photos.");
+        if (totalPhotos + files.length > photoRequirements.maximum) {
+            setError(
+                `${selectedCategory ? getOptionLabel(selectedCategory) : "This category"} allows a maximum of ${photoRequirements.maximum} photos.`
+            );
             return;
         }
 
@@ -656,68 +645,15 @@ function EditAdForm({ id }: { id: string }) {
         }
 
         setError("");
-        setCropBatchTotal(files.length);
-        setCropQueue(files);
-        setMessage(`Position photo 1 of ${files.length}.`);
-    }
-
-    function advanceCropQueue(message: string) {
-        const remaining = cropQueue.slice(1);
-        setCropQueue(remaining);
-
-        if (remaining.length === 0) {
-            setCropBatchTotal(0);
-            setMessage(message);
-        } else {
-            const completed = cropBatchTotal - remaining.length;
-            setMessage(`Position photo ${completed + 1} of ${cropBatchTotal}.`);
-        }
-    }
-
-    function cancelPhotoCrop() {
-        if (activeCropFile) {
-            advanceCropQueue("Photo selection updated.");
-            return;
-        }
-
-        setEditingCropPhotoKey(null);
-    }
-
-    async function confirmPhotoCrop(crop: PhotoCrop) {
-        setCropSaving(true);
-        setError("");
-
-        try {
-            if (activeCropFile) {
-                const batchKey = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-                const addition = {
-                    key: `new:${batchKey}`,
-                    file: activeCropFile,
-                    crop,
-                };
-                setNewImages((current) => [...current, addition]);
-                setPhotoOrder((current) => [...current, addition.key]);
-                advanceCropQueue("Photos are ready to save with this ad.");
-                return;
-            }
-
-            if (editingCropPhoto?.kind === "existing") {
-                setExistingCropChanges((current) => ({
-                    ...current,
-                    [editingCropPhoto.id]: crop,
-                }));
-                setMessage("Photo crop updated. Save the ad to keep this change.");
-            } else if (editingCropPhoto?.kind === "new") {
-                setNewImages((current) => current.map((item) =>
-                    item.key === editingCropPhoto.key ? { ...item, crop } : item
-                ));
-                setMessage("Photo crop updated.");
-            }
-
-            setEditingCropPhotoKey(null);
-        } finally {
-            setCropSaving(false);
-        }
+        const additions = files.map((file, index) => ({
+            key: `new:${Date.now()}-${index}-${Math.random().toString(36).slice(2)}`,
+            file,
+            progress: 0,
+            uploading: false,
+        }));
+        setNewImages((current) => [...current, ...additions]);
+        setPhotoOrder((current) => [...current, ...additions.map((item) => item.key)]);
+        setMessage("Photos are ready and will be optimized when you save the ad.");
     }
 
     function removeNewImage(photoKey: string) {
@@ -735,11 +671,6 @@ function EditAdForm({ id }: { id: string }) {
         setPhotoOrder((current) =>
             current.filter((key) => key !== `existing:${imageId}`)
         );
-        setExistingCropChanges((current) => {
-            const next = { ...current };
-            delete next[imageId];
-            return next;
-        });
         setMessage("Photo will be removed when you save the changes.");
     }
 
@@ -749,20 +680,16 @@ function EditAdForm({ id }: { id: string }) {
         for (const item of newImages) {
             const formData = new FormData();
             formData.append("image", item.file);
-            formData.append("crop_x", String(item.crop.x));
-            formData.append("crop_y", String(item.crop.y));
-            formData.append("crop_zoom", String(item.crop.zoom));
-
-            const response = await fetch(`/api/proxy/listings/${id}/images/`, {
-                method: "POST",
-                credentials: "include",
-                body: formData,
-            });
-            const data = await response.json().catch(() => ({}));
-
-            if (!response.ok) {
-                throw new Error(getApiErrorMessage(data, `Failed to upload ${item.file.name}.`));
-            }
+            setNewImages((current) => current.map((photo) => (
+                photo.key === item.key ? { ...photo, uploading: true, progress: 0 } : photo
+            )));
+            const data = await uploadFormWithProgress(
+                `/listings/${id}/images/`,
+                formData,
+                (progress) => setNewImages((current) => current.map((photo) => (
+                    photo.key === item.key ? { ...photo, uploading: true, progress } : photo
+                ))),
+            );
 
             if (!data?.id) {
                 throw new Error(`Failed to confirm the upload for ${item.file.name}.`);
@@ -772,29 +699,6 @@ function EditAdForm({ id }: { id: string }) {
         }
 
         return uploadedIds;
-    }
-
-    async function saveExistingCrops() {
-        for (const [imageId, crop] of Object.entries(existingCropChanges)) {
-            const response = await fetch(
-                `/api/proxy/listings/${id}/images/${imageId}/crop/`,
-                {
-                    method: "PATCH",
-                    credentials: "include",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        crop_x: crop.x,
-                        crop_y: crop.y,
-                        crop_zoom: crop.zoom,
-                    }),
-                }
-            );
-            const data = await response.json().catch(() => ({}));
-
-            if (!response.ok) {
-                throw new Error(getApiErrorMessage(data, "Failed to save a photo crop."));
-            }
-        }
     }
 
     async function deleteRemovedImages() {
@@ -872,15 +776,18 @@ function EditAdForm({ id }: { id: string }) {
     }
 
     function validateForm() {
-        if (cropQueue.length > 0) return "Finish positioning or skip the selected photos.";
         if (!title.trim()) return "Please enter an ad title.";
         if (!description.trim()) return "Please enter an ad description.";
         if (!price || Number(price) <= 0) return "Please enter a valid price.";
         if (!category) return "Please select a category.";
         if (!city) return "Please select a location.";
         if (!condition) return "Please select the item condition.";
-        if (totalPhotos < 1) return "Keep or add at least one photo for this ad.";
-        if (totalPhotos > 10) return "An ad can have a maximum of 10 photos.";
+        if (totalPhotos < photoRequirements.minimum) {
+            return `${selectedCategory ? getOptionLabel(selectedCategory) : "This category"} requires at least ${photoRequirements.minimum} photos.`;
+        }
+        if (totalPhotos > photoRequirements.maximum) {
+            return `${selectedCategory ? getOptionLabel(selectedCategory) : "This category"} allows a maximum of ${photoRequirements.maximum} photos.`;
+        }
         return "";
     }
 
@@ -935,7 +842,6 @@ function EditAdForm({ id }: { id: string }) {
 
             await deleteRemovedImages();
             const uploadedIds = await uploadNewImages();
-            await saveExistingCrops();
             await savePhotoOrder(uploadedIds);
             router.replace("/my-ads");
             router.refresh();
@@ -988,6 +894,31 @@ function EditAdForm({ id }: { id: string }) {
                     })}
                 />
 
+                {saving && newImagePreviews.length > 0 && (
+                    <div className="rounded-[24px] bg-white p-4 shadow-sm ring-1 ring-slate-200 sm:p-5">
+                        <p className="text-sm font-black text-slate-950">Uploading and optimizing new photos</p>
+                        <p className="mt-1 text-xs font-semibold text-slate-500">Each photo becomes clear as its upload completes.</p>
+                        <div className="mt-4 grid grid-cols-3 gap-2 sm:grid-cols-5">
+                            {newImagePreviews.map((photo) => (
+                                <div key={photo.key} className="relative aspect-[4/3] overflow-hidden rounded-xl bg-slate-900">
+                                    <img
+                                        src={photo.url}
+                                        alt={`Uploading ${photo.name}`}
+                                        className={`h-full w-full object-cover transition ${photo.progress < 100 ? "scale-105 blur-md" : "blur-0"}`}
+                                    />
+                                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950/35 text-white">
+                                        <span className="text-lg font-black">{photo.progress}%</span>
+                                        <span className="text-[8px] font-black uppercase tracking-wider">{photo.progress >= 100 ? "Optimized" : "Uploading"}</span>
+                                    </div>
+                                    <div className="absolute inset-x-2 bottom-2 h-1.5 overflow-hidden rounded-full bg-white/25">
+                                        <div className="h-full rounded-full bg-orange-500 transition-[width] duration-150" style={{ width: `${photo.progress}%` }} />
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
                 <div className="sticky bottom-3 z-20 flex flex-col gap-3 rounded-[22px] border border-slate-200/80 bg-white/95 p-3 shadow-[0_16px_45px_rgba(15,23,42,0.14)] backdrop-blur sm:flex-row sm:items-center">
                     <button type="button" onClick={() => setShowPreview(false)} disabled={saving} className="inline-flex h-12 items-center justify-center gap-2 rounded-[16px] bg-slate-100 px-5 text-sm font-black text-slate-700 hover:bg-slate-200 disabled:opacity-50">
                         <FontAwesomeIcon icon={faArrowLeft} className="h-4 w-4" />
@@ -1019,7 +950,7 @@ function EditAdForm({ id }: { id: string }) {
                 </div>
             )}
 
-            <FormCard className="order-1" icon={faCamera} eyebrow="Step 1" title="Manage photos" description={`${totalPhotos} of 10 photos · choose a clear cover image.`}>
+            <FormCard className="order-1" icon={faCamera} eyebrow="Step 1" title="Manage photos" description={`${totalPhotos} selected · ${getPhotoRequirementText(selectedCategory ? getOptionLabel(selectedCategory) : "This category", photoRequirements)} Choose a clear cover image.`}>
                 <div className="rounded-[18px] border-2 border-dashed border-orange-200 bg-orange-50/70 p-3 transition hover:border-orange-300 hover:bg-orange-50">
                     <label className="flex min-h-20 cursor-pointer items-center gap-3 rounded-[14px] px-2 py-2 text-left">
                         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] bg-white text-orange-600 ring-1 ring-orange-100">
@@ -1027,7 +958,7 @@ function EditAdForm({ id }: { id: string }) {
                         </span>
                         <span className="min-w-0 flex-1">
                             <span className="block text-sm font-black text-slate-900">Add more photos</span>
-                            <span className="mt-0.5 block text-xs font-semibold text-slate-500">JPG, PNG or WEBP · 10MB maximum each</span>
+                            <span className="mt-0.5 block text-xs font-semibold text-slate-500">JPG, PNG or WEBP · 8MB maximum each · optimized automatically</span>
                         </span>
                         <span className="hidden rounded-full bg-orange-500 px-3 py-1.5 text-xs font-black text-white sm:inline-flex">Choose</span>
                         <input type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={handleAddImages} className="sr-only" />
@@ -1035,8 +966,7 @@ function EditAdForm({ id }: { id: string }) {
 
                     {totalPhotos > 0 && (
                         <div className="mt-3 border-t border-orange-200/70 pt-3">
-                            <p className="mb-2.5 flex items-center gap-2 text-[10px] font-bold leading-4 text-slate-500">
-                                <FontAwesomeIcon icon={faGripVertical} className="h-3 w-3 text-orange-500" />
+                            <p className="mb-2.5 text-[10px] font-bold leading-4 text-slate-500">
                                 Drag photos to reorder them. The first photo is your main cover.
                             </p>
 
@@ -1069,12 +999,7 @@ function EditAdForm({ id }: { id: string }) {
                                         <img
                                             src={photo.url}
                                             alt={`Ad photo ${index + 1}`}
-                                            className="pointer-events-none h-full w-full object-cover transition-transform duration-75"
-                                            style={{
-                                                objectPosition: `${photo.crop.x * 100}% ${photo.crop.y * 100}%`,
-                                                transform: `scale(${photo.crop.zoom})`,
-                                                transformOrigin: `${photo.crop.x * 100}% ${photo.crop.y * 100}%`,
-                                            }}
+                                            className="pointer-events-none h-full w-full object-cover"
                                         />
 
                                         {index === 0 ? (
@@ -1098,20 +1023,17 @@ function EditAdForm({ id }: { id: string }) {
                                             </span>
                                         )}
 
-                                        <button
-                                            type="button"
-                                            onClick={() => setEditingCropPhotoKey(photo.key)}
-                                            disabled={saving}
-                                            aria-label={`Adjust crop for ${photo.name}`}
-                                            title="Adjust crop"
-                                            className="absolute left-1.5 top-1.5 flex h-7 w-7 items-center justify-center rounded-full bg-white/95 text-orange-600 shadow-sm transition hover:bg-orange-500 hover:text-white disabled:opacity-50"
-                                        >
-                                            <FontAwesomeIcon icon={faCropSimple} className="h-3 w-3" />
-                                        </button>
-
-                                        <span className="pointer-events-none absolute bottom-1.5 right-1.5 flex h-7 w-7 items-center justify-center rounded-full bg-slate-950/70 text-white">
-                                            <FontAwesomeIcon icon={faGripVertical} className="h-3 w-3" />
-                                        </span>
+                                        {photo.kind === "existing" && (
+                                            <button
+                                                type="button"
+                                                onClick={() => setViewerPhoto({ url: photo.url, name: photo.name })}
+                                                aria-label={`View ${photo.name} full screen`}
+                                                title="View photo"
+                                                className="absolute left-1.5 top-1.5 flex h-7 w-7 items-center justify-center rounded-full bg-white/95 text-slate-700 shadow-sm transition hover:bg-orange-500 hover:text-white"
+                                            >
+                                                <FontAwesomeIcon icon={faExpand} className="h-3 w-3" />
+                                            </button>
+                                        )}
 
                                         <button
                                             type="button"
@@ -1121,12 +1043,18 @@ function EditAdForm({ id }: { id: string }) {
                                             }
                                             disabled={saving}
                                             aria-label={`Remove ${photo.name}`}
-                                            className="absolute right-1.5 top-1.5 flex h-7 w-7 items-center justify-center rounded-full bg-slate-950/80 text-white transition hover:bg-red-600 disabled:opacity-50"
+                                            className="absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-slate-950/80 text-white transition hover:bg-red-600 disabled:opacity-50"
                                         >
-                                            <FontAwesomeIcon icon={faXmark} className="h-3.5 w-3.5" />
+                                            <FontAwesomeIcon icon={faXmark} className="h-2.5 w-2.5" />
                                         </button>
                                     </div>
                                 ))}
+                            </div>
+                            <div className={`mt-3 rounded-xl px-3 py-2 text-[10px] font-black ring-1 ${totalPhotos >= photoRequirements.minimum && totalPhotos <= photoRequirements.maximum
+                                ? "bg-emerald-50 text-emerald-700 ring-emerald-100"
+                                : "bg-amber-50 text-amber-700 ring-amber-100"
+                            }`}>
+                                {totalPhotos} selected · {getPhotoRequirementText(selectedCategory ? getOptionLabel(selectedCategory) : "This category", photoRequirements)}
                             </div>
                         </div>
                     )}
@@ -1245,20 +1173,11 @@ function EditAdForm({ id }: { id: string }) {
             </div>
 
             <LocationPickerModal open={locationModalOpen} onClose={() => setLocationModalOpen(false)} cities={cities} selectedValue={city} search={locationSearch} setSearch={setLocationSearch} onSelect={selectCityValue} />
-            <PhotoCropModal
-                open={Boolean(activeCropFile || editingCropPhoto)}
-                sourceUrl={activeCropFileUrl || (editingCropPhoto?.kind === "existing"
-                    ? editingCropPhoto.sourceUrl
-                    : editingCropPhoto?.url) || ""
-                }
-                title={activeCropFile
-                    ? `Position ${activeCropFile.name}`
-                    : `Adjust ${editingCropPhoto?.name || "photo"}`
-                }
-                initialCrop={editingCropPhoto?.crop || { x: 0.5, y: 0.5, zoom: 1 }}
-                isSaving={cropSaving}
-                onCancel={cancelPhotoCrop}
-                onConfirm={confirmPhotoCrop}
+            <PhotoViewerModal
+                open={Boolean(viewerPhoto)}
+                imageUrl={viewerPhoto?.url || ""}
+                title={viewerPhoto?.name || "Ad photo"}
+                onClose={() => setViewerPhoto(null)}
             />
         </form>
     );

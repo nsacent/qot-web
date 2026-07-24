@@ -244,9 +244,16 @@ export default function HomeAdCard({
                     {title}
                 </h3>
 
-                <p className="mt-0.5 text-sm font-black tracking-[-0.02em] text-orange-600 sm:text-[15px]">
-                    {formatPrice(ad?.price, ad?.currency)}
-                </p>
+                <div className="mt-0.5 flex min-w-0 flex-wrap items-center gap-1.5">
+                    <p className="text-sm font-black tracking-[-0.02em] text-orange-600 sm:text-[15px]">
+                        {formatPrice(ad?.price, ad?.currency)}
+                    </p>
+                    {Boolean(ad?.is_negotiable ?? ad?.negotiable) && (
+                        <span className="shrink-0 rounded-full bg-orange-50 px-1.5 py-px text-[7px] font-extrabold uppercase tracking-wide text-orange-700 ring-1 ring-orange-100 sm:text-[8px]">
+                            Negotiable
+                        </span>
+                    )}
+                </div>
 
                 <div className="mt-auto flex items-center justify-between gap-2 border-t border-slate-100 pt-2 text-[9px] font-semibold text-slate-500 sm:text-[10px]">
                     <span className="flex min-w-0 items-center gap-1.5">

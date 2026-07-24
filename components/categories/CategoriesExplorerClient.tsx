@@ -6,6 +6,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
     faBriefcase,
     faCar,
+    faChevronDown,
     faCouch,
     faHouse,
     faLaptop,
@@ -155,20 +156,11 @@ function getCategoryIcon(category: Category) {
     return faStore;
 }
 
-function getCategoryDescription(category: Category) {
-    const childCount = category.children?.length || 0;
-
-    if (childCount === 0) {
-        return "Discover available adverts and trusted local sellers.";
-    }
-
-    return `Explore ${childCount} ${childCount === 1 ? "specialized collection" : "specialized collections"}.`;
-}
-
 export default function CategoriesExplorerClient({
     categories,
 }: CategoriesExplorerClientProps) {
     const [query, setQuery] = useState("");
+    const [activeSlug, setActiveSlug] = useState("");
 
     const totalSubcategories = useMemo(
         () => categories.reduce((total, category) => total + (category.children?.length || 0), 0),
@@ -200,6 +192,9 @@ export default function CategoriesExplorerClient({
             return matches;
         }, []);
     }, [categories, query]);
+    const activeCategory = visibleCategories.find(
+        (category) => getCategorySlug(category) === activeSlug
+    );
 
     return (
         <div className="pb-8 pt-4">
@@ -309,78 +304,89 @@ export default function CategoriesExplorerClient({
                 </div>
 
                 {visibleCategories.length > 0 ? (
-                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                        {visibleCategories.map((category, index) => {
-                            const visual = categoryVisuals[index % categoryVisuals.length];
-                            const children = category.children || [];
-                            const slug = getCategorySlug(category);
-
-                            return (
-                                <article
-                                    key={category.id || category.slug}
-                                    className={`group relative overflow-hidden rounded-[24px] bg-gradient-to-br ${visual.panel} p-px shadow-[0_12px_34px_rgba(15,23,42,0.07)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_20px_45px_rgba(15,23,42,0.11)]`}
-                                >
-                                    <div className={`absolute -right-8 -top-8 h-28 w-28 rounded-full ${visual.glow} blur-2xl transition duration-500 group-hover:scale-125`} />
-                                    <div className={`relative flex h-full flex-col rounded-[23px] bg-white/90 p-5 ring-1 ring-black/5 backdrop-blur ${visual.ring}`}>
-                                        <div className="flex items-start justify-between gap-4">
-                                            <span className={`flex h-11 w-11 items-center justify-center rounded-[15px] shadow-[0_10px_22px] ${visual.icon}`}>
-                                                <FontAwesomeIcon icon={getCategoryIcon(category)} className="h-5 w-5" />
+                    <div>
+                        <div className="-mx-4 flex snap-x snap-mandatory gap-2.5 overflow-x-auto px-4 pb-2 [scrollbar-width:none] sm:-mx-6 sm:px-6 lg:mx-0 lg:grid lg:grid-cols-5 lg:overflow-visible lg:px-0 xl:grid-cols-6 [&::-webkit-scrollbar]:hidden">
+                            {visibleCategories.map((category, index) => {
+                                const visual = categoryVisuals[index % categoryVisuals.length];
+                                const children = category.children || [];
+                                const slug = getCategorySlug(category);
+                                const active = slug === activeSlug;
+                                const tileClass = `group relative min-h-[118px] min-w-[132px] snap-start overflow-hidden rounded-[19px] bg-gradient-to-br ${visual.panel} p-3.5 text-left shadow-sm ring-1 transition hover:-translate-y-0.5 hover:shadow-md lg:min-w-0 ${active ? "ring-2 ring-orange-400" : "ring-black/5"}`;
+                                const content = (
+                                    <>
+                                        <span className={`flex h-10 w-10 items-center justify-center rounded-[13px] shadow-sm ${visual.icon}`}>
+                                            <FontAwesomeIcon icon={getCategoryIcon(category)} className="h-4 w-4" />
+                                        </span>
+                                        <span className="mt-3 block line-clamp-2 text-sm font-black leading-5 text-slate-950">{getCategoryName(category)}</span>
+                                        <span className="mt-1 flex flex-col gap-0.5 text-[8px] font-black uppercase tracking-wide text-slate-400">
+                                            <span className={visual.accent}>
+                                                {getCategoryAdCount(category)} active {getCategoryAdCount(category) === 1 ? "ad" : "ads"}
                                             </span>
-
-                                            <div className="text-right">
-                                                <p className={`text-xl font-black ${visual.accent}`}>{getCategoryAdCount(category)}</p>
-                                                <p className="text-[9px] font-black uppercase tracking-wider text-slate-400">
-                                                    active {getCategoryAdCount(category) === 1 ? "ad" : "ads"}
-                                                </p>
-                                            </div>
-                                        </div>
-
-                                        <Link href={`/ads?category=${encodeURIComponent(slug)}`} className="mt-4 block">
-                                            <h3 className="text-xl font-black tracking-tight text-slate-950 transition group-hover:text-orange-600">
-                                                {getCategoryName(category)}
-                                            </h3>
-                                            <p className="mt-1.5 text-xs font-semibold leading-5 text-slate-500">
-                                                {getCategoryDescription(category)}
-                                            </p>
-                                        </Link>
-
-                                        {children.length > 0 ? (
-                                            <div className="mt-4 flex flex-wrap gap-1.5">
-                                                {children.slice(0, query ? 6 : 4).map((child) => (
-                                                    <Link
-                                                        key={child.id || child.slug}
-                                                        href={`/ads?category=${encodeURIComponent(getCategorySlug(child))}`}
-                                                        className="inline-flex items-center gap-1.5 rounded-full bg-slate-50 px-2.5 py-1.5 text-[11px] font-bold text-slate-600 ring-1 ring-slate-200 transition hover:bg-orange-50 hover:text-orange-700 hover:ring-orange-200"
-                                                    >
-                                                        {getCategoryName(child)}
-                                                        <span className="rounded-full bg-white px-1.5 py-0.5 text-[9px] font-black text-slate-400 ring-1 ring-slate-100">
-                                                            {getCategoryAdCount(child)}
-                                                        </span>
-                                                    </Link>
-                                                ))}
-                                                {children.length > (query ? 6 : 4) && (
-                                                    <span className="rounded-full bg-slate-950 px-2.5 py-1.5 text-[10px] font-black text-white">
-                                                        +{children.length - (query ? 6 : 4)}
-                                                    </span>
-                                                )}
-                                            </div>
-                                        ) : (
-                                            <div className="mt-4 rounded-[14px] bg-slate-50 px-3 py-2.5 text-[11px] font-bold text-slate-500 ring-1 ring-slate-100">
-                                                Fresh adverts are waiting to be discovered.
-                                            </div>
+                                            {children.length > 0 && (
+                                                <span>{children.length} {children.length === 1 ? "subcategory" : "subcategories"}</span>
+                                            )}
+                                        </span>
+                                        {children.length > 0 && (
+                                            <FontAwesomeIcon
+                                                icon={faChevronDown}
+                                                className={`absolute right-3 top-3 h-2.5 w-2.5 transition ${active ? "rotate-180 text-orange-600" : "text-slate-400"}`}
+                                            />
                                         )}
+                                    </>
+                                );
 
-                                        <Link
-                                            href={`/ads?category=${encodeURIComponent(slug)}`}
-                                            className={`mt-auto flex items-center justify-between border-t border-slate-100 pt-4 text-xs font-black ${visual.accent}`}
-                                        >
-                                            Browse {getCategoryName(category)}
-                                            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-950 text-base text-white transition group-hover:translate-x-1 group-hover:bg-orange-500">→</span>
-                                        </Link>
+                                return children.length > 0 ? (
+                                    <button
+                                        key={category.id || category.slug}
+                                        type="button"
+                                        onClick={() => setActiveSlug((current) => current === slug ? "" : slug)}
+                                        aria-expanded={active}
+                                        className={tileClass}
+                                    >
+                                        {content}
+                                    </button>
+                                ) : (
+                                    <Link
+                                        key={category.id || category.slug}
+                                        href={`/ads?category=${encodeURIComponent(slug)}`}
+                                        className={tileClass}
+                                    >
+                                        {content}
+                                    </Link>
+                                );
+                            })}
+                        </div>
+
+                        {activeCategory && (activeCategory.children || []).length > 0 && (
+                            <div className="mt-3 rounded-[24px] bg-white p-4 shadow-[0_12px_34px_rgba(15,23,42,0.06)] ring-1 ring-black/5 sm:p-5">
+                                <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+                                    <div>
+                                        <p className="text-[10px] font-black uppercase tracking-[0.16em] text-orange-600">Choose a subcategory</p>
+                                        <h3 className="mt-1 text-xl font-black text-slate-950">{getCategoryName(activeCategory)}</h3>
                                     </div>
-                                </article>
-                            );
-                        })}
+                                    <Link
+                                        href={`/ads?category=${encodeURIComponent(activeSlug)}`}
+                                        className="inline-flex h-10 w-fit items-center rounded-[13px] bg-slate-950 px-4 text-xs font-black text-white hover:bg-orange-500"
+                                    >
+                                        Browse all {getCategoryName(activeCategory)}
+                                    </Link>
+                                </div>
+                                <div className="mt-4 grid grid-flow-col grid-rows-2 auto-cols-[minmax(150px,1fr)] gap-2 overflow-x-auto pb-1 [scrollbar-width:none] sm:grid-flow-row sm:grid-cols-3 sm:grid-rows-none sm:overflow-visible lg:grid-cols-4 [&::-webkit-scrollbar]:hidden">
+                                    {(activeCategory.children || []).map((child) => (
+                                        <Link
+                                            key={child.id || child.slug}
+                                            href={`/ads?category=${encodeURIComponent(getCategorySlug(child))}`}
+                                            className="flex min-h-12 items-center justify-between gap-2 rounded-[14px] bg-slate-50 px-3 py-2.5 text-xs font-black text-slate-700 ring-1 ring-slate-100 transition hover:bg-orange-50 hover:text-orange-700 hover:ring-orange-200"
+                                        >
+                                            <span>{getCategoryName(child)}</span>
+                                            <span className="shrink-0 rounded-full bg-white px-2 py-1 text-[9px] text-slate-400 ring-1 ring-slate-100">
+                                                {getCategoryAdCount(child)}
+                                            </span>
+                                        </Link>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                     </div>
                 ) : categories.length > 0 ? (
                     <div className="rounded-[30px] bg-white px-6 py-14 text-center shadow-[0_16px_45px_rgba(15,23,42,0.08)] ring-1 ring-black/5">

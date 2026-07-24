@@ -108,9 +108,16 @@ export default function ListingCard({ listing }: ListingCardProps) {
                     </a>
                 )}
 
-                <p className="mt-4 text-xl font-bold text-orange-600">
-                    {formatPrice(listing.price)}
-                </p>
+                <div className="mt-4 flex flex-wrap items-center gap-2">
+                    <p className="text-xl font-bold text-orange-600">
+                        {formatPrice(listing.price)}
+                    </p>
+                    {Boolean(listing?.is_negotiable ?? listing?.negotiable) && (
+                        <span className="rounded-full bg-orange-50 px-2 py-0.5 text-[8px] font-extrabold uppercase tracking-wide text-orange-700 ring-1 ring-orange-100">
+                            Negotiable
+                        </span>
+                    )}
+                </div>
 
                 <div className="mt-4 flex flex-wrap items-center gap-3 text-xs text-slate-500">
                     {listing.views_count !== undefined && (

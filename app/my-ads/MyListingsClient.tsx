@@ -3,10 +3,19 @@
 import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+    faCircleCheck,
+    faPause,
+    faPenToSquare,
+    faPlay,
+    faRotateRight,
+    faTrash,
+} from "@fortawesome/free-solid-svg-icons";
 import { faList, faPlus, faStore } from "@/lib/faIcons";
 import QotLoader from "@/components/common/QotLoader";
 import { getCurrentUser } from "@/lib/sessionClient";
 import ListingCardImage from "@/components/listings/ListingCardImage";
+import AdActionModal from "@/components/listings/AdActionModal";
 
 function getArray(data: any) {
     if (Array.isArray(data)) return data;
@@ -145,7 +154,100 @@ const statusPriority: Record<string, number> = {
     expired: 6,
 };
 
-function SellerAdCard({ ad }: { ad: any }) {
+type CardAction = {
+    action: string;
+    label: string;
+    title: string;
+    description: string;
+    confirmLabel: string;
+    icon: any;
+    tone: string;
+    destructive?: boolean;
+};
+
+function getCardActions(status: string, isDraft: boolean): CardAction[] {
+    if (isDraft) {
+        return [{
+            action: "discard-draft",
+            label: "Discard",
+            title: "Discard this draft?",
+            description: "The unfinished ad and its staged photos will be removed. This cannot be undone.",
+            confirmLabel: "Discard draft",
+            icon: faTrash,
+            tone: "bg-red-50 text-red-700",
+            destructive: true,
+        }];
+    }
+
+    const removeAction: CardAction = {
+        action: "delete",
+        label: "Remove",
+        title: "Remove this ad?",
+        description: "The ad will be removed from QOT. Pause it instead if the item may become available again.",
+        confirmLabel: "Remove ad",
+        icon: faTrash,
+        tone: "bg-red-50 text-red-700",
+        destructive: true,
+    };
+
+    if (status === "active") {
+        return [
+            {
+                action: "mark-sold",
+                label: "Sold",
+                title: "Mark this ad as sold?",
+                description: "Buyers will see that the item is no longer available.",
+                confirmLabel: "Mark as sold",
+                icon: faCircleCheck,
+                tone: "bg-emerald-50 text-emerald-700",
+            },
+            {
+                action: "mark-unavailable",
+                label: "Pause",
+                title: "Pause this ad?",
+                description: "The ad will be hidden from buyers until you resume it.",
+                confirmLabel: "Pause ad",
+                icon: faPause,
+                tone: "bg-amber-50 text-amber-700",
+            },
+            removeAction,
+        ];
+    }
+
+    if (["sold", "unavailable"].includes(status)) {
+        return [
+            {
+                action: "mark-available",
+                label: "Resume",
+                title: "Make this ad available again?",
+                description: "The ad will return to the marketplace for buyers to view and contact you.",
+                confirmLabel: "Resume ad",
+                icon: faPlay,
+                tone: "bg-blue-50 text-blue-700",
+            },
+            removeAction,
+        ];
+    }
+
+    if (status === "expired") {
+        return [
+            {
+                action: "renew",
+                label: "Renew",
+                title: "Renew this ad?",
+                description: "The ad duration will be extended and it will return to active status.",
+                confirmLabel: "Renew ad",
+                icon: faRotateRight,
+                tone: "bg-violet-50 text-violet-700",
+            },
+            removeAction,
+        ];
+    }
+
+    return [removeAction];
+}
+
+function SellerAdCard({ ad, onChanged }: { ad: any; onChanged: () => void }) {
     const id = getAdId(ad);
     const title = getAdTitle(ad);
     const status = normalizeStatus(ad);
@@ -153,6 +255,58 @@ function SellerAdCard({ ad }: { ad: any }) {
     const manageHref = isDraft ? "/post-ad" : `/my-ads/${id}`;
     const viewHref = isDraft ? "/post-ad" : `/ads/${id}`;
     const statusLabel = statusTabs.find((tab) => tab.value === status)?.label || status.replaceAll("_", " ");
+    const [pendingAction, setPendingAction] = useState<CardAction | null>(null);
+    const [actionLoading, setActionLoading] = useState(false);
+    const [actionError, setActionError] = useState("");
+    const actions = getCardActions(status, isDraft);
+
+    async function confirmAction() {
+        if (!pendingAction) return;
+
+        setActionLoading(true);
+        setActionError("");
+
+        try {
+            let response: Response;
+
+            if (pendingAction.action === "discard-draft") {
+                response = await fetch("/api/proxy/listings/draft/", {
+                    method: "DELETE",
+                    credentials: "include",
+                });
+            } else if (pendingAction.action === "delete") {
+                response = await fetch(`/api/proxy/seller/listings/${id}/`, {
+                    method: "DELETE",
+                    credentials: "include",
+                });
+            } else {
+                response = await fetch(`/api/proxy/listings/${id}/${pendingAction.action}/`, {
+                    method: "POST",
+                    credentials: "include",
+                });
+            }
+
+            if (response.status === 401) {
+                window.location.href = "/login?next=/my-ads";
+                return;
+            }
+
+            const data = response.status === 204
+                ? {}
+                : await response.json().catch(() => ({}));
+
+            if (!response.ok) {
+                throw new Error(data?.detail || data?.message || "The ad could not be updated.");
+            }
+
+            setPendingAction(null);
+            onChanged();
+        } catch (requestError: any) {
+            setActionError(requestError.message || "The ad could not be updated.");
+        } finally {
+            setActionLoading(false);
+        }
+    }
 
     return (
         <article className="overflow-hidden rounded-[26px] bg-white shadow-sm ring-1 ring-black/5">
@@ -183,6 +337,31 @@ function SellerAdCard({ ad }: { ad: any }) {
                 </div>
             </Link>
 
+            <div className="border-t border-slate-100 px-3 py-2.5">
+                <div className="overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                    <div className="flex min-w-max gap-1.5">
+                        <Link href={isDraft ? "/post-ad" : `/my-ads/${id}/edit`} className="inline-flex h-8 items-center gap-1.5 rounded-xl bg-orange-50 px-2.5 text-[10px] font-black text-orange-700 transition hover:bg-orange-100">
+                            <FontAwesomeIcon icon={faPenToSquare} className="h-2.5 w-2.5" />
+                            Edit
+                        </Link>
+                        {actions.map((action) => (
+                            <button
+                                key={action.action}
+                                type="button"
+                                onClick={() => {
+                                    setActionError("");
+                                    setPendingAction(action);
+                                }}
+                                className={`inline-flex h-8 items-center gap-1.5 rounded-xl px-2.5 text-[10px] font-black transition hover:brightness-95 ${action.tone}`}
+                            >
+                                <FontAwesomeIcon icon={action.icon} className="h-2.5 w-2.5" />
+                                {action.label}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            </div>
+
             <div className="grid grid-cols-2 gap-2 border-t border-slate-100 p-3">
                 <Link
                     href={viewHref}
@@ -198,6 +377,22 @@ function SellerAdCard({ ad }: { ad: any }) {
                     {isDraft ? "Edit draft" : "Manage"}
                 </Link>
             </div>
+
+            <AdActionModal
+                open={Boolean(pendingAction)}
+                title={pendingAction?.title || "Update ad?"}
+                description={pendingAction?.description || "Confirm this change."}
+                confirmLabel={pendingAction?.confirmLabel || "Confirm"}
+                destructive={pendingAction?.destructive}
+                loading={actionLoading}
+                error={actionError}
+                onClose={() => {
+                    if (actionLoading) return;
+                    setPendingAction(null);
+                    setActionError("");
+                }}
+                onConfirm={confirmAction}
+            />
         </article>
     );
 }
@@ -366,7 +561,7 @@ function MyListingsContent() {
                 ) : filteredAds.length > 0 ? (
                     <div className="mt-7 grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
                         {filteredAds.map((ad) => (
-                            <SellerAdCard key={String(getAdId(ad))} ad={ad} />
+                            <SellerAdCard key={String(getAdId(ad))} ad={ad} onChanged={loadMyAds} />
                         ))}
                     </div>
                 ) : (
