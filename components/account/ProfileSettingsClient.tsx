@@ -233,13 +233,13 @@ export default function ProfileSettingsClient() {
     if (loading) return <QotLoader />;
 
     return (
-        <section className="overflow-hidden rounded-[30px] bg-white shadow-[0_18px_55px_rgba(15,23,42,0.08)] ring-1 ring-black/5">
-            <div className="relative h-44 bg-gradient-to-br from-slate-800 to-slate-950 sm:h-56">
+        <section className="overflow-hidden rounded-[26px] bg-white shadow-[0_18px_55px_rgba(15,23,42,0.08)] ring-1 ring-black/5">
+            <div className="relative h-32 bg-gradient-to-br from-slate-800 to-slate-950 sm:h-48">
                 {coverPreview && (
                     <img src={coverPreview} alt="Profile cover" className="h-full w-full object-cover" />
                 )}
-                <label className="absolute right-4 top-4 inline-flex cursor-pointer items-center gap-2 rounded-full bg-slate-950/75 px-4 py-2 text-xs font-black text-white backdrop-blur hover:bg-slate-950">
-                    <FontAwesomeIcon icon={faCamera} className="h-4 w-4" />
+                <label className="absolute right-3 top-3 inline-flex cursor-pointer items-center gap-1.5 rounded-full bg-slate-950/75 px-3 py-2 text-[10px] font-black text-white backdrop-blur hover:bg-slate-950 sm:right-4 sm:top-4 sm:text-xs">
+                    <FontAwesomeIcon icon={faCamera} className="h-3.5 w-3.5" />
                     Change cover
                     <input
                         type="file"
@@ -250,17 +250,17 @@ export default function ProfileSettingsClient() {
                 </label>
             </div>
 
-            <form onSubmit={handleSave} className="p-5 sm:p-8">
-                <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end">
-                    <div className="relative -mt-20 h-32 w-32 shrink-0 overflow-hidden rounded-[30px] border-4 border-white bg-orange-500 shadow-xl">
+            <form onSubmit={handleSave} className="p-4 pb-24 sm:p-7">
+                <div className="mb-6 flex items-end gap-3 sm:mb-8 sm:gap-4">
+                    <div className="relative -mt-14 h-24 w-24 shrink-0 overflow-hidden rounded-[24px] border-4 border-white bg-orange-500 shadow-xl sm:-mt-20 sm:h-32 sm:w-32 sm:rounded-[30px]">
                         {avatarPreview ? (
                             <img src={avatarPreview} alt="Profile" className="h-full w-full object-cover" />
                         ) : (
-                            <span className="flex h-full w-full items-center justify-center text-5xl font-black text-white">
+                            <span className="flex h-full w-full items-center justify-center text-4xl font-black text-white sm:text-5xl">
                                 {(fullName || "Q").charAt(0).toUpperCase()}
                             </span>
                         )}
-                        <label className="absolute inset-x-0 bottom-0 flex cursor-pointer items-center justify-center gap-1.5 bg-slate-950/80 py-2 text-[11px] font-black text-white">
+                        <label className="absolute inset-x-0 bottom-0 flex cursor-pointer items-center justify-center gap-1.5 bg-slate-950/80 py-1.5 text-[10px] font-black text-white sm:py-2 sm:text-[11px]">
                             <FontAwesomeIcon icon={faCamera} className="h-3.5 w-3.5" />
                             Photo
                             <input
@@ -272,34 +272,34 @@ export default function ProfileSettingsClient() {
                         </label>
                     </div>
 
-                    <div className="pb-1">
-                        <h2 className="text-2xl font-black text-slate-950">Public profile</h2>
-                        <p className="mt-1 text-sm font-semibold text-slate-500">
+                    <div className="min-w-0 flex-1 pb-1">
+                        <h2 className="text-xl font-black text-slate-950 sm:text-2xl">Public profile</h2>
+                        <p className="mt-1 line-clamp-2 text-xs font-semibold leading-5 text-slate-500 sm:text-sm">
                             Your profile details appear to buyers across QOT Uganda.
                         </p>
 
-                        <div className="mt-4 grid max-w-sm grid-cols-2 gap-2">
+                        <div className="mt-3 grid max-w-sm grid-cols-2 gap-2 sm:mt-4">
                             <button
                                 type="button"
                                 onClick={() => openConnections("followers")}
-                                className="rounded-2xl bg-orange-50 px-4 py-3 text-left ring-1 ring-orange-100 transition hover:bg-orange-100"
+                                className="rounded-2xl bg-orange-50 px-3 py-2 text-left ring-1 ring-orange-100 transition hover:bg-orange-100 sm:px-4 sm:py-3"
                             >
-                                <span className="block text-xl font-black text-slate-950">
+                                <span className="block text-base font-black text-slate-950 sm:text-xl">
                                     {Number(user?.followers_count || 0).toLocaleString()}
                                 </span>
-                                <span className="text-[11px] font-black uppercase tracking-wide text-orange-600">
+                                <span className="text-[9px] font-black uppercase tracking-wide text-orange-600 sm:text-[11px]">
                                     Followers
                                 </span>
                             </button>
                             <button
                                 type="button"
                                 onClick={() => openConnections("following")}
-                                className="rounded-2xl bg-slate-50 px-4 py-3 text-left ring-1 ring-slate-100 transition hover:bg-slate-100"
+                                className="rounded-2xl bg-slate-50 px-3 py-2 text-left ring-1 ring-slate-100 transition hover:bg-slate-100 sm:px-4 sm:py-3"
                             >
-                                <span className="block text-xl font-black text-slate-950">
+                                <span className="block text-base font-black text-slate-950 sm:text-xl">
                                     {Number(user?.following_count || 0).toLocaleString()}
                                 </span>
-                                <span className="text-[11px] font-black uppercase tracking-wide text-slate-500">
+                                <span className="text-[9px] font-black uppercase tracking-wide text-slate-500 sm:text-[11px]">
                                     Following
                                 </span>
                             </button>
@@ -344,7 +344,7 @@ export default function ProfileSettingsClient() {
                             </p>
                         ) : user?.phone ? (
                             <a
-                                href="/account/verification?next=/account"
+                                href="/account/verification?next=/account/profile"
                                 className="mt-2 inline-flex items-center gap-1.5 text-xs font-black text-orange-600 hover:text-orange-700"
                             >
                                 <FontAwesomeIcon icon={faShieldHalved} className="h-3.5 w-3.5" />
@@ -370,7 +370,7 @@ export default function ProfileSettingsClient() {
                             </p>
                         ) : user?.email ? (
                             <a
-                                href="/account/verification?channel=email&next=/account"
+                                href="/account/verification?channel=email&next=/account/profile"
                                 className="mt-2 inline-flex items-center gap-1.5 text-xs font-black text-slate-600 hover:text-orange-600"
                             >
                                 <FontAwesomeIcon icon={faEnvelope} className="h-3.5 w-3.5" />
@@ -424,9 +424,11 @@ export default function ProfileSettingsClient() {
                     <textarea value={bio} onChange={(event) => setBio(event.target.value)} rows={4} placeholder="Tell buyers a little about you..." className="w-full rounded-2xl bg-slate-50 px-4 py-3 text-sm font-bold outline-none ring-1 ring-slate-100 focus:bg-white focus:ring-orange-200" />
                 </label>
 
-                <button type="submit" disabled={saving} className="mt-6 inline-flex w-full items-center justify-center rounded-2xl bg-orange-500 px-6 py-3.5 text-sm font-black text-white hover:bg-orange-600 disabled:opacity-60 sm:w-auto">
-                    {saving ? "Saving profile..." : "Save profile"}
-                </button>
+                <div className="fixed inset-x-0 bottom-[68px] z-[80] mt-6 border-t border-slate-100 bg-white/95 px-4 py-3 shadow-[0_-10px_30px_rgba(15,23,42,0.08)] backdrop-blur sm:static sm:mx-0 sm:border-0 sm:bg-transparent sm:p-0 sm:shadow-none">
+                    <button type="submit" disabled={saving} className="inline-flex w-full items-center justify-center rounded-2xl bg-orange-500 px-6 py-3.5 text-sm font-black text-white shadow-[0_10px_24px_rgba(249,115,22,0.20)] hover:bg-orange-600 disabled:opacity-60 sm:w-auto">
+                        {saving ? "Saving profile..." : "Save profile"}
+                    </button>
+                </div>
             </form>
 
             {connectionMode && (

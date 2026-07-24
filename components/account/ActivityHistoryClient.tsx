@@ -1,8 +1,21 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+    faArrowRight,
+    faBell,
+    faClock,
+    faHeart,
+    faList,
+    faRotate,
+    faStar,
+    faStore,
+} from "@fortawesome/free-solid-svg-icons";
 import { apiGet } from "@/lib/apiClient";
 import { getStoredUser, getUserDisplayName } from "@/lib/auth";
+import { formatDateTime, formatRelativeTime } from "@/lib/dateTime";
 
 type ActivityItem = {
     id: string;
@@ -35,22 +48,6 @@ function safeDate(value: any) {
     return date.toISOString();
 }
 
-function formatDate(value?: string) {
-    if (!value) return "Recent activity";
-
-    const date = new Date(value);
-
-    if (Number.isNaN(date.getTime())) return "Recent activity";
-
-    return date.toLocaleString(undefined, {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-    });
-}
-
 function getListingId(listing: any) {
     return listing?.id || listing?.listing_id || listing?.uuid || "";
 }
@@ -71,6 +68,15 @@ function getStatusLabel(status: string) {
         .replaceAll("_", " ")
         .replaceAll("-", " ")
         .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function getActivityIcon(type: string) {
+    if (type === "recent") return faClock;
+    if (type === "favorite") return faHeart;
+    if (type === "review") return faStar;
+    if (type === "notification") return faBell;
+    if (type === "seller_listing") return faStore;
+    return faList;
 }
 
 function readRecentlyViewed(): any[] {
@@ -351,209 +357,183 @@ export default function ActivityHistoryClient() {
 
     const name = getUserDisplayName(user);
 
+    const summaryItems = [
+        { label: "Viewed", value: recentItems.length, icon: faClock },
+        { label: "Saved", value: favoriteItems.length, icon: faHeart },
+        { label: "My ads", value: sellerListingItems.length, icon: faStore },
+        { label: "Alerts", value: notificationItems.length, icon: faBell },
+    ];
+
     return (
-        <section className="mx-auto max-w-6xl px-6 py-10">
-            <div className="mb-8">
-                <p className="text-sm font-semibold uppercase tracking-wide text-orange-600">
-                    Activity History
-                </p>
+        <section className="space-y-4">
+            <div className="rounded-[26px] bg-white p-5 shadow-sm ring-1 ring-black/5 sm:p-7">
+                <div className="flex items-start justify-between gap-4">
+                    <div className="min-w-0">
+                        <p className="text-[9px] font-black uppercase tracking-[0.16em] text-orange-600">
+                            Activity history
+                        </p>
+                        <h1 className="mt-1 text-2xl font-black tracking-tight text-slate-950 sm:text-3xl">
+                            Your recent activity
+                        </h1>
+                        <p className="mt-1 max-w-2xl text-xs font-semibold leading-5 text-slate-500 sm:text-sm">
+                            Saved ads, reviews, notifications, and seller updates for {name}.
+                        </p>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={loadActivity}
+                        disabled={loading}
+                        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-slate-950 text-white transition hover:bg-orange-500 disabled:opacity-50 sm:w-auto sm:gap-2 sm:px-4"
+                        aria-label="Refresh activity"
+                    >
+                        <FontAwesomeIcon icon={faRotate} className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+                        <span className="hidden text-xs font-black sm:inline">Refresh</span>
+                    </button>
+                </div>
 
-                <h1 className="mt-2 text-3xl font-bold text-slate-900 md:text-5xl">
-                    Your QOT Activity
-                </h1>
-
-                <p className="mt-3 max-w-2xl text-slate-600">
-                    Track your recent marketplace actions, saved adverts, reviews,
-                    notifications, and seller ad updates in one place.
-                </p>
-            </div>
-
-            <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
-                <div className="rounded-2xl border bg-white p-6 shadow-sm md:p-8">
-                    {error && (
-                        <div className="mb-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-                            {error}
-                        </div>
-                    )}
-
-                    <div className="mb-6 flex flex-col gap-4 rounded-2xl bg-slate-50 p-5 md:flex-row md:items-center md:justify-between">
-                        <div>
-                            <p className="font-bold text-slate-900">{name}</p>
-                            <p className="mt-1 text-sm text-slate-600">
-                                {allItems.length} activity item{allItems.length === 1 ? "" : "s"} found
+                <div className="mt-5 grid grid-cols-4 divide-x divide-slate-100 rounded-[20px] bg-slate-50 px-1 py-3 ring-1 ring-slate-100">
+                    {summaryItems.map((item) => (
+                        <div key={item.label} className="min-w-0 px-1.5 text-center sm:px-3">
+                            <FontAwesomeIcon icon={item.icon} className="mx-auto h-3.5 w-3.5 text-orange-500" />
+                            <p className="mt-1 text-lg font-black text-slate-950">{item.value}</p>
+                            <p className="truncate text-[8px] font-black uppercase tracking-wide text-slate-400 sm:text-[9px]">
+                                {item.label}
                             </p>
                         </div>
+                    ))}
+                </div>
+            </div>
 
-                        <button
-                            type="button"
-                            onClick={loadActivity}
-                            className="rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white hover:bg-slate-800"
-                        >
-                            Refresh Activity
-                        </button>
-                    </div>
+            {error && (
+                <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700">
+                    {error}
+                </div>
+            )}
 
-                    <div className="mb-6 flex flex-wrap gap-2">
-                        {filters.map((filter) => (
+            <div className="-mx-3 overflow-x-auto px-3 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mx-0 sm:px-0">
+                <div className="flex min-w-max gap-2">
+                    {filters.map((filter) => {
+                        const selected = activeFilter === filter.key;
+
+                        return (
                             <button
                                 key={filter.key}
                                 type="button"
                                 onClick={() => setActiveFilter(filter.key)}
-                                className={
-                                    activeFilter === filter.key
-                                        ? "rounded-full bg-orange-500 px-4 py-2 text-sm font-bold text-white"
-                                        : "rounded-full bg-slate-100 px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-200"
-                                }
+                                aria-pressed={selected}
+                                className={`inline-flex h-10 items-center gap-2 rounded-full px-4 text-xs font-black transition ${
+                                    selected
+                                        ? "bg-orange-500 text-white shadow-[0_8px_20px_rgba(249,115,22,0.20)]"
+                                        : "bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-orange-50 hover:text-orange-600"
+                                }`}
                             >
-                                {filter.label}{" "}
-                                <span className="ml-1 opacity-80">({filter.count})</span>
+                                {filter.label}
+                                <span className={`rounded-full px-1.5 py-0.5 text-[9px] ${
+                                    selected ? "bg-white/20 text-white" : "bg-slate-100 text-slate-500"
+                                }`}>
+                                    {filter.count}
+                                </span>
                             </button>
-                        ))}
-                    </div>
+                        );
+                    })}
+                </div>
+            </div>
 
+            <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_260px]">
+                <div className="overflow-hidden rounded-[26px] bg-white shadow-sm ring-1 ring-black/5">
                     {loading ? (
-                        <div className="rounded-2xl border border-dashed p-8 text-center text-slate-500">
-                            Loading your activity...
+                        <div className="p-10 text-center">
+                            <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-orange-50 text-orange-500">
+                                <FontAwesomeIcon icon={faRotate} className="h-5 w-5 animate-spin" />
+                            </span>
+                            <p className="mt-3 text-sm font-bold text-slate-500">Loading your activity...</p>
                         </div>
                     ) : filteredItems.length === 0 ? (
-                        <div className="rounded-2xl border border-dashed p-8 text-center">
-                            <p className="font-bold text-slate-900">No activity found</p>
-                            <p className="mt-2 text-sm text-slate-600">
-                                Start browsing, saving adverts, reviewing sellers, or managing
-                                ads to build your activity history.
+                        <div className="p-8 text-center sm:p-12">
+                            <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-[20px] bg-slate-50 text-slate-400">
+                                <FontAwesomeIcon icon={faClock} className="h-5 w-5" />
+                            </span>
+                            <h2 className="mt-4 text-lg font-black text-slate-950">No activity here yet</h2>
+                            <p className="mx-auto mt-1 max-w-sm text-xs font-semibold leading-5 text-slate-500">
+                                Browse, save, review, or manage ads to build your QOT activity.
                             </p>
-
-                            <div className="mt-5 flex flex-col justify-center gap-3 sm:flex-row">
-                                <a
-                                    href="/ads"
-                                    className="rounded-xl bg-orange-500 px-5 py-3 text-sm font-semibold text-white hover:bg-orange-600"
-                                >
-                                    Browse Adverts
-                                </a>
-
-                                <a
-                                    href="/post-ad"
-                                    className="rounded-xl border px-5 py-3 text-sm font-semibold hover:bg-slate-50"
-                                >
-                                    Post Advert
-                                </a>
-                            </div>
+                            <Link
+                                href="/ads"
+                                className="mt-5 inline-flex rounded-2xl bg-orange-500 px-5 py-3 text-xs font-black text-white"
+                            >
+                                Browse ads
+                            </Link>
                         </div>
                     ) : (
-                        <div className="relative space-y-4">
+                        <div className="divide-y divide-slate-100">
                             {filteredItems.map((item) => (
-                                <div
+                                <article
                                     key={item.id}
-                                    className="rounded-2xl border p-5 transition hover:border-orange-200 hover:bg-orange-50/30"
+                                    className="group flex gap-3 p-4 transition hover:bg-orange-50/50 sm:p-5"
                                 >
-                                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                                        <div>
-                                            <div className="flex flex-wrap items-center gap-2">
-                                                <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700">
-                                                    {item.badge}
-                                                </span>
-
-                                                <span className="text-xs text-slate-500">
-                                                    {formatDate(item.date)}
-                                                </span>
-                                            </div>
-
-                                            <h2 className="mt-3 font-bold text-slate-900">
-                                                {item.title}
-                                            </h2>
-
-                                            <p className="mt-1 text-sm leading-6 text-slate-600">
-                                                {item.description}
-                                            </p>
-                                        </div>
-
-                                        {item.href && (
-                                            <a
-                                                href={item.href}
-                                                className="rounded-xl border px-4 py-2 text-center text-sm font-semibold hover:bg-white"
+                                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[15px] bg-slate-50 text-slate-500 transition group-hover:bg-white group-hover:text-orange-600">
+                                        <FontAwesomeIcon icon={getActivityIcon(item.type)} className="h-4 w-4" />
+                                    </span>
+                                    <div className="min-w-0 flex-1">
+                                        <div className="flex flex-wrap items-center gap-2">
+                                            <span className="rounded-full bg-orange-50 px-2 py-1 text-[9px] font-black uppercase tracking-wide text-orange-600">
+                                                {item.badge}
+                                            </span>
+                                            <span
+                                                className="text-[10px] font-bold text-slate-400"
+                                                title={formatDateTime(item.date)}
                                             >
-                                                Open
-                                            </a>
-                                        )}
+                                                {formatRelativeTime(item.date)}
+                                            </span>
+                                        </div>
+                                        <h2 className="mt-2 text-sm font-black leading-5 text-slate-950">
+                                            {item.title}
+                                        </h2>
+                                        <p className="mt-0.5 line-clamp-2 text-xs font-semibold leading-5 text-slate-500">
+                                            {item.description}
+                                        </p>
                                     </div>
-                                </div>
+                                    {item.href && (
+                                        <Link
+                                            href={item.href}
+                                            aria-label={`Open ${item.title}`}
+                                            className="flex h-9 w-9 shrink-0 items-center justify-center self-center rounded-[14px] bg-slate-50 text-slate-400 transition hover:bg-orange-500 hover:text-white"
+                                        >
+                                            <FontAwesomeIcon icon={faArrowRight} className="h-3.5 w-3.5" />
+                                        </Link>
+                                    )}
+                                </article>
                             ))}
                         </div>
                     )}
                 </div>
 
-                <aside className="space-y-6">
-                    <div className="rounded-2xl border bg-white p-6 shadow-sm">
-                        <p className="text-sm font-semibold uppercase tracking-wide text-orange-600">
-                            Summary
+                <aside className="hidden space-y-3 xl:block">
+                    <div className="rounded-[24px] bg-slate-950 p-5 text-white">
+                        <p className="text-[9px] font-black uppercase tracking-[0.15em] text-orange-300">
+                            Activity total
                         </p>
-
-                        <div className="mt-5 grid gap-3">
-                            <div className="rounded-xl bg-slate-50 p-4">
-                                <p className="text-2xl font-bold text-slate-900">
-                                    {recentItems.length}
-                                </p>
-                                <p className="text-sm text-slate-600">Recently viewed</p>
-                            </div>
-
-                            <div className="rounded-xl bg-slate-50 p-4">
-                                <p className="text-2xl font-bold text-slate-900">
-                                    {favoriteItems.length}
-                                </p>
-                                <p className="text-sm text-slate-600">Saved adverts</p>
-                            </div>
-
-                            <div className="rounded-xl bg-slate-50 p-4">
-                                <p className="text-2xl font-bold text-slate-900">
-                                    {sellerListingItems.length}
-                                </p>
-                                <p className="text-sm text-slate-600">Your adverts</p>
-                            </div>
-                        </div>
+                        <p className="mt-2 text-4xl font-black">{allItems.length}</p>
+                        <p className="mt-1 text-xs font-semibold leading-5 text-slate-400">
+                            Marketplace events collected for your account.
+                        </p>
                     </div>
 
-                    <div className="rounded-2xl border bg-white p-6 shadow-sm">
-                        <p className="text-sm font-semibold uppercase tracking-wide text-orange-600">
-                            Quick Actions
-                        </p>
-
-                        <div className="mt-4 grid gap-3">
-                            <a
-                                href="/account/saved"
-                                className="rounded-xl border px-5 py-3 text-center font-semibold hover:bg-slate-50"
-                            >
-                                Saved Adverts
-                            </a>
-
-                            <a
-                                href="/account/recently-viewed"
-                                className="rounded-xl border px-5 py-3 text-center font-semibold hover:bg-slate-50"
-                            >
-                                Recently Viewed
-                            </a>
-
-                            <a
-                                href="/account/my-reviews"
-                                className="rounded-xl border px-5 py-3 text-center font-semibold hover:bg-slate-50"
-                            >
-                                My Reviews
-                            </a>
-
-                            <a
-                                href="/my-ads"
-                                className="rounded-xl border px-5 py-3 text-center font-semibold hover:bg-slate-50"
-                            >
-                                My Ads
-                            </a>
-
-                            <a
-                                href="/account/notifications"
-                                className="rounded-xl border px-5 py-3 text-center font-semibold hover:bg-slate-50"
-                            >
-                                Notifications
-                            </a>
-                        </div>
-                    </div>
+                    {[
+                        { href: "/account/saved", label: "Saved Ads" },
+                        { href: "/account/recently-viewed", label: "Recently Viewed" },
+                        { href: "/account/my-reviews", label: "My Reviews" },
+                        { href: "/my-ads", label: "My Ads" },
+                    ].map((item) => (
+                        <Link
+                            key={item.href}
+                            href={item.href}
+                            className="flex items-center justify-between rounded-2xl bg-white px-4 py-3 text-xs font-black text-slate-700 ring-1 ring-black/5 transition hover:text-orange-600"
+                        >
+                            {item.label}
+                            <FontAwesomeIcon icon={faArrowRight} className="h-3 w-3 text-slate-300" />
+                        </Link>
+                    ))}
                 </aside>
             </div>
         </section>

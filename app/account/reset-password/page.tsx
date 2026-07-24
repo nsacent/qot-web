@@ -1,7 +1,7 @@
-import ResetPasswordClient from "@/app/reset-password/ResetPasswordClient";
+import AccountPasswordClient from "@/components/account/AccountPasswordClient";
 
 export const dynamic = "force-dynamic";
 
 export default function AccountResetPasswordPage() {
-    return <ResetPasswordClient />;
+    return <AccountPasswordClient />;
 }

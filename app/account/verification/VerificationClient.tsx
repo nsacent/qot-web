@@ -45,7 +45,7 @@ function maskEmail(email: string) {
 
 type VerificationChannel = "phone" | "email";
 
-function VerificationForm() {
+function VerificationForm({ embedded = false }: { embedded?: boolean }) {
     const searchParams = useSearchParams();
     const requestedNextUrl = searchParams.get("next") || "/account";
     const nextUrl =
@@ -198,23 +198,25 @@ function VerificationForm() {
     }
 
     return (
-        <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(249,115,22,0.12),transparent_30%),linear-gradient(180deg,#fffaf7_0%,#fff7f2_100%)] px-4 py-4 text-slate-950 sm:px-6 sm:py-6">
-            <header className="mx-auto flex max-w-[1180px] items-center justify-between rounded-[22px] bg-white/90 px-4 py-3 shadow-sm ring-1 ring-black/5 backdrop-blur sm:px-5">
-                <a href="/" aria-label="QOT Uganda home" className="inline-flex items-center">
-                    <QotLogo className="h-10 w-auto text-orange-500 sm:h-11" />
-                </a>
+        <section className={embedded ? "text-slate-950" : "min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(249,115,22,0.12),transparent_30%),linear-gradient(180deg,#fffaf7_0%,#fff7f2_100%)] px-4 py-4 text-slate-950 sm:px-6 sm:py-6"}>
+            {!embedded && (
+                <header className="mx-auto flex max-w-[1180px] items-center justify-between rounded-[22px] bg-white/90 px-4 py-3 shadow-sm ring-1 ring-black/5 backdrop-blur sm:px-5">
+                    <a href="/" aria-label="QOT Uganda home" className="inline-flex items-center">
+                        <QotLogo className="h-10 w-auto text-orange-500 sm:h-11" />
+                    </a>
 
-                <a
-                    href="/account"
-                    className="inline-flex h-10 items-center gap-2 rounded-2xl bg-slate-100 px-4 text-xs font-black text-slate-700 transition hover:bg-slate-950 hover:text-white"
-                >
-                    <FontAwesomeIcon icon={faArrowLeft} className="h-3 w-3" />
-                    My account
-                </a>
-            </header>
+                    <a
+                        href="/account"
+                        className="inline-flex h-10 items-center gap-2 rounded-2xl bg-slate-100 px-4 text-xs font-black text-slate-700 transition hover:bg-slate-950 hover:text-white"
+                    >
+                        <FontAwesomeIcon icon={faArrowLeft} className="h-3 w-3" />
+                        My account
+                    </a>
+                </header>
+            )}
 
-            <div className="mx-auto grid max-w-[1180px] overflow-hidden rounded-[32px] bg-white shadow-[0_24px_70px_rgba(15,23,42,0.12)] ring-1 ring-black/5 lg:mt-6 lg:grid-cols-[0.88fr_1.12fr]">
-                <section className="relative overflow-hidden bg-slate-950 p-6 text-white sm:p-8 lg:p-10">
+            <div className={`mx-auto grid max-w-[1180px] overflow-hidden rounded-[28px] bg-white shadow-[0_24px_70px_rgba(15,23,42,0.12)] ring-1 ring-black/5 ${embedded ? "xl:grid-cols-[0.82fr_1.18fr]" : "lg:mt-6 lg:grid-cols-[0.88fr_1.12fr]"}`}>
+                <section className={`relative overflow-hidden bg-slate-950 p-6 text-white sm:p-8 lg:p-10 ${embedded ? "hidden xl:block" : ""}`}>
                     <div className="absolute -right-24 -top-24 h-64 w-64 rounded-full bg-orange-500/25 blur-3xl" />
                     <div className="absolute -bottom-28 -left-24 h-72 w-72 rounded-full bg-orange-400/10 blur-3xl" />
 
@@ -354,7 +356,7 @@ function VerificationForm() {
                                     </p>
                                     <p className="mt-1 truncate text-sm font-black text-slate-900">{destination}</p>
                                 </div>
-                                <a href="/account" className="shrink-0 text-xs font-black text-orange-600 hover:text-orange-700">
+                                <a href={embedded ? "/account/profile" : "/account"} className="shrink-0 text-xs font-black text-orange-600 hover:text-orange-700">
                                     Change
                                 </a>
                             </div>
@@ -455,14 +457,14 @@ function VerificationForm() {
                     )}
                 </section>
             </div>
-        </main>
+        </section>
     );
 }
 
-export default function VerificationClient() {
+export default function VerificationClient({ embedded = false }: { embedded?: boolean }) {
     return (
         <Suspense fallback={<QotLoader />}>
-            <VerificationForm />
+            <VerificationForm embedded={embedded} />
         </Suspense>
     );
 }

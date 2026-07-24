@@ -1,348 +1,306 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
-import dynamic from "next/dynamic";
+import { useEffect, useState } from "react";
+import Link from "next/link";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
+    faArrowRight,
+    faChevronRight,
+} from "@fortawesome/free-solid-svg-icons";
+import {
+    faChevronDown,
     faCircleCheck,
-    faClock,
-    faEnvelope,
-    faLock,
-    faMobileScreen,
     faRightFromBracket,
     faShieldHalved,
-    faStar,
 } from "@/lib/faIcons";
-import QotLoader from "@/components/common/QotLoader";
 import UserAvatar from "@/components/account/UserAvatar";
+import { useAccountShell } from "@/components/account/AccountShell";
 import {
-    getCurrentUser,
-    logoutUser,
-} from "@/lib/sessionClient";
+    accountNavigationSections,
+    accountQuickActions,
+} from "@/components/account/accountNavigation";
 
-function AccountPanelLoader() {
+function getNumber(...values: any[]) {
+    for (const value of values) {
+        if (value !== undefined && value !== null && value !== "") {
+            return Number(value) || 0;
+        }
+    }
+
+    return 0;
+}
+
+function getLocation(user: any) {
     return (
-        <div className="rounded-[30px] bg-white p-8 shadow-sm ring-1 ring-black/5">
-            <div className="h-6 w-40 animate-pulse rounded-full bg-slate-200" />
-            <div className="mt-5 h-32 animate-pulse rounded-3xl bg-slate-100" />
-        </div>
+        user?.profile?.default_city_name ||
+        user?.profile?.city_name ||
+        user?.city_name ||
+        user?.city?.name ||
+        "Uganda"
     );
 }
 
-const ProfileSettingsClient = dynamic(
-    () => import("@/components/account/ProfileSettingsClient"),
-    { loading: AccountPanelLoader }
-);
-const SellerDashboardClient = dynamic(
-    () => import("@/components/dashboard/SellerDashboardClient"),
-    { loading: AccountPanelLoader }
-);
-const SellerAnalyticsClient = dynamic(
-    () => import("@/components/dashboard/SellerAnalyticsClient"),
-    { loading: AccountPanelLoader }
-);
-const SellerRenewalsClient = dynamic(
-    () => import("@/components/dashboard/SellerRenewalsClient"),
-    { loading: AccountPanelLoader }
-);
-const SavedAdsClient = dynamic(
-    () => import("@/app/account/saved/SavedAdsClient"),
-    { loading: AccountPanelLoader }
-);
-const MyListingsClient = dynamic(
-    () => import("@/app/my-ads/MyListingsClient"),
-    { loading: AccountPanelLoader }
-);
-const NotificationPreferencesClient = dynamic(
-    () => import("@/components/notifications/NotificationPreferencesClient"),
-    { loading: AccountPanelLoader }
-);
-
-function getUserObject(data: any) {
-    return data?.user || data?.data || data;
-}
-
-function AccountForm() {
-    const [activeTab, setActiveTab] = useState<
-        "profile" | "dashboard" | "analytics" | "renewals" | "saved" | "ads" | "settings"
-    >("profile");
-    const [checkingSession, setCheckingSession] = useState(true);
-
-    const [user, setUser] = useState<any>(null);
-
-    async function loadUser() {
-        try {
-            const data = await getCurrentUser();
-            const currentUser = getUserObject(data);
-
-            setUser(currentUser);
-
-            localStorage.setItem("qot_user", JSON.stringify(currentUser));
-            localStorage.removeItem("qot_access_token");
-            localStorage.removeItem("qot_refresh_token");
-        } catch {
-            window.location.href = "/login?next=/account";
-            return;
-        } finally {
-            setCheckingSession(false);
-        }
-    }
-
-    useEffect(() => {
-        loadUser();
-    }, []);
-
-    useEffect(() => {
-        function refreshLocalUser() {
-            try {
-                const localUser = JSON.parse(localStorage.getItem("qot_user") || "null");
-                if (localUser) setUser(localUser);
-            } catch {
-                // Ignore malformed legacy local data.
-            }
-        }
-
-        window.addEventListener("storage", refreshLocalUser);
-        return () => window.removeEventListener("storage", refreshLocalUser);
-    }, []);
-
-    async function handleLogout() {
-        try {
-            await logoutUser();
-        } catch {
-            // continue clearing local state
-        }
-
-        localStorage.removeItem("qot_user");
-        localStorage.removeItem("qot_access_token");
-        localStorage.removeItem("qot_refresh_token");
-
-        window.dispatchEvent(new Event("storage"));
-        window.location.href = "/";
-    }
-
-    if (checkingSession) {
-        return <QotLoader />;
-    }
-
-    const isPhoneVerified =
-        user?.phone_verified === true || Boolean(user?.phone_verified_at);
-    const isEmailVerified =
-        user?.email_verified === true || Boolean(user?.email_verified_at);
-
-    const accountTabs = [
-        { id: "profile" as const, label: "Profile Details" },
-        { id: "dashboard" as const, label: "Dashboard" },
-        { id: "analytics" as const, label: "Analytics" },
-        { id: "renewals" as const, label: "Renewals" },
-        { id: "saved" as const, label: "Saved Ads" },
-        { id: "ads" as const, label: "My Ads" },
-        { id: "settings" as const, label: "Account Settings" },
-    ];
-
-    const accountToolLinks = [
-        {
-            href: "/account/recently-viewed",
-            label: "Recently Viewed",
-            description: "Ads you opened recently",
-            icon: faClock,
-        },
-        {
-            href: "/account/my-reviews",
-            label: "My Reviews",
-            description: "Reviews you submitted",
-            icon: faStar,
-        },
-        {
-            href: "/account/reset-password",
-            label: "Reset Password",
-            description: "Secure your account",
-            icon: faLock,
-        },
-    ];
-
+function getCoverPhoto(user: any) {
     return (
-        <section className="text-slate-950">
-            <div className="mx-auto max-w-[1500px]">
-                <div className="mx-auto grid max-w-[1400px] items-start gap-6 lg:grid-cols-[300px_minmax(0,1fr)]">
-                    <aside className="flex min-h-[560px] flex-col rounded-[34px] bg-white p-6 shadow-[0_18px_60px_rgba(15,23,42,0.10)] ring-1 ring-black/5 sm:min-h-[620px] lg:sticky lg:top-6 lg:max-h-[calc(100vh-3rem)] lg:min-h-[calc(100vh-160px)] lg:overflow-hidden">
-                        <div className="flex items-center gap-4">
-                            <UserAvatar
-                                user={user}
-                                className="h-20 w-20 rounded-[28px] bg-orange-500 text-3xl text-white shadow-[0_18px_40px_rgba(249,115,22,0.25)]"
-                            />
-
-                            <div className="min-w-0">
-                                <h1 className="truncate text-2xl font-black text-slate-950">
-                                    {user?.full_name || "QOT Member"}
-                                </h1>
-
-                                <p className="mt-1 truncate text-sm font-bold text-slate-500">
-                                    {user?.email || user?.phone}
-                                </p>
-                            </div>
-                        </div>
-
-                        <div className="mt-6 rounded-3xl bg-slate-50 p-4">
-                            {isPhoneVerified ? (
-                                <div className="flex items-center gap-3 text-green-700">
-                                    <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-green-100">
-                                        <FontAwesomeIcon icon={faCircleCheck} className="h-5 w-5" />
-                                    </span>
-
-                                    <div>
-                                        <p className="text-sm font-black">Phone verified</p>
-                                        <p className="text-xs font-semibold text-green-700/80">
-                                            {user?.phone || "Your number is confirmed."}
-                                        </p>
-                                    </div>
-                                </div>
-                            ) : (
-                                <div className="space-y-4">
-                                    <div className="flex items-center gap-3 text-orange-700">
-                                        <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-orange-100">
-                                            <FontAwesomeIcon
-                                                icon={user?.phone ? faMobileScreen : faShieldHalved}
-                                                className="h-5 w-5"
-                                            />
-                                        </span>
-
-                                        <div>
-                                            <p className="text-sm font-black">Phone not verified</p>
-                                            <p className="text-xs font-semibold text-orange-700/80">
-                                                {user?.phone
-                                                    ? "Confirm your number with an SMS code."
-                                                    : "Add a phone number to your profile first."}
-                                            </p>
-                                        </div>
-                                    </div>
-
-                                    <a
-                                        href={
-                                            user?.phone
-                                                ? "/account/verification?next=/account"
-                                                : "/account"
-                                        }
-                                        className="block rounded-2xl bg-orange-500 px-4 py-3 text-center text-sm font-black text-white hover:bg-orange-600"
-                                    >
-                                        {user?.phone ? "Verify Phone" : "Add Phone Number"}
-                                    </a>
-                                </div>
-                            )}
-
-                            <div className="mt-4 flex items-center gap-3 border-t border-slate-200 pt-4">
-                                <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${isEmailVerified ? "bg-green-100 text-green-700" : "bg-white text-slate-500"}`}>
-                                    <FontAwesomeIcon
-                                        icon={isEmailVerified ? faCircleCheck : faEnvelope}
-                                        className="h-4 w-4"
-                                    />
-                                </span>
-
-                                <div className="min-w-0 flex-1">
-                                    <p className="text-xs font-black text-slate-800">
-                                        {isEmailVerified ? "Email verified" : "Email not verified"}
-                                    </p>
-                                    <p className="truncate text-[11px] font-semibold text-slate-500">
-                                        {user?.email || "No email address added"}
-                                    </p>
-                                </div>
-
-                                {!isEmailVerified && user?.email && (
-                                    <a
-                                        href="/account/verification?channel=email&next=/account"
-                                        className="text-[11px] font-black text-orange-600 hover:text-orange-700"
-                                    >
-                                        Verify
-                                    </a>
-                                )}
-                            </div>
-                        </div>
-
-                        <div className="mt-6 flex min-h-0 flex-1 flex-col">
-                            <div className="min-h-0 flex-1 overflow-y-auto pr-1">
-                                <div className="grid gap-2">
-                                    {accountTabs.map((tab) => {
-                                        const active = activeTab === tab.id;
-
-                                        return (
-                                            <button
-                                                key={tab.id}
-                                                type="button"
-                                                onClick={() => setActiveTab(tab.id)}
-                                                className={`rounded-2xl px-4 py-3 text-left text-sm font-black transition ${active
-                                                    ? "bg-orange-500 text-white shadow-[0_10px_24px_rgba(249,115,22,0.22)]"
-                                                    : "bg-slate-50 text-slate-700 hover:bg-orange-50 hover:text-orange-600"
-                                                }`}
-                                            >
-                                                {tab.label}
-                                            </button>
-                                        );
-                                    })}
-                                </div>
-
-                                <div className="mt-5 border-t border-slate-100 pt-5">
-                                    <p className="px-1 text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">
-                                        More account tools
-                                    </p>
-
-                                    <div className="mt-3 grid gap-2">
-                                        {accountToolLinks.map((item) => (
-                                            <a
-                                                key={item.href}
-                                                href={item.href}
-                                                className="group flex items-center gap-3 rounded-2xl bg-slate-50 px-3 py-3 transition hover:bg-orange-50"
-                                            >
-                                                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-slate-500 ring-1 ring-slate-200 transition group-hover:text-orange-600 group-hover:ring-orange-200">
-                                                    <FontAwesomeIcon icon={item.icon} className="h-4 w-4" />
-                                                </span>
-
-                                                <span className="min-w-0">
-                                                    <span className="block text-sm font-black text-slate-800 transition group-hover:text-orange-600">
-                                                        {item.label}
-                                                    </span>
-                                                    <span className="block truncate text-[11px] font-semibold text-slate-500">
-                                                        {item.description}
-                                                    </span>
-                                                </span>
-                                            </a>
-                                        ))}
-                                    </div>
-                                </div>
-                            </div>
-
-                            <button
-                                type="button"
-                                onClick={handleLogout}
-                                className="mt-5 flex items-center justify-center gap-2 rounded-2xl bg-red-50 px-4 py-3 text-sm font-black text-red-600 hover:bg-red-100"
-                            >
-                                <FontAwesomeIcon icon={faRightFromBracket} className="h-4 w-4" />
-                                Logout
-                            </button>
-                        </div>
-                    </aside>
-
-                    {activeTab === "profile" ? (
-                        <ProfileSettingsClient />
-                    ) : (
-                        <div className="min-w-0">
-                            {activeTab === "dashboard" && <SellerDashboardClient />}
-                            {activeTab === "analytics" && <SellerAnalyticsClient />}
-                            {activeTab === "renewals" && <SellerRenewalsClient />}
-                            {activeTab === "saved" && <SavedAdsClient />}
-                            {activeTab === "ads" && <MyListingsClient />}
-                            {activeTab === "settings" && <NotificationPreferencesClient />}
-                        </div>
-                    )}
-                </div>
-            </div>
-        </section>
+        user?.profile?.cover_photo ||
+        user?.cover_photo ||
+        user?.profile_cover ||
+        ""
     );
 }
 
 export default function AccountClient() {
+    const { user, logout } = useAccountShell();
+    const [dashboard, setDashboard] = useState<any>(null);
+
+    useEffect(() => {
+        let active = true;
+
+        fetch("/api/proxy/seller/dashboard/", {
+            credentials: "include",
+            cache: "no-store",
+        })
+            .then(async (response) => (
+                response.ok ? response.json().catch(() => null) : null
+            ))
+            .then((data) => {
+                if (active) setDashboard(data);
+            })
+            .catch(() => {
+                if (active) setDashboard(null);
+            });
+
+        return () => {
+            active = false;
+        };
+    }, []);
+
+    const phoneVerified =
+        user?.phone_verified === true || Boolean(user?.phone_verified_at);
+    const coverPhoto = getCoverPhoto(user);
+    const activeAds = getNumber(
+        dashboard?.active_listings,
+        dashboard?.active_count,
+        dashboard?.summary?.active_listings,
+        user?.active_listings_count,
+        user?.active_ads_count
+    );
+    const stats = [
+        {
+            label: "Followers",
+            value: getNumber(user?.followers_count, user?.profile?.followers_count),
+        },
+        {
+            label: "Following",
+            value: getNumber(user?.following_count, user?.profile?.following_count),
+        },
+        {
+            label: "Active ads",
+            value: activeAds,
+        },
+    ];
+
     return (
-        <Suspense fallback={<QotLoader />}>
-            <AccountForm />
-        </Suspense>
+        <section className="space-y-4 sm:space-y-5">
+            <div className="overflow-hidden rounded-[28px] bg-white shadow-[0_16px_50px_rgba(15,23,42,0.08)] ring-1 ring-black/5">
+                <div className="relative h-28 overflow-hidden bg-gradient-to-br from-slate-800 via-slate-900 to-orange-950 sm:h-36 lg:h-44">
+                    {coverPhoto && (
+                        <img
+                            src={coverPhoto}
+                            alt=""
+                            className="h-full w-full object-cover"
+                        />
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950/55 via-transparent to-transparent" />
+                </div>
+
+                <div className="px-4 pb-5 sm:px-6 sm:pb-6">
+                    <div className="-mt-9 flex items-end justify-between gap-3 sm:-mt-11">
+                        <div className="flex min-w-0 items-end gap-3">
+                            <UserAvatar
+                                user={user}
+                                className="h-20 w-20 shrink-0 rounded-[24px] border-4 border-white bg-orange-500 text-2xl text-white shadow-lg sm:h-24 sm:w-24 sm:rounded-[28px]"
+                            />
+                            <div className="min-w-0 pb-1">
+                                <div className="flex min-w-0 items-center gap-2">
+                                    <h1 className="truncate text-xl font-black text-slate-950 sm:text-2xl">
+                                        {user?.full_name || "QOT Member"}
+                                    </h1>
+                                    {phoneVerified && (
+                                        <FontAwesomeIcon
+                                            icon={faCircleCheck}
+                                            className="h-4 w-4 shrink-0 text-emerald-500"
+                                        />
+                                    )}
+                                </div>
+                                <p className="mt-0.5 truncate text-xs font-bold text-slate-500">
+                                    {getLocation(user)}
+                                </p>
+                            </div>
+                        </div>
+
+                        <Link
+                            href="/account/profile"
+                            className="mb-1 shrink-0 rounded-2xl bg-slate-950 px-3 py-2.5 text-[10px] font-black text-white transition hover:bg-orange-500 sm:px-4 sm:text-xs"
+                        >
+                            Edit profile
+                        </Link>
+                    </div>
+
+                    <div className="mt-5 grid grid-cols-3 divide-x divide-slate-100 rounded-[20px] bg-slate-50 px-2 py-3 ring-1 ring-slate-100">
+                        {stats.map((stat) => (
+                            <Link
+                                key={stat.label}
+                                href={stat.label === "Active ads" ? "/my-ads" : "/account/profile"}
+                                className="min-w-0 px-2 text-center"
+                            >
+                                <span className="block text-lg font-black text-slate-950 sm:text-xl">
+                                    {stat.value.toLocaleString()}
+                                </span>
+                                <span className="mt-0.5 block truncate text-[9px] font-black uppercase tracking-wide text-slate-500 sm:text-[10px]">
+                                    {stat.label}
+                                </span>
+                            </Link>
+                        ))}
+                    </div>
+                </div>
+            </div>
+
+            {!phoneVerified && (
+                <Link
+                    href="/account/verification?next=/account"
+                    className="flex items-center gap-3 rounded-[22px] bg-orange-500 p-4 text-white shadow-[0_14px_30px_rgba(249,115,22,0.20)]"
+                >
+                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white/15">
+                        <FontAwesomeIcon icon={faShieldHalved} className="h-5 w-5" />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                        <span className="block text-sm font-black">Verify your phone</span>
+                        <span className="mt-0.5 block text-[11px] font-semibold text-orange-50">
+                            Build buyer trust and unlock all seller tools.
+                        </span>
+                    </span>
+                    <FontAwesomeIcon icon={faChevronRight} className="h-4 w-4 shrink-0" />
+                </Link>
+            )}
+
+            <div className="rounded-[26px] bg-white p-4 shadow-sm ring-1 ring-black/5 sm:p-5">
+                <div className="flex items-center justify-between gap-3">
+                    <div>
+                        <p className="text-[9px] font-black uppercase tracking-[0.16em] text-orange-600">
+                            Quick access
+                        </p>
+                        <h2 className="mt-1 text-lg font-black text-slate-950">
+                            What would you like to do?
+                        </h2>
+                    </div>
+                    <Link
+                        href="/post-ad"
+                        className="shrink-0 rounded-2xl bg-orange-50 px-3 py-2 text-[10px] font-black text-orange-600"
+                    >
+                        Post ad
+                    </Link>
+                </div>
+
+                <div className="mt-4 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+                    {accountQuickActions.map((item) => (
+                        <Link
+                            key={item.href}
+                            href={item.href}
+                            className="group rounded-[20px] bg-slate-50 p-3.5 ring-1 ring-slate-100 transition hover:bg-orange-50 hover:ring-orange-100"
+                        >
+                            <span className="flex h-10 w-10 items-center justify-center rounded-[15px] bg-white text-slate-500 shadow-sm ring-1 ring-slate-100 transition group-hover:text-orange-600">
+                                <FontAwesomeIcon icon={item.icon} className="h-4 w-4" />
+                            </span>
+                            <span className="mt-3 block text-sm font-black text-slate-900">
+                                {item.label}
+                            </span>
+                            <span className="mt-0.5 block truncate text-[10px] font-semibold text-slate-500">
+                                {item.description}
+                            </span>
+                        </Link>
+                    ))}
+                </div>
+            </div>
+
+            <div className="space-y-3 lg:hidden">
+                {accountNavigationSections.map((section) => (
+                    <details
+                        key={section.label}
+                        className="group overflow-hidden rounded-[24px] bg-white shadow-sm ring-1 ring-black/5"
+                    >
+                        <summary className="flex cursor-pointer list-none items-center gap-3 px-4 py-4 [&::-webkit-details-marker]:hidden">
+                            <span className="min-w-0 flex-1">
+                                <span className="block text-sm font-black text-slate-950">
+                                    {section.label}
+                                </span>
+                                <span className="mt-0.5 block text-[10px] font-semibold text-slate-500">
+                                    {section.items.length} account tools
+                                </span>
+                            </span>
+                            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[14px] bg-slate-50 text-slate-400 transition group-open:rotate-180 group-open:bg-orange-50 group-open:text-orange-600">
+                                <FontAwesomeIcon icon={faChevronDown} className="h-3.5 w-3.5" />
+                            </span>
+                        </summary>
+
+                        <div className="divide-y divide-slate-100 border-t border-slate-100">
+                            {section.items.map((item) => (
+                                <Link
+                                    key={item.href}
+                                    href={item.href}
+                                    className="flex items-center gap-3 px-4 py-3.5 transition hover:bg-orange-50"
+                                >
+                                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[15px] bg-slate-50 text-slate-500">
+                                        <FontAwesomeIcon icon={item.icon} className="h-4 w-4" />
+                                    </span>
+                                    <span className="min-w-0 flex-1">
+                                        <span className="block text-sm font-black text-slate-900">
+                                            {item.label}
+                                        </span>
+                                        <span className="mt-0.5 block truncate text-[10px] font-semibold text-slate-500">
+                                            {item.description}
+                                        </span>
+                                    </span>
+                                    <FontAwesomeIcon
+                                        icon={faChevronRight}
+                                        className="h-3.5 w-3.5 shrink-0 text-slate-300"
+                                    />
+                                </Link>
+                            ))}
+                        </div>
+                    </details>
+                ))}
+
+                <button
+                    type="button"
+                    onClick={logout}
+                    className="flex w-full items-center justify-center gap-2 rounded-[20px] bg-red-50 px-4 py-3.5 text-sm font-black text-red-600 ring-1 ring-red-100"
+                >
+                    <FontAwesomeIcon icon={faRightFromBracket} className="h-4 w-4" />
+                    Log out
+                </button>
+            </div>
+
+            <div className="hidden items-center justify-between gap-5 overflow-hidden rounded-[26px] bg-slate-950 p-6 text-white lg:flex">
+                <div>
+                    <p className="text-[10px] font-black uppercase tracking-[0.16em] text-orange-300">
+                        Ready to sell?
+                    </p>
+                    <h2 className="mt-2 text-2xl font-black">
+                        Reach buyers across Uganda.
+                    </h2>
+                    <p className="mt-1 text-sm font-semibold text-slate-400">
+                        Post your next ad and manage every response from your account.
+                    </p>
+                </div>
+                <Link
+                    href="/post-ad"
+                    className="inline-flex shrink-0 items-center gap-2 rounded-2xl bg-orange-500 px-5 py-3 text-sm font-black text-white"
+                >
+                    Post an ad
+                    <FontAwesomeIcon icon={faArrowRight} className="h-4 w-4" />
+                </Link>
+            </div>
+        </section>
     );
 }
