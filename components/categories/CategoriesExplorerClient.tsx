@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import Link from "next/link";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -156,6 +156,47 @@ function getCategoryIcon(category: Category) {
     return faStore;
 }
 
+function SubcategoryPanel({
+    category,
+    slug,
+    className = "",
+}: {
+    category: Category;
+    slug: string;
+    className?: string;
+}) {
+    return (
+        <div className={`${className} rounded-[24px] bg-white p-4 shadow-[0_12px_34px_rgba(15,23,42,0.06)] ring-1 ring-black/5 sm:p-5`}>
+            <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+                <div>
+                    <p className="text-[10px] font-black uppercase tracking-[0.16em] text-orange-600">Choose a subcategory</p>
+                    <h3 className="mt-1 text-xl font-black text-slate-950">{getCategoryName(category)}</h3>
+                </div>
+                <Link
+                    href={`/ads?category=${encodeURIComponent(slug)}`}
+                    className="inline-flex h-10 w-fit items-center rounded-[13px] bg-slate-950 px-4 text-xs font-black text-white hover:bg-orange-500"
+                >
+                    Browse all {getCategoryName(category)}
+                </Link>
+            </div>
+            <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
+                {(category.children || []).map((child) => (
+                    <Link
+                        key={child.id || child.slug}
+                        href={`/ads?category=${encodeURIComponent(getCategorySlug(child))}`}
+                        className="flex min-h-12 items-center justify-between gap-2 rounded-[14px] bg-slate-50 px-3 py-2.5 text-xs font-black text-slate-700 ring-1 ring-slate-100 transition hover:bg-orange-50 hover:text-orange-700 hover:ring-orange-200"
+                    >
+                        <span>{getCategoryName(child)}</span>
+                        <span className="shrink-0 rounded-full bg-white px-2 py-1 text-[9px] text-slate-400 ring-1 ring-slate-100">
+                            {getCategoryAdCount(child)}
+                        </span>
+                    </Link>
+                ))}
+            </div>
+        </div>
+    );
+}
+
 export default function CategoriesExplorerClient({
     categories,
 }: CategoriesExplorerClientProps) {
@@ -305,7 +346,7 @@ export default function CategoriesExplorerClient({
 
                 {visibleCategories.length > 0 ? (
                     <div>
-                        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6">
+                        <div className="grid grid-flow-dense grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6">
                             {visibleCategories.map((category, index) => {
                                 const visual = categoryVisuals[index % categoryVisuals.length];
                                 const children = category.children || [];
@@ -335,9 +376,8 @@ export default function CategoriesExplorerClient({
                                     </>
                                 );
 
-                                return children.length > 0 ? (
+                                const categoryTile = children.length > 0 ? (
                                     <button
-                                        key={category.id || category.slug}
                                         type="button"
                                         onClick={() => setActiveSlug((current) => current === slug ? "" : slug)}
                                         aria-expanded={active}
@@ -347,45 +387,34 @@ export default function CategoriesExplorerClient({
                                     </button>
                                 ) : (
                                     <Link
-                                        key={category.id || category.slug}
                                         href={`/ads?category=${encodeURIComponent(slug)}`}
                                         className={tileClass}
                                     >
                                         {content}
                                     </Link>
                                 );
+
+                                return (
+                                    <Fragment key={category.id || category.slug}>
+                                        {categoryTile}
+                                        {active && children.length > 0 && (
+                                            <SubcategoryPanel
+                                                category={category}
+                                                slug={slug}
+                                                className="col-span-full lg:hidden"
+                                            />
+                                        )}
+                                    </Fragment>
+                                );
                             })}
                         </div>
 
                         {activeCategory && (activeCategory.children || []).length > 0 && (
-                            <div className="mt-3 rounded-[24px] bg-white p-4 shadow-[0_12px_34px_rgba(15,23,42,0.06)] ring-1 ring-black/5 sm:p-5">
-                                <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
-                                    <div>
-                                        <p className="text-[10px] font-black uppercase tracking-[0.16em] text-orange-600">Choose a subcategory</p>
-                                        <h3 className="mt-1 text-xl font-black text-slate-950">{getCategoryName(activeCategory)}</h3>
-                                    </div>
-                                    <Link
-                                        href={`/ads?category=${encodeURIComponent(activeSlug)}`}
-                                        className="inline-flex h-10 w-fit items-center rounded-[13px] bg-slate-950 px-4 text-xs font-black text-white hover:bg-orange-500"
-                                    >
-                                        Browse all {getCategoryName(activeCategory)}
-                                    </Link>
-                                </div>
-                                <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
-                                    {(activeCategory.children || []).map((child) => (
-                                        <Link
-                                            key={child.id || child.slug}
-                                            href={`/ads?category=${encodeURIComponent(getCategorySlug(child))}`}
-                                            className="flex min-h-12 items-center justify-between gap-2 rounded-[14px] bg-slate-50 px-3 py-2.5 text-xs font-black text-slate-700 ring-1 ring-slate-100 transition hover:bg-orange-50 hover:text-orange-700 hover:ring-orange-200"
-                                        >
-                                            <span>{getCategoryName(child)}</span>
-                                            <span className="shrink-0 rounded-full bg-white px-2 py-1 text-[9px] text-slate-400 ring-1 ring-slate-100">
-                                                {getCategoryAdCount(child)}
-                                            </span>
-                                        </Link>
-                                    ))}
-                                </div>
-                            </div>
+                            <SubcategoryPanel
+                                category={activeCategory}
+                                slug={activeSlug}
+                                className="mt-3 hidden lg:block"
+                            />
                         )}
                     </div>
                 ) : categories.length > 0 ? (
