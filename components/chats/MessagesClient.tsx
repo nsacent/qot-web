@@ -60,7 +60,7 @@ function getListingTitle(thread: any) {
 function getListingImage(thread: any) {
     const listing = thread?.listing || {};
 
-    return listing?.cover_image || listing?.image || listing?.thumbnail || listing?.images?.[0]?.image || listing?.images?.[0]?.url || "";
+    return listing?.primary_image || listing?.cover_image || listing?.image || listing?.thumbnail || listing?.images?.[0]?.image || listing?.images?.[0]?.url || "";
 }
 
 function getLastMessage(thread: any) {
@@ -355,7 +355,7 @@ export default function MessagesClient() {
                                                     </span>
                                                 )}
                                             </span>
-                                            <span className={`absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-[3px] border-white ${thread?.other_user_online ? "bg-emerald-500" : "bg-slate-300"}`} aria-label={thread?.other_user_online ? "Online" : "Offline"} />
+                                            <span className={`absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-[3px] border-white ${thread?.other_user_online ? "bg-emerald-500" : "bg-slate-300"}`} aria-label={thread?.other_user_online ? "Online" : `Last seen ${formatRelativeTime(thread?.other_user_last_seen).toLowerCase()}`} />
                                         </span>
 
                                         <span className="min-w-0 flex-1">

@@ -15,9 +15,11 @@ import {
     faXmark,
 } from "@fortawesome/free-solid-svg-icons";
 import InlineError from "@/components/forms/InlineError";
+import UserAvatar from "@/components/account/UserAvatar";
 import AdActionModal from "@/components/listings/AdActionModal";
 import MessageText from "@/components/chats/MessageText";
 import { createChatSocket, type ChatSocketController } from "@/lib/chatSocket";
+import { formatRelativeTime } from "@/lib/dateTime";
 
 const QUICK_MESSAGES = [
     "Hi, is this ad still available?",
@@ -55,6 +57,7 @@ function getListingImage(thread: any) {
     const listing = thread?.listing || {};
 
     return (
+        listing?.primary_image ||
         listing?.cover_image ||
         listing?.image ||
         listing?.thumbnail ||
@@ -93,6 +96,14 @@ function formatMessageTime(value: string | undefined) {
     }).format(date);
 }
 
+function getAttachmentUrl(attachment: any, download = false) {
+    if (attachment?.id) {
+        return `/api/chat-attachments/${attachment.id}${download ? "?download=1" : ""}`;
+    }
+
+    return attachment?.file_url || attachment?.file || "";
+}
+
 export default function ThreadMessagesClient({ threadId }: { threadId: string }) {
     const [thread, setThread] = useState<any>(null);
     const [currentUser, setCurrentUser] = useState<any>(null);
@@ -106,10 +117,14 @@ export default function ThreadMessagesClient({ threadId }: { threadId: string })
     const [actionLoading, setActionLoading] = useState(false);
     const [attachments, setAttachments] = useState<File[]>([]);
     const [otherUserOnline, setOtherUserOnline] = useState(false);
+    const [otherUserLastSeen, setOtherUserLastSeen] = useState<string | null>(null);
     const [otherUserTyping, setOtherUserTyping] = useState(false);
-    const [liveConnected, setLiveConnected] = useState(false);
     const [menuOpen, setMenuOpen] = useState(false);
     const [spamModalOpen, setSpamModalOpen] = useState(false);
+    const [previewAttachment, setPreviewAttachment] = useState<{
+        url: string;
+        name: string;
+    } | null>(null);
     const messageListRef = useRef<HTMLDivElement | null>(null);
     const fileInputRef = useRef<HTMLInputElement | null>(null);
     const chatSocketRef = useRef<ChatSocketController | null>(null);
@@ -164,6 +179,7 @@ export default function ThreadMessagesClient({ threadId }: { threadId: string })
             setCurrentUser(user);
             setMessages(items);
             setOtherUserOnline(Boolean(threadData?.other_user_online));
+            setOtherUserLastSeen(threadData?.other_user_last_seen || null);
             setError("");
 
             const hasUnreadMessages = items.some(
@@ -221,7 +237,6 @@ export default function ThreadMessagesClient({ threadId }: { threadId: string })
         const socket = createChatSocket({
             path: `/ws/chats/threads/${threadId}/`,
             onConnectionChange: (connected) => {
-                setLiveConnected(connected);
                 if (!connected) setOtherUserTyping(false);
             },
             onUnauthorized: () => {
@@ -233,6 +248,9 @@ export default function ThreadMessagesClient({ threadId }: { threadId: string })
                     String(event.user_id) === String(otherUserId)
                 ) {
                     setOtherUserOnline(Boolean(event.is_online));
+                    if (event.last_seen_at) {
+                        setOtherUserLastSeen(String(event.last_seen_at));
+                    }
                 }
 
                 if (
@@ -509,15 +527,11 @@ export default function ThreadMessagesClient({ threadId }: { threadId: string })
                             <FontAwesomeIcon icon={faArrowLeft} className="h-4 w-4" />
                         </Link>
                         <span className="relative shrink-0">
-                            <span className="flex h-11 w-11 overflow-hidden rounded-[15px] bg-slate-100 text-slate-300 ring-1 ring-slate-200">
-                                {listingImage ? (
-                                    <img src={listingImage} alt={listingTitle} className="h-full w-full object-cover" />
-                                ) : (
-                                    <span className="flex h-full w-full items-center justify-center">
-                                        <FontAwesomeIcon icon={faEnvelope} className="h-4 w-4" />
-                                    </span>
-                                )}
-                            </span>
+                            <UserAvatar
+                                src={thread?.other_user_avatar}
+                                name={participantName}
+                                className="h-11 w-11 rounded-[15px] bg-slate-950 text-sm text-white ring-1 ring-slate-200"
+                            />
                             <span className={`absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-[3px] border-white ${otherUserOnline ? "bg-emerald-500" : "bg-slate-300"}`} />
                         </span>
                         <div className="min-w-0">
@@ -526,7 +540,7 @@ export default function ThreadMessagesClient({ threadId }: { threadId: string })
                                 {otherUserTyping ? (
                                     <><span className="flex gap-0.5"><span className="h-1.5 w-1.5 animate-bounce rounded-full bg-orange-500" /><span className="h-1.5 w-1.5 animate-bounce rounded-full bg-orange-500 [animation-delay:120ms]" /><span className="h-1.5 w-1.5 animate-bounce rounded-full bg-orange-500 [animation-delay:240ms]" /></span>is typing…</>
                                 ) : (
-                                    <><span className={`h-2 w-2 rounded-full ${otherUserOnline ? "bg-emerald-500" : "bg-slate-300"}`} />{otherUserOnline ? "Online" : liveConnected ? "Offline" : "Checking status…"}</>
+                                    <><span className={`h-2 w-2 rounded-full ${otherUserOnline ? "bg-emerald-500" : "bg-slate-300"}`} />{otherUserOnline ? "Online" : `Last seen ${formatRelativeTime(otherUserLastSeen || thread?.created_at).toLowerCase()}`}</>
                                 )}
                             </p>
                         </div>
@@ -588,30 +602,46 @@ export default function ThreadMessagesClient({ threadId }: { threadId: string })
                     const mine = String(getSenderId(message)) === String(currentUser?.id);
                     const legacyImage = message?.image;
                     const messageAttachments = Array.isArray(message?.attachments) ? message.attachments : [];
+                    const messageBody = message?.body || message?.message || "";
 
                     return (
                         <div key={message.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
                             <div className={`max-w-[86%] sm:max-w-[70%] ${mine ? "text-right" : "text-left"}`}>
                                 <p className="mb-1.5 px-1 text-[10px] font-black text-slate-400">{mine ? "You" : message?.sender_name || participantName}</p>
-                                <div className={`overflow-hidden rounded-[20px] px-4 py-3 text-left shadow-sm ${mine ? "rounded-br-[6px] bg-orange-500 text-white" : "rounded-bl-[6px] bg-white text-slate-800 ring-1 ring-slate-200"}`}>
-                                    {legacyImage && <img src={legacyImage} alt="Message attachment" className="mb-3 max-h-72 w-full rounded-[14px] object-cover" />}
-                                    {messageAttachments.map((attachment: any) => {
-                                        const fileUrl = attachment?.file_url || attachment?.file;
-                                        if (!fileUrl) return null;
+                                {(legacyImage || messageAttachments.length > 0) && (
+                                    <div className={`flex flex-col gap-2 ${messageBody ? "mb-2" : ""} ${mine ? "items-end" : "items-start"}`}>
+                                        {legacyImage && (
+                                            <button type="button" onClick={() => setPreviewAttachment({ url: legacyImage, name: "Message attachment" })} className="block overflow-hidden rounded-[16px] bg-slate-100 ring-1 ring-slate-200">
+                                                <img src={legacyImage} alt="Message attachment" className="max-h-72 max-w-full object-cover" />
+                                            </button>
+                                        )}
+                                        {messageAttachments.map((attachment: any) => {
+                                            const fileUrl = getAttachmentUrl(attachment);
+                                            if (!fileUrl) return null;
 
-                                        if (attachment?.file_type === "image") {
-                                            return <a key={attachment.id || fileUrl} href={fileUrl} target="_blank" rel="noreferrer" className="mb-3 block last:mb-0"><img src={fileUrl} alt={attachment?.original_name || "Message attachment"} className="max-h-72 w-full rounded-[14px] object-cover" /></a>;
-                                        }
+                                            if (attachment?.file_type === "image") {
+                                                const name = attachment?.original_name || "Message attachment";
+                                                return (
+                                                    <button key={attachment.id || fileUrl} type="button" onClick={() => setPreviewAttachment({ url: fileUrl, name })} className="block overflow-hidden rounded-[16px] bg-slate-100 ring-1 ring-slate-200">
+                                                        <img src={fileUrl} alt={name} className="max-h-72 max-w-full object-cover" />
+                                                    </button>
+                                                );
+                                            }
 
-                                        return (
-                                            <a key={attachment.id || fileUrl} href={fileUrl} target="_blank" rel="noreferrer" className={`mb-2 flex items-center gap-3 rounded-[14px] p-3 last:mb-0 ${mine ? "bg-white/15 text-white" : "bg-slate-50 text-slate-700 ring-1 ring-slate-200"}`}>
-                                                <FontAwesomeIcon icon={faFileLines} className="h-5 w-5 shrink-0" />
-                                                <span className="min-w-0"><span className="block truncate text-xs font-black">{attachment?.original_name || "Attached file"}</span><span className={`mt-0.5 block text-[9px] font-bold ${mine ? "text-white/70" : "text-slate-400"}`}>{formatFileSize(attachment?.size)}</span></span>
-                                            </a>
-                                        );
-                                    })}
-                                    {(message?.body || message?.message) && <MessageText text={message?.body || message?.message} mine={mine} />}
-                                </div>
+                                            return (
+                                                <a key={attachment.id || fileUrl} href={fileUrl} target="_blank" rel="noreferrer" className="flex max-w-full items-center gap-3 rounded-[14px] bg-white p-3 text-slate-700 shadow-sm ring-1 ring-slate-200 transition hover:ring-orange-200">
+                                                    <FontAwesomeIcon icon={faFileLines} className="h-5 w-5 shrink-0 text-orange-500" />
+                                                    <span className="min-w-0"><span className="block truncate text-xs font-black">{attachment?.original_name || "Attached file"}</span><span className="mt-0.5 block text-[9px] font-bold text-slate-400">{formatFileSize(attachment?.size)}</span></span>
+                                                </a>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                                {messageBody && (
+                                    <div className={`overflow-hidden rounded-[20px] px-4 py-3 text-left shadow-sm ${mine ? "rounded-br-[6px] bg-orange-500 text-white" : "rounded-bl-[6px] bg-white text-slate-800 ring-1 ring-slate-200"}`}>
+                                        <MessageText text={messageBody} mine={mine} />
+                                    </div>
+                                )}
                                 <p className="mt-1.5 px-1 text-[9px] font-bold text-slate-400">{formatMessageTime(message?.created_at)}</p>
                             </div>
                         </div>
@@ -663,6 +693,18 @@ export default function ThreadMessagesClient({ threadId }: { threadId: string })
             </form>
 
             <AdActionModal open={spamModalOpen} title="Report this chat as spam?" description={`This moves the conversation with ${participantName} to Spam and sends a report to QOT moderation. You can restore it later.`} confirmLabel="Report spam" destructive loading={actionLoading} error={actionError} onClose={() => { if (actionLoading) return; setSpamModalOpen(false); setActionError(""); }} onConfirm={() => void confirmSpam()} />
+
+            {previewAttachment && (
+                <div role="dialog" aria-modal="true" aria-label={previewAttachment.name} onMouseDown={(event) => { if (event.target === event.currentTarget) setPreviewAttachment(null); }} className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/90 p-4 sm:p-8">
+                    <button type="button" onClick={() => setPreviewAttachment(null)} aria-label="Close attachment" className="absolute right-4 top-4 flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur transition hover:bg-white/20 sm:right-7 sm:top-7">
+                        <FontAwesomeIcon icon={faXmark} className="h-5 w-5" />
+                    </button>
+                    <div className="flex max-h-full max-w-5xl flex-col items-center gap-3">
+                        <img src={previewAttachment.url} alt={previewAttachment.name} className="max-h-[82vh] max-w-full rounded-[16px] object-contain" />
+                        <p className="max-w-full truncate text-xs font-bold text-white/80">{previewAttachment.name}</p>
+                    </div>
+                </div>
+            )}
         </section>
     );
 }

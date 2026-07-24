@@ -781,6 +781,9 @@ export default function QotMarketplaceNav({
                                 messageThreads.slice(0, 4).map((thread) => {
                                     const unread = Number(thread?.unread_count || 0);
                                     const name = getThreadName(thread);
+                                    const listing = thread?.listing || thread?.ad || {};
+                                    const image = getListingImage(listing);
+                                    const listingTitle = getListingTitle(listing);
 
                                     return (
                                         <a
@@ -788,11 +791,15 @@ export default function QotMarketplaceNav({
                                             href={`/account/messages/${thread.id}`}
                                             className="flex gap-3 rounded-[18px] p-3 transition hover:bg-orange-50"
                                         >
-                                            <UserAvatar
-                                                src={thread?.other_user_avatar}
-                                                name={name}
-                                                className="h-10 w-10 rounded-[13px] bg-slate-950 text-sm text-white"
-                                            />
+                                            <span className="flex h-10 w-10 shrink-0 overflow-hidden rounded-[13px] bg-slate-100 text-slate-300 ring-1 ring-slate-200">
+                                                {image ? (
+                                                    <img src={image} alt={listingTitle} className="h-full w-full object-cover" />
+                                                ) : (
+                                                    <span className="flex h-full w-full items-center justify-center">
+                                                        <FontAwesomeIcon icon={faEnvelope} className="h-4 w-4" />
+                                                    </span>
+                                                )}
+                                            </span>
                                             <span className="min-w-0 flex-1">
                                                 <span className="flex items-center justify-between gap-3">
                                                     <span className="truncate text-xs font-black text-slate-950">{name}</span>
@@ -806,7 +813,7 @@ export default function QotMarketplaceNav({
                                                     {getThreadPreview(thread)}
                                                 </span>
                                                 <span className="mt-1 block truncate text-[10px] font-semibold text-slate-400">
-                                                    {getListingTitle(thread?.listing || {})}
+                                                    {listingTitle}
                                                 </span>
                                             </span>
                                         </a>
