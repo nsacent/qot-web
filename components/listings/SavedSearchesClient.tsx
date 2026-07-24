@@ -15,7 +15,16 @@ function getArray(data: any): any[] {
     if (Array.isArray(data)) return data;
     if (Array.isArray(data?.results)) return data.results;
     if (Array.isArray(data?.data)) return data.data;
+    if (Array.isArray(data?.saved_searches)) return data.saved_searches;
+    if (Array.isArray(data?.searches)) return data.searches;
+    if (Array.isArray(data?.data?.results)) return data.data.results;
+    if (Array.isArray(data?.data?.saved_searches)) return data.data.saved_searches;
+    if (Array.isArray(data?.data?.searches)) return data.data.searches;
     return [];
+}
+
+function getNextPage(data: any) {
+    return data?.next || data?.data?.next || data?.pagination?.next || null;
 }
 
 function formatDate(value: string) {
@@ -81,21 +90,47 @@ export default function SavedSearchesClient() {
         setError("");
 
         try {
-            const response = await fetch("/api/proxy/searches/saved/", {
-                credentials: "include",
-                cache: "no-store",
-            });
-            const data = await response.json().catch(() => ({}));
+            const loadedItems: any[] = [];
+            let page = 1;
+            let hasNextPage = true;
 
-            if (response.status === 401 || response.status === 403) {
-                window.location.href = "/login?next=%2Faccount%2Fsaved%3Ftab%3Dsearches";
-                return;
+            while (hasNextPage && page <= 20) {
+                const response = await fetch(
+                    `/api/proxy/searches/saved/?page=${page}&page_size=100`,
+                    {
+                        credentials: "include",
+                        cache: "no-store",
+                    }
+                );
+                const data = await response.json().catch(() => ({}));
+
+                if (response.status === 401 || response.status === 403) {
+                    window.location.href = "/login?next=%2Faccount%2Fsaved%3Ftab%3Dsearches";
+                    return;
+                }
+
+                if (!response.ok) {
+                    throw new Error(data?.detail || "Failed to load saved searches.");
+                }
+
+                loadedItems.push(...getArray(data));
+                hasNextPage = Boolean(getNextPage(data));
+                page += 1;
             }
 
-            if (!response.ok) throw new Error(data?.detail || "Failed to load saved searches.");
-            setItems(getArray(data));
+            const uniqueItems = Array.from(
+                new Map(
+                    loadedItems.map((item) => [
+                        String(item?.id || `${item?.name}-${item?.created_at}`),
+                        item,
+                    ])
+                ).values()
+            );
+
+            setItems(uniqueItems);
         } catch (err: any) {
             setError(err.message || "Failed to load saved searches.");
+            setItems([]);
         } finally {
             setLoading(false);
         }
