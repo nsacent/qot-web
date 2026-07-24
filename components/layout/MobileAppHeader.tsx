@@ -103,32 +103,51 @@ export default function MobileAppHeader() {
     const title = getScreenTitle(pathname);
     const backHref = getBackHref(pathname);
 
+    const handleBack = () => {
+        if (window.history.length > 1) {
+            router.back();
+            return;
+        }
+
+        router.replace(backHref);
+    };
+
     return (
-        <header className="sticky top-0 z-[70] border-b border-slate-200/80 bg-white/95 pt-[env(safe-area-inset-top)] shadow-[0_4px_16px_rgba(15,23,42,0.06)] backdrop-blur-xl md:hidden">
-            <div className="flex h-14 items-center gap-1.5 px-2">
+        <header className="sticky top-0 z-[70] border-b border-slate-200/70 bg-white/90 pt-[env(safe-area-inset-top)] shadow-[0_8px_24px_rgba(15,23,42,0.07)] backdrop-blur-xl md:hidden">
+            <div className="relative mx-auto flex h-[62px] max-w-screen-md items-center gap-3 px-3">
                 <button
                     type="button"
-                    onClick={() => router.push(backHref)}
+                    onClick={handleBack}
                     aria-label={`Back from ${title}`}
-                    className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-slate-800 transition active:bg-slate-100"
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] bg-slate-100 text-slate-800 shadow-sm ring-1 ring-slate-200/80 transition active:scale-95 active:bg-slate-200"
                 >
-                    <FontAwesomeIcon icon={faArrowLeft} className="h-[18px] w-[18px]" />
+                    <FontAwesomeIcon icon={faArrowLeft} className="h-4 w-4" />
                 </button>
 
-                <h1 className="min-w-0 flex-1 truncate text-[18px] font-black tracking-tight text-slate-950">
-                    {title}
-                </h1>
+                <div className="min-w-0 flex-1">
+                    <p className="text-[9px] font-black uppercase leading-none tracking-[0.2em] text-orange-600">
+                        QOT Uganda
+                    </p>
+                    <h1 className="mt-1 truncate text-[17px] font-black leading-tight tracking-[-0.02em] text-slate-950">
+                        {title}
+                    </h1>
+                </div>
 
                 {pathname.startsWith("/admin") && (
                     <button
                         type="button"
                         onClick={() => window.dispatchEvent(new Event("qot_open_admin_menu"))}
                         aria-label="Open admin navigation"
-                        className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-slate-800 transition active:bg-slate-100"
+                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] bg-slate-950 text-white shadow-sm transition active:scale-95 active:bg-orange-600"
                     >
-                        <FontAwesomeIcon icon={faBars} className="h-[18px] w-[18px]" />
+                        <FontAwesomeIcon icon={faBars} className="h-4 w-4" />
                     </button>
                 )}
+
+                <span
+                    aria-hidden="true"
+                    className="pointer-events-none absolute bottom-0 left-3 h-0.5 w-10 rounded-full bg-orange-500"
+                />
             </div>
         </header>
     );
