@@ -63,7 +63,7 @@ export default function PrivacyPolicyPage() {
                     <LegalListItem><strong>Communications:</strong> messages exchanged through QOT and communications you send to our support, safety, or moderation teams.</LegalListItem>
                     <LegalListItem><strong>Payment and promotion records:</strong> payment references, method, amount, status, and promotion details when you use a paid service. QOT should not ask you to place card PINs or mobile-money PINs in an advert or chat.</LegalListItem>
                     <LegalListItem><strong>Technical information:</strong> information normally provided when a website is used, such as IP address, browser or device details, request logs, cookie identifiers, dates, and security events.</LegalListItem>
-                    <LegalListItem><strong>Google sign-in information:</strong> basic account information provided by Google when you choose Google authentication, subject to your Google permissions.</LegalListItem>
+                    <LegalListItem><strong>Social sign-in information:</strong> basic account information provided by Google or Facebook when you choose social authentication, subject to the permissions you grant.</LegalListItem>
                 </LegalList>
                 <p>
                     Please do not place national identification numbers, financial PINs, passwords, or other unnecessary sensitive information in public adverts or marketplace messages.

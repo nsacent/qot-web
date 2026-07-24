@@ -170,7 +170,7 @@ export default function TermsOfServicePage() {
 
             <LegalSection id="third-parties" title="11. Third-party services">
                 <p>
-                    QOT may contain links to, integrate with, or rely on third-party services such as Google authentication, email, hosting, maps, payment providers, or websites linked by users. Their own terms and privacy practices apply to their services. QOT is not responsible for independent third-party content or conduct.
+                    QOT may contain links to, integrate with, or rely on third-party services such as Google or Facebook authentication, email, hosting, maps, payment providers, or websites linked by users. Their own terms and privacy practices apply to their services. QOT is not responsible for independent third-party content or conduct.
                 </p>
             </LegalSection>
 

@@ -122,6 +122,13 @@ export async function loginWithGoogle(body: {
     return sessionPost("/google", body);
 }
 
+export async function loginWithFacebook(body: {
+    access_token: string;
+    keep_signed_in?: boolean;
+}) {
+    return sessionPost("/facebook", body);
+}
+
 export async function registerUser(body: {
     phone: string;
     email: string;

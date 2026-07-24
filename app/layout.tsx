@@ -4,6 +4,7 @@ import "./globals.css";
 import MobileBottomNav from "@/components/layout/MobileBottomNav";
 import MobileAppHeader from "@/components/layout/MobileAppHeader";
 import CookieConsent from "@/components/privacy/CookieConsent";
+import GlobalChatPresence from "@/components/chats/GlobalChatPresence";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -47,6 +48,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} min-h-full antialiased`}
       >
+        <GlobalChatPresence />
         <MobileAppHeader />
         {children}
         <MobileBottomNav />

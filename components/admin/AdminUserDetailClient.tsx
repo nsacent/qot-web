@@ -97,6 +97,7 @@ type AdminUserDetail = {
     bio: string | null;
     trust_score: number;
     google_connected: boolean;
+    facebook_connected: boolean;
     listing_counts: Record<string, number>;
     stats: UserStats;
     recent_listings: RecentListing[];
@@ -482,6 +483,7 @@ export default function AdminUserDetailClient({ userId }: { userId: string }) {
                             <DetailRow icon={faPhone} label="Phone" value={user.phone || "Not provided"} />
                             <DetailRow icon={faEnvelope} label="Email" value={user.email || "Not provided"} />
                             <DetailRow icon={faIdBadge} label="Google sign-in" value={user.google_connected ? "Connected" : "Not connected"} />
+                            <DetailRow icon={faIdBadge} label="Facebook sign-in" value={user.facebook_connected ? "Connected" : "Not connected"} />
                             <DetailRow icon={faCalendar} label="Last login" value={formatDate(user.last_login, true)} />
                             <DetailRow icon={faUser} label="Business" value={user.business_name || "Personal account"} />
                         </div>
