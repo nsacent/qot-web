@@ -433,12 +433,12 @@ export default function ProfileSettingsClient() {
 
             {connectionMode && (
                 <div
-                    className="fixed inset-0 z-[110] flex items-end justify-center bg-slate-950/70 p-4 backdrop-blur-sm sm:items-center"
+                    className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm"
                     onMouseDown={(event) => {
                         if (event.target === event.currentTarget) setConnectionMode(null);
                     }}
                 >
-                    <section className="max-h-[78vh] w-full max-w-lg overflow-hidden rounded-[28px] bg-white shadow-2xl">
+                    <section className="max-h-[calc(100dvh-2rem)] w-full max-w-lg overflow-hidden rounded-[28px] bg-white shadow-2xl">
                         <header className="flex items-center justify-between border-b border-slate-100 p-5">
                             <div className="flex items-center gap-3">
                                 <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-orange-50 text-orange-600">

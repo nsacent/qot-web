@@ -321,12 +321,12 @@ export default function SavedSearchesClient() {
             </div>
 
             {confirmClearOpen && (
-                <div className="fixed inset-0 z-[90] flex items-end justify-center bg-slate-950/55 p-3 backdrop-blur-sm sm:items-center sm:p-5">
+                <div className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-950/55 p-4 backdrop-blur-sm sm:p-5">
                     <div
                         role="dialog"
                         aria-modal="true"
                         aria-labelledby="clear-saved-searches-title"
-                        className="w-full max-w-md rounded-[28px] bg-white p-5 shadow-[0_28px_80px_rgba(15,23,42,0.28)] sm:p-6"
+                        className="max-h-[calc(100dvh-2rem)] w-full max-w-md overflow-y-auto rounded-[28px] bg-white p-5 shadow-[0_28px_80px_rgba(15,23,42,0.28)] sm:p-6"
                     >
                         <span className="flex h-12 w-12 items-center justify-center rounded-[17px] bg-red-50 text-red-600">
                             <FontAwesomeIcon icon={faTrash} className="h-4 w-4" />

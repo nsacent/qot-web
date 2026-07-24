@@ -144,10 +144,10 @@ export default function SellerFollowCard({
             </div>
 
             {listMode && (
-                <div className="fixed inset-0 z-[100] flex items-end justify-center bg-slate-950/70 p-4 backdrop-blur-sm sm:items-center" onMouseDown={(event) => {
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm" onMouseDown={(event) => {
                     if (event.target === event.currentTarget) setListMode(null);
                 }}>
-                    <section className="max-h-[78vh] w-full max-w-lg overflow-hidden rounded-[28px] bg-white text-slate-950 shadow-2xl">
+                    <section className="max-h-[calc(100dvh-2rem)] w-full max-w-lg overflow-hidden rounded-[28px] bg-white text-slate-950 shadow-2xl">
                         <header className="flex items-center justify-between border-b border-slate-100 p-5">
                             <div className="flex items-center gap-3">
                                 <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-orange-50 text-orange-600"><FontAwesomeIcon icon={faUsers} className="h-5 w-5" /></span>
