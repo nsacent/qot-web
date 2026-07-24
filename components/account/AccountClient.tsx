@@ -75,7 +75,7 @@ export default function AccountClient() {
     const quickLinks = [
         {
             label: "Saved Searches",
-            href: "/saved-searches",
+            href: "/account/saved?tab=searches",
             description: "Reopen your saved filters",
         },
 

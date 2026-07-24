@@ -89,8 +89,8 @@ export const accountNavigationSections: AccountNavigationSection[] = [
         items: [
             {
                 href: "/account/saved",
-                label: "Saved Ads",
-                description: "Your favourites",
+                label: "Saved",
+                description: "Saved ads and searches",
                 icon: faHeart,
             },
             {

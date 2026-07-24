@@ -1,11 +1,5 @@
-import Navbar from "@/components/layout/QotMarketplaceNav";
-import SavedSearchesClient from "@/components/listings/SavedSearchesClient";
+import { redirect } from "next/navigation";
 
-export default function SavedSearchesPage() {
-    return (
-        <main className="min-h-screen bg-slate-50">
-            <Navbar />
-            <SavedSearchesClient />
-        </main>
-    );
+export default function LegacySavedSearchesPage() {
+    redirect("/account/saved?tab=searches");
 }

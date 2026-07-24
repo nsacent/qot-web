@@ -30,7 +30,7 @@ const EXACT_TITLES: Record<string, string> = {
     "/account/recently-viewed": "Recently Viewed",
     "/account/renewals": "Renewals",
     "/account/reset-password": "Password & Security",
-    "/account/saved": "Saved Ads",
+    "/account/saved": "Saved",
     "/account/settings": "Preferences",
     "/account/verification": "Verification",
     "/messages": "Messages",

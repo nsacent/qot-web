@@ -77,7 +77,7 @@ export default function SavedSearchesClient() {
             const data = await response.json().catch(() => ({}));
 
             if (response.status === 401 || response.status === 403) {
-                window.location.href = "/login?next=/saved-searches";
+                window.location.href = "/login?next=%2Faccount%2Fsaved%3Ftab%3Dsearches";
                 return;
             }
 
