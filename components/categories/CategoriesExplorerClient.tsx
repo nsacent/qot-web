@@ -197,47 +197,47 @@ export default function CategoriesExplorerClient({
     );
 
     return (
-        <div className="pb-8 pt-4">
-            <section className="relative overflow-hidden rounded-[30px] bg-slate-950 px-6 py-7 text-white shadow-[0_22px_65px_rgba(15,23,42,0.20)] sm:px-8 sm:py-8 lg:px-10 lg:py-9">
+        <div className="pb-8 pt-1 sm:pt-4">
+            <section className="relative overflow-hidden rounded-[24px] bg-slate-950 px-4 py-3 text-white shadow-[0_18px_48px_rgba(15,23,42,0.18)] sm:rounded-[30px] sm:px-8 sm:py-8 lg:px-10 lg:py-9">
                 <div className="absolute -right-24 -top-28 h-64 w-64 rounded-full bg-orange-500/25 blur-3xl" />
                 <div className="absolute -bottom-36 left-1/3 h-64 w-64 rounded-full bg-amber-400/10 blur-3xl" />
                 <div className="absolute left-1/2 top-0 h-px w-1/2 bg-gradient-to-r from-transparent via-orange-300/50 to-transparent" />
 
-                <div className="relative grid items-center gap-7 lg:grid-cols-[1.1fr_0.9fr] lg:gap-10">
+                <div className="relative grid items-center gap-2 sm:gap-7 lg:grid-cols-[1.1fr_0.9fr] lg:gap-10">
                     <div>
                         <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.18em] text-orange-200 ring-1 ring-white/15 backdrop-blur">
                             <FontAwesomeIcon icon={faTag} className="h-3 w-3" />
                             Marketplace directory
                         </span>
 
-                        <h1 className="mt-4 max-w-3xl text-3xl font-black leading-[1.06] tracking-[-0.04em] sm:text-4xl lg:text-5xl">
-                            Everything you need,
-                            <span className="block bg-gradient-to-r from-orange-400 to-amber-200 bg-clip-text text-transparent">
+                        <h1 className="mt-2.5 max-w-3xl text-2xl font-black leading-[1.08] tracking-[-0.035em] sm:mt-4 sm:text-4xl lg:text-5xl">
+                            Everything you need,{" "}
+                            <span className="bg-gradient-to-r from-orange-400 to-amber-200 bg-clip-text text-transparent sm:block">
                                 beautifully organized.
                             </span>
                         </h1>
 
-                        <p className="mt-3 max-w-xl text-sm font-semibold leading-6 text-slate-300">
+                        <p className="mt-3 hidden max-w-xl text-sm font-semibold leading-6 text-slate-300 sm:block">
                             Explore QOT&apos;s marketplace by category and move from browsing to the right advert in just a few clicks.
                         </p>
 
-                        <div className="mt-5 grid max-w-lg grid-cols-3 gap-2">
-                            <div className="rounded-[16px] bg-white/8 p-3 ring-1 ring-white/10 backdrop-blur">
-                                <p className="text-xl font-black text-white">{categories.length}</p>
-                                <p className="mt-1 text-[9px] font-black uppercase tracking-wider text-slate-400">Categories</p>
+                        <div className="mt-2 grid max-w-lg grid-cols-3 gap-1.5 sm:mt-5 sm:gap-2">
+                            <div className="rounded-[13px] bg-white/8 px-2 py-1.5 ring-1 ring-white/10 backdrop-blur sm:rounded-[16px] sm:p-3">
+                                <p className="text-sm font-black text-white sm:text-xl">{categories.length}</p>
+                                <p className="mt-0.5 text-[7px] font-black uppercase tracking-wide text-slate-400 sm:mt-1 sm:text-[9px]">Categories</p>
                             </div>
-                            <div className="rounded-[16px] bg-white/8 p-3 ring-1 ring-white/10 backdrop-blur">
-                                <p className="text-xl font-black text-white">{totalSubcategories}</p>
-                                <p className="mt-1 text-[9px] font-black uppercase tracking-wider text-slate-400">Collections</p>
+                            <div className="rounded-[13px] bg-white/8 px-2 py-1.5 ring-1 ring-white/10 backdrop-blur sm:rounded-[16px] sm:p-3">
+                                <p className="text-sm font-black text-white sm:text-xl">{totalSubcategories}</p>
+                                <p className="mt-0.5 text-[7px] font-black uppercase tracking-wide text-slate-400 sm:mt-1 sm:text-[9px]">Collections</p>
                             </div>
-                            <div className="rounded-[16px] bg-white/8 p-3 ring-1 ring-white/10 backdrop-blur">
-                                <p className="text-xl font-black text-white">{totalAds}</p>
-                                <p className="mt-1 text-[9px] font-black uppercase tracking-wider text-slate-400">Active ads</p>
+                            <div className="rounded-[13px] bg-white/8 px-2 py-1.5 ring-1 ring-white/10 backdrop-blur sm:rounded-[16px] sm:p-3">
+                                <p className="text-sm font-black text-white sm:text-xl">{totalAds}</p>
+                                <p className="mt-0.5 text-[7px] font-black uppercase tracking-wide text-slate-400 sm:mt-1 sm:text-[9px]">Active ads</p>
                             </div>
                         </div>
                     </div>
 
-                    <div className="rounded-[24px] bg-white p-4 text-slate-950 shadow-[0_20px_50px_rgba(0,0,0,0.24)] ring-1 ring-white/50 sm:p-5">
+                    <div className="rounded-[18px] bg-white p-1.5 text-slate-950 shadow-[0_16px_36px_rgba(0,0,0,0.20)] ring-1 ring-white/50 sm:rounded-[24px] sm:p-5">
                         <div className="hidden items-center gap-3 sm:flex">
                             <span className="flex h-10 w-10 items-center justify-center rounded-[14px] bg-orange-100 text-orange-600">
                                 <FontAwesomeIcon icon={faMagnifyingGlass} className="h-4 w-4" />
@@ -248,7 +248,7 @@ export default function CategoriesExplorerClient({
                             </div>
                         </div>
 
-                        <label className="flex h-12 items-center gap-3 rounded-[16px] bg-slate-50 px-4 ring-1 ring-slate-200 transition focus-within:bg-white focus-within:ring-2 focus-within:ring-orange-300 sm:mt-4">
+                        <label className="flex h-10 items-center gap-3 rounded-[13px] bg-slate-50 px-3 ring-1 ring-slate-200 transition focus-within:bg-white focus-within:ring-2 focus-within:ring-orange-300 sm:mt-4 sm:h-12 sm:rounded-[16px] sm:px-4">
                             <FontAwesomeIcon icon={faMagnifyingGlass} className="h-4 w-4 text-slate-400" />
                             <span className="sr-only">Search categories</span>
                             <input
@@ -288,36 +288,36 @@ export default function CategoriesExplorerClient({
                 </div>
             </section>
 
-            <section id="category-grid" className="scroll-mt-6 py-8 sm:py-9">
-                <div className="mb-5 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+            <section id="category-grid" className="scroll-mt-6 py-5 sm:py-9">
+                <div className="mb-4 flex items-end justify-between gap-3 sm:mb-5 sm:flex-row">
                     <div>
                         <p className="text-xs font-black uppercase tracking-[0.18em] text-orange-600">Browse the marketplace</p>
                         <h2 className="mt-1.5 text-2xl font-black tracking-tight text-slate-950 sm:text-3xl">Explore every category</h2>
-                        <p className="mt-2 max-w-2xl text-sm font-semibold leading-6 text-slate-500">
+                        <p className="mt-2 hidden max-w-2xl text-sm font-semibold leading-6 text-slate-500 sm:block">
                             Start with a department, then narrow your search using its specialized collections.
                         </p>
                     </div>
 
-                    <span className="inline-flex w-fit rounded-full bg-white px-4 py-2 text-xs font-black text-slate-600 shadow-sm ring-1 ring-black/5">
+                    <span className="inline-flex w-fit shrink-0 rounded-full bg-white px-3 py-2 text-[10px] font-black text-slate-600 shadow-sm ring-1 ring-black/5 sm:px-4 sm:text-xs">
                         {query ? `${visibleCategories.length} matches` : `${categories.length} departments`}
                     </span>
                 </div>
 
                 {visibleCategories.length > 0 ? (
                     <div>
-                        <div className="-mx-4 flex snap-x snap-mandatory gap-2.5 overflow-x-auto px-4 pb-2 [scrollbar-width:none] sm:-mx-6 sm:px-6 lg:mx-0 lg:grid lg:grid-cols-5 lg:overflow-visible lg:px-0 xl:grid-cols-6 [&::-webkit-scrollbar]:hidden">
+                        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6">
                             {visibleCategories.map((category, index) => {
                                 const visual = categoryVisuals[index % categoryVisuals.length];
                                 const children = category.children || [];
                                 const slug = getCategorySlug(category);
                                 const active = slug === activeSlug;
-                                const tileClass = `group relative min-h-[118px] min-w-[132px] snap-start overflow-hidden rounded-[19px] bg-gradient-to-br ${visual.panel} p-3.5 text-left shadow-sm ring-1 transition hover:-translate-y-0.5 hover:shadow-md lg:min-w-0 ${active ? "ring-2 ring-orange-400" : "ring-black/5"}`;
+                                const tileClass = `group relative min-h-[108px] min-w-0 overflow-hidden rounded-[18px] bg-gradient-to-br ${visual.panel} p-3 text-left shadow-sm ring-1 transition hover:-translate-y-0.5 hover:shadow-md sm:min-h-[118px] sm:rounded-[19px] sm:p-3.5 ${active ? "ring-2 ring-orange-400" : "ring-black/5"}`;
                                 const content = (
                                     <>
                                         <span className={`flex h-10 w-10 items-center justify-center rounded-[13px] shadow-sm ${visual.icon}`}>
                                             <FontAwesomeIcon icon={getCategoryIcon(category)} className="h-4 w-4" />
                                         </span>
-                                        <span className="mt-3 block line-clamp-2 text-sm font-black leading-5 text-slate-950">{getCategoryName(category)}</span>
+                                        <span className="mt-2.5 block line-clamp-2 text-xs font-black leading-4 text-slate-950 sm:mt-3 sm:text-sm sm:leading-5">{getCategoryName(category)}</span>
                                         <span className="mt-1 flex flex-col gap-0.5 text-[8px] font-black uppercase tracking-wide text-slate-400">
                                             <span className={visual.accent}>
                                                 {getCategoryAdCount(category)} active {getCategoryAdCount(category) === 1 ? "ad" : "ads"}
@@ -371,7 +371,7 @@ export default function CategoriesExplorerClient({
                                         Browse all {getCategoryName(activeCategory)}
                                     </Link>
                                 </div>
-                                <div className="mt-4 grid grid-flow-col grid-rows-2 auto-cols-[minmax(150px,1fr)] gap-2 overflow-x-auto pb-1 [scrollbar-width:none] sm:grid-flow-row sm:grid-cols-3 sm:grid-rows-none sm:overflow-visible lg:grid-cols-4 [&::-webkit-scrollbar]:hidden">
+                                <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
                                     {(activeCategory.children || []).map((child) => (
                                         <Link
                                             key={child.id || child.slug}
