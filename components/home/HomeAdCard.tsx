@@ -264,7 +264,7 @@ export default function HomeAdCard({
                         <span className="truncate">{getAdLocation(ad)}</span>
                     </span>
 
-                    <span className={`shrink-0 items-center gap-2 text-slate-400 ${isList ? "hidden md:flex" : "flex"}`}>
+                    <span className="flex shrink-0 items-center gap-2 text-slate-400">
                         <span className="inline-flex items-center gap-1" title={`${viewCount.toLocaleString()} views`}>
                             <FontAwesomeIcon icon={faEye} className="h-2.5 w-2.5" />
                             {viewCount.toLocaleString()}
