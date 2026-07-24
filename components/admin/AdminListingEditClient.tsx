@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type Ref } from "react";
 import Link from "next/link";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -27,6 +27,7 @@ import {
     AdminErrorState,
     AdminLoadingState,
 } from "@/components/admin/AdminUi";
+import InlineError from "@/components/forms/InlineError";
 
 type ListingAttribute = {
     id: number;
@@ -252,11 +253,18 @@ export default function AdminListingEditClient({
     const [filtersLoading, setFiltersLoading] = useState(false);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState("");
+    const [coreError, setCoreError] = useState("");
+    const [marketplaceError, setMarketplaceError] = useState("");
+    const [specificationsError, setSpecificationsError] = useState("");
+    const [saveError, setSaveError] = useState("");
     const [message, setMessage] = useState("");
     const [categoryModalOpen, setCategoryModalOpen] = useState(false);
     const [locationModalOpen, setLocationModalOpen] = useState(false);
     const [categorySearch, setCategorySearch] = useState("");
     const [locationSearch, setLocationSearch] = useState("");
+    const coreSectionRef = useRef<HTMLElement>(null);
+    const marketplaceSectionRef = useRef<HTMLElement>(null);
+    const specificationsSectionRef = useRef<HTMLElement>(null);
 
     const flatCategories = useMemo(
         () => flattenCategories(categories),
@@ -270,6 +278,12 @@ export default function AdminListingEditClient({
         () => cities.find((city) => String(city.id) === form.city),
         [cities, form.city]
     );
+
+    function revealSection(sectionRef: { readonly current: HTMLElement | null }) {
+        window.requestAnimationFrame(() => {
+            sectionRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+        });
+    }
 
     async function loadFilters(
         categoryId: string,
@@ -310,7 +324,9 @@ export default function AdminListingEditClient({
                 )
             );
         } catch (requestError: unknown) {
-            setError(errorMessage(requestError, "Failed to load category specifications."));
+            setSpecificationsError(
+                errorMessage(requestError, "Failed to load category specifications.")
+            );
             setFilters([]);
             setFilterValues({});
         } finally {
@@ -366,7 +382,9 @@ export default function AdminListingEditClient({
         value: ListingForm[Key]
     ) {
         setForm((current) => ({ ...current, [key]: value }));
-        setError("");
+        setCoreError("");
+        setMarketplaceError("");
+        setSaveError("");
         setMessage("");
     }
 
@@ -428,12 +446,35 @@ export default function AdminListingEditClient({
         const validationError = validateForm();
 
         if (validationError) {
-            setError(validationError);
+            setCoreError("");
+            setMarketplaceError("");
+            setSpecificationsError("");
+            setSaveError("");
+
+            if (!form.title.trim() || !form.description.trim()) {
+                setCoreError(validationError);
+                revealSection(coreSectionRef);
+            } else if (
+                !form.category ||
+                !form.city ||
+                !form.condition ||
+                !form.price ||
+                Number(form.price) <= 0
+            ) {
+                setMarketplaceError(validationError);
+                revealSection(marketplaceSectionRef);
+            } else {
+                setSpecificationsError(validationError);
+                revealSection(specificationsSectionRef);
+            }
             return;
         }
 
         setSaving(true);
-        setError("");
+        setCoreError("");
+        setMarketplaceError("");
+        setSpecificationsError("");
+        setSaveError("");
         setMessage("");
 
         try {
@@ -457,7 +498,7 @@ export default function AdminListingEditClient({
             setMessage("Ad details updated successfully.");
             window.scrollTo({ top: 0, behavior: "smooth" });
         } catch (requestError: unknown) {
-            setError(errorMessage(requestError, "Failed to update this ad."));
+            setSaveError(errorMessage(requestError, "Failed to update this ad."));
         } finally {
             setSaving(false);
         }
@@ -533,10 +574,15 @@ export default function AdminListingEditClient({
             >
                 <div className="space-y-6">
                     <FormSection
+                        sectionRef={coreSectionRef}
                         eyebrow="Core content"
                         title="Basic ad details"
                         icon={faPenToSquare}
                     >
+                        {coreError && (
+                            <InlineError message={coreError} onDismiss={() => setCoreError("")} />
+                        )}
+
                         <label className="block">
                             <FieldLabel label="Ad title" required />
                             <input
@@ -564,10 +610,15 @@ export default function AdminListingEditClient({
                     </FormSection>
 
                     <FormSection
+                        sectionRef={marketplaceSectionRef}
                         eyebrow="Marketplace data"
                         title="Category, location and price"
                         icon={faLocationDot}
                     >
+                        {marketplaceError && (
+                            <InlineError message={marketplaceError} onDismiss={() => setMarketplaceError("")} />
+                        )}
+
                         <div className="grid gap-4 md:grid-cols-2">
                             <div>
                                 <FieldLabel label="Category" required />
@@ -690,10 +741,15 @@ export default function AdminListingEditClient({
                     </FormSection>
 
                     <FormSection
+                        sectionRef={specificationsSectionRef}
                         eyebrow="Category data"
                         title="Ad specifications"
                         icon={faTag}
                     >
+                        {specificationsError && (
+                            <InlineError message={specificationsError} onDismiss={() => setSpecificationsError("")} />
+                        )}
+
                         {filtersLoading ? (
                             <div className="rounded-2xl bg-slate-50 px-4 py-8 text-center text-xs font-bold text-slate-400">
                                 Loading category specifications…
@@ -714,7 +770,8 @@ export default function AdminListingEditClient({
                                                 ...current,
                                                 [String(filter.id)]: value,
                                             }));
-                                            setError("");
+                                            setSpecificationsError("");
+                                            setSaveError("");
                                             setMessage("");
                                         }}
                                     />
@@ -747,10 +804,18 @@ export default function AdminListingEditClient({
                             Saving changes will not approve, reject, feature, or delete this ad.
                         </p>
 
+                        {saveError && (
+                            <InlineError
+                                message={saveError}
+                                onDismiss={() => setSaveError("")}
+                                className="mt-5 text-left"
+                            />
+                        )}
+
                         <button
                             type="submit"
                             disabled={saving || filtersLoading}
-                            className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-orange-500 px-4 py-3.5 text-xs font-black text-white shadow-lg shadow-orange-950/20 transition hover:bg-orange-400 disabled:cursor-wait disabled:opacity-60"
+                            className={`${saveError ? "mt-3" : "mt-5"} inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-orange-500 px-4 py-3.5 text-xs font-black text-white shadow-lg shadow-orange-950/20 transition hover:bg-orange-400 disabled:cursor-wait disabled:opacity-60`}
                         >
                             <FontAwesomeIcon icon={faFloppyDisk} className="h-3.5 w-3.5" />
                             {saving ? "Saving changes…" : "Save ad changes"}
@@ -792,18 +857,20 @@ function FieldLabel({ label, required = false }: { label: string; required?: boo
 }
 
 function FormSection({
+    sectionRef,
     eyebrow,
     title,
     icon,
     children,
 }: {
+    sectionRef?: Ref<HTMLElement>;
     eyebrow: string;
     title: string;
     icon: typeof faPenToSquare;
     children: React.ReactNode;
 }) {
     return (
-        <section className="rounded-[28px] bg-white p-6 shadow-sm ring-1 ring-slate-200/70 sm:p-7">
+        <section ref={sectionRef} className="rounded-[28px] bg-white p-6 shadow-sm ring-1 ring-slate-200/70 sm:p-7">
             <div className="mb-5 flex items-center justify-between gap-4">
                 <div>
                     <p className="text-[10px] font-black uppercase tracking-[0.18em] text-orange-600">{eyebrow}</p>

@@ -8,6 +8,7 @@ import {
     useState,
     type DragEvent,
     type ReactNode,
+    type Ref,
 } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -34,6 +35,7 @@ import {
 import QotLoader from "@/components/common/QotLoader";
 import AdPreviewPanel from "@/components/listings/AdPreviewPanel";
 import PhotoViewerModal from "@/components/listings/PhotoViewerModal";
+import InlineError from "@/components/forms/InlineError";
 import { getCurrentUser } from "@/lib/sessionClient";
 import { LocationPickerModal } from "@/components/listings/MarketplacePickerModals";
 import { fetchAllProxyPages } from "@/lib/marketplaceCatalog";
@@ -313,10 +315,19 @@ function EditAdForm({ id }: { id: string }) {
 
     const [message, setMessage] = useState("");
     const [error, setError] = useState("");
+    const [photoError, setPhotoError] = useState("");
+    const [categoryError, setCategoryError] = useState("");
+    const [detailsError, setDetailsError] = useState("");
+    const [pricingError, setPricingError] = useState("");
+    const [actionError, setActionError] = useState("");
     const [viewerPhoto, setViewerPhoto] = useState<{ url: string; name: string } | null>(null);
     const [locationModalOpen, setLocationModalOpen] = useState(false);
     const [locationSearch, setLocationSearch] = useState("");
     const pendingAttributeValues = useRef<Record<string, string>>({});
+    const photoSectionRef = useRef<HTMLElement>(null);
+    const detailsSectionRef = useRef<HTMLElement>(null);
+    const pricingSectionRef = useRef<HTMLElement>(null);
+    const categorySectionRef = useRef<HTMLElement>(null);
 
     const flatCategories = useMemo(() => flattenCategories(categories), [categories]);
     const selectedCategory = useMemo(
@@ -331,6 +342,12 @@ function EditAdForm({ id }: { id: string }) {
         () => getCategoryPhotoRequirements(selectedCategory),
         [selectedCategory],
     );
+
+    function revealSection(sectionRef: { readonly current: HTMLElement | null }) {
+        window.requestAnimationFrame(() => {
+            sectionRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+        });
+    }
 
     const existingImages = useMemo<ExistingImage[]>(() => {
         return getOrderedListingImages(ad)
@@ -551,6 +568,7 @@ function EditAdForm({ id }: { id: string }) {
 
     function selectCityValue(value: string) {
         setCity(value);
+        setCategoryError("");
         setLocationSearch("");
         setLocationModalOpen(false);
     }
@@ -596,18 +614,21 @@ function EditAdForm({ id }: { id: string }) {
             (file) => !["image/jpeg", "image/png", "image/webp"].includes(file.type)
         );
         if (invalidType) {
-            setError("Photos must be JPG, JPEG, PNG, or WEBP files.");
+            setError("");
+            setPhotoError("Photos must be JPG, JPEG, PNG, or WEBP files.");
             return;
         }
 
         const oversized = files.find((file) => file.size > 8 * 1024 * 1024);
         if (oversized) {
-            setError(`${oversized.name} is larger than the 8MB limit.`);
+            setError("");
+            setPhotoError(`${oversized.name} is larger than the 8MB limit.`);
             return;
         }
 
         if (totalPhotos + files.length > photoRequirements.maximum) {
-            setError(
+            setError("");
+            setPhotoError(
                 `${selectedCategory ? getOptionLabel(selectedCategory) : "This category"} allows a maximum of ${photoRequirements.maximum} photos.`
             );
             return;
@@ -616,11 +637,13 @@ function EditAdForm({ id }: { id: string }) {
         try {
             const lowResolutionPhoto = await findLowResolutionPhoto(files);
             if (lowResolutionPhoto) {
-                setError(`${lowResolutionPhoto.name} is too small. Use a photo of at least 600 × 450 pixels.`);
+                setError("");
+                setPhotoError(`${lowResolutionPhoto.name} is too small. Use a photo of at least 600 × 450 pixels.`);
                 return;
             }
         } catch {
-            setError("One of the selected files could not be read as a photo.");
+            setError("");
+            setPhotoError("One of the selected files could not be read as a photo.");
             return;
         }
 
@@ -637,7 +660,8 @@ function EditAdForm({ id }: { id: string }) {
             });
 
             if (duplicateIndex >= 0) {
-                setError(`${files[duplicateIndex].name} is already selected. Choose a different photo.`);
+                setError("");
+                setPhotoError(`${files[duplicateIndex].name} is already selected. Choose a different photo.`);
                 return;
             }
         } catch {
@@ -645,6 +669,7 @@ function EditAdForm({ id }: { id: string }) {
         }
 
         setError("");
+        setPhotoError("");
         const additions = files.map((file, index) => ({
             key: `new:${Date.now()}-${index}-${Math.random().toString(36).slice(2)}`,
             file,
@@ -795,14 +820,34 @@ function EditAdForm({ id }: { id: string }) {
         event.preventDefault();
         setError("");
         setMessage("");
+        setActionError("");
+        setCategoryError("");
+        setDetailsError("");
+        setPricingError("");
+        setPhotoError("");
 
         const validationError = validateForm();
         if (validationError) {
-            setError(validationError);
-            window.scrollTo({ top: 0, behavior: "smooth" });
+            if (!title.trim() || !description.trim()) {
+                setDetailsError(validationError);
+                revealSection(detailsSectionRef);
+            } else if (!price || Number(price) <= 0 || !condition) {
+                setPricingError(validationError);
+                revealSection(pricingSectionRef);
+            } else if (!category || !city) {
+                setCategoryError(validationError);
+                revealSection(categorySectionRef);
+            } else {
+                setPhotoError(validationError);
+                revealSection(photoSectionRef);
+            }
             return;
         }
 
+        setCategoryError("");
+        setDetailsError("");
+        setPricingError("");
+        setPhotoError("");
         setShowPreview(true);
         window.scrollTo({ top: 0, behavior: "smooth" });
     }
@@ -810,7 +855,23 @@ function EditAdForm({ id }: { id: string }) {
     async function saveChanges() {
         const validationError = validateForm();
         if (validationError) {
-            setError(validationError);
+            setCategoryError("");
+            setDetailsError("");
+            setPricingError("");
+            setPhotoError("");
+            if (!title.trim() || !description.trim()) {
+                setDetailsError(validationError);
+                revealSection(detailsSectionRef);
+            } else if (!price || Number(price) <= 0 || !condition) {
+                setPricingError(validationError);
+                revealSection(pricingSectionRef);
+            } else if (!category || !city) {
+                setCategoryError(validationError);
+                revealSection(categorySectionRef);
+            } else {
+                setPhotoError(validationError);
+                revealSection(photoSectionRef);
+            }
             setShowPreview(false);
             return;
         }
@@ -818,6 +879,7 @@ function EditAdForm({ id }: { id: string }) {
         setSaving(true);
         setError("");
         setMessage("");
+        setActionError("");
 
         try {
             const response = await fetch(`/api/proxy/listings/${id}/`, {
@@ -840,13 +902,25 @@ function EditAdForm({ id }: { id: string }) {
                 throw new Error(getApiErrorMessage(data, "Failed to save ad details."));
             }
 
-            await deleteRemovedImages();
-            const uploadedIds = await uploadNewImages();
-            await savePhotoOrder(uploadedIds);
+            try {
+                await deleteRemovedImages();
+                const uploadedIds = await uploadNewImages();
+                await savePhotoOrder(uploadedIds);
+            } catch (photoRequestError: unknown) {
+                setActionError("");
+                setPhotoError(
+                    photoRequestError instanceof Error
+                        ? photoRequestError.message
+                        : "Failed to save the photo changes."
+                );
+                setShowPreview(false);
+                revealSection(photoSectionRef);
+                return;
+            }
             router.replace("/account/my-ads");
             router.refresh();
         } catch (requestError: any) {
-            setError(requestError.message || "Failed to save ad.");
+            setActionError(requestError.message || "Failed to save ad.");
         } finally {
             setSaving(false);
         }
@@ -919,21 +993,32 @@ function EditAdForm({ id }: { id: string }) {
                     </div>
                 )}
 
-                <div className="sticky bottom-3 z-20 flex flex-col gap-3 rounded-[22px] border border-slate-200/80 bg-white/95 p-3 shadow-[0_16px_45px_rgba(15,23,42,0.14)] backdrop-blur sm:flex-row sm:items-center">
-                    <button type="button" onClick={() => setShowPreview(false)} disabled={saving} className="inline-flex h-12 items-center justify-center gap-2 rounded-[16px] bg-slate-100 px-5 text-sm font-black text-slate-700 hover:bg-slate-200 disabled:opacity-50">
-                        <FontAwesomeIcon icon={faArrowLeft} className="h-4 w-4" />
-                        Edit details
-                    </button>
+                <div className="sticky bottom-3 z-20 rounded-[22px] border border-slate-200/80 bg-white/95 p-3 shadow-[0_16px_45px_rgba(15,23,42,0.14)] backdrop-blur">
+                    {actionError && (
+                        <div className="mb-3">
+                            <InlineError message={actionError} onDismiss={() => setActionError("")} />
+                        </div>
+                    )}
 
-                    <div className="hidden min-w-0 flex-1 px-2 sm:block">
-                        <p className="text-sm font-black text-slate-900">Ready to save these changes?</p>
-                        <p className="truncate text-xs font-semibold text-slate-500">The updated ad will be sent for review.</p>
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                        <button type="button" onClick={() => {
+                            setActionError("");
+                            setShowPreview(false);
+                        }} disabled={saving} className="inline-flex h-12 items-center justify-center gap-2 rounded-[16px] bg-slate-100 px-5 text-sm font-black text-slate-700 hover:bg-slate-200 disabled:opacity-50">
+                            <FontAwesomeIcon icon={faArrowLeft} className="h-4 w-4" />
+                            Edit details
+                        </button>
+
+                        <div className="hidden min-w-0 flex-1 px-2 sm:block">
+                            <p className="text-sm font-black text-slate-900">Ready to save these changes?</p>
+                            <p className="truncate text-xs font-semibold text-slate-500">The updated ad will be sent for review.</p>
+                        </div>
+
+                        <button type="button" onClick={saveChanges} disabled={saving} className="inline-flex h-12 items-center justify-center gap-2 rounded-[16px] bg-orange-500 px-6 text-sm font-black text-white shadow-lg shadow-orange-200 hover:bg-orange-600 disabled:opacity-50">
+                            {saving ? "Saving changes..." : "Save Changes"}
+                            <FontAwesomeIcon icon={faArrowRight} className="h-4 w-4" />
+                        </button>
                     </div>
-
-                    <button type="button" onClick={saveChanges} disabled={saving} className="inline-flex h-12 items-center justify-center gap-2 rounded-[16px] bg-orange-500 px-6 text-sm font-black text-white shadow-lg shadow-orange-200 hover:bg-orange-600 disabled:opacity-50">
-                        {saving ? "Saving changes..." : "Save Changes"}
-                        <FontAwesomeIcon icon={faArrowRight} className="h-4 w-4" />
-                    </button>
                 </div>
             </section>
         );
@@ -950,7 +1035,11 @@ function EditAdForm({ id }: { id: string }) {
                 </div>
             )}
 
-            <FormCard className="order-1" icon={faCamera} eyebrow="Step 1" title="Manage photos" description={`${totalPhotos} selected · ${getPhotoRequirementText(selectedCategory ? getOptionLabel(selectedCategory) : "This category", photoRequirements)} Choose a clear cover image.`}>
+            <FormCard sectionRef={photoSectionRef} className="order-1" icon={faCamera} eyebrow="Step 1" title="Manage photos" description={`${totalPhotos} selected · ${getPhotoRequirementText(selectedCategory ? getOptionLabel(selectedCategory) : "This category", photoRequirements)} Choose a clear cover image.`}>
+                {photoError && (
+                    <InlineError message={photoError} onDismiss={() => setPhotoError("")} />
+                )}
+
                 <div className="rounded-[18px] border-2 border-dashed border-orange-200 bg-orange-50/70 p-3 transition hover:border-orange-300 hover:bg-orange-50">
                     <label className="flex min-h-20 cursor-pointer items-center gap-3 rounded-[14px] px-2 py-2 text-left">
                         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] bg-white text-orange-600 ring-1 ring-orange-100">
@@ -1061,19 +1150,36 @@ function EditAdForm({ id }: { id: string }) {
                 </div>
             </FormCard>
 
-            <FormCard className="order-2" icon={faPenToSquare} eyebrow="Step 2" title="What are you selling?" description="Keep the title clear and update the important details.">
+            <FormCard sectionRef={detailsSectionRef} className="order-2" icon={faPenToSquare} eyebrow="Step 2" title="What are you selling?" description="Keep the title clear and update the important details.">
+                {detailsError && (
+                    <InlineError message={detailsError} onDismiss={() => setDetailsError("")} />
+                )}
+
                 <Field label="Ad title" icon={faBullhorn}>
-                    <input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Example: HP EliteBook Core i5" className={inputClass} required />
+                    <input value={title} onChange={(event) => {
+                        setTitle(event.target.value);
+                        setDetailsError("");
+                    }} placeholder="Example: HP EliteBook Core i5" className={inputClass} required />
                 </Field>
                 <Field label="Description" icon={faFileLines}>
-                    <textarea value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Describe the item, condition and useful features..." rows={4} className={inputClass} required />
+                    <textarea value={description} onChange={(event) => {
+                        setDescription(event.target.value);
+                        setDetailsError("");
+                    }} placeholder="Describe the item, condition and useful features..." rows={4} className={inputClass} required />
                 </Field>
             </FormCard>
 
-            <FormCard className="order-3" icon={faMoneyBillWave} eyebrow="Step 3" title="Price and condition" description="Keep your price competitive and condition accurate.">
+            <FormCard sectionRef={pricingSectionRef} className="order-3" icon={faMoneyBillWave} eyebrow="Step 3" title="Price and condition" description="Keep your price competitive and condition accurate.">
+                {pricingError && (
+                    <InlineError message={pricingError} onDismiss={() => setPricingError("")} />
+                )}
+
                 <div className="grid gap-5 md:grid-cols-2">
                     <Field label="Price" icon={faMoneyBillWave}>
-                        <input type="number" min="1" value={price} onChange={(event) => setPrice(event.target.value)} placeholder="Example: 850000" className={inputClass} required />
+                        <input type="number" min="1" value={price} onChange={(event) => {
+                            setPrice(event.target.value);
+                            setPricingError("");
+                        }} placeholder="Example: 850000" className={inputClass} required />
                         <label className="mt-3 flex cursor-pointer items-center justify-between gap-4 rounded-[18px] bg-slate-50 px-4 py-3 ring-1 ring-slate-100">
                             <span className="text-sm font-black text-slate-800">Negotiable price</span>
                             <input type="checkbox" checked={isNegotiable} onChange={(event) => setIsNegotiable(event.target.checked)} className="h-5 w-5 shrink-0 accent-orange-500" />
@@ -1081,7 +1187,10 @@ function EditAdForm({ id }: { id: string }) {
                     </Field>
                     <Field label="Condition" icon={faTag}>
                         <SelectWrap>
-                            <select value={condition} onChange={(event) => setCondition(event.target.value)} className={selectClass}>
+                            <select value={condition} onChange={(event) => {
+                                setCondition(event.target.value);
+                                setPricingError("");
+                            }} className={selectClass}>
                                 <option value="new">New</option>
                                 <option value="used">Used</option>
                             </select>
@@ -1090,7 +1199,11 @@ function EditAdForm({ id }: { id: string }) {
                 </div>
             </FormCard>
 
-            <FormCard className="order-4" icon={faLayerGroup} eyebrow="Step 4" title="Category and location" description="The original category stays locked; you can update where the ad appears.">
+            <FormCard sectionRef={categorySectionRef} className="order-4" icon={faLayerGroup} eyebrow="Step 4" title="Category and location" description="The original category stays locked; you can update where the ad appears.">
+                {categoryError && (
+                    <InlineError message={categoryError} onDismiss={() => setCategoryError("")} />
+                )}
+
                 <div className="grid gap-5 md:grid-cols-2">
                     <Field label="Category" icon={faLayerGroup}>
                         <div className="flex w-full items-center justify-between gap-4 rounded-[18px] bg-slate-50 px-4 py-3 text-left ring-1 ring-slate-200">
@@ -1185,6 +1298,7 @@ function EditAdForm({ id }: { id: string }) {
 
 function FormCard({
     className = "",
+    sectionRef,
     icon,
     eyebrow,
     title,
@@ -1192,6 +1306,7 @@ function FormCard({
     children,
 }: {
     className?: string;
+    sectionRef?: Ref<HTMLElement>;
     icon: any;
     eyebrow: string;
     title: string;
@@ -1199,7 +1314,7 @@ function FormCard({
     children?: ReactNode;
 }) {
     return (
-        <section className={`rounded-[22px] border border-slate-200/80 bg-white p-4 shadow-[0_10px_28px_rgba(15,23,42,0.05)] sm:p-5 ${className}`}>
+        <section ref={sectionRef} className={`rounded-[22px] border border-slate-200/80 bg-white p-4 shadow-[0_10px_28px_rgba(15,23,42,0.05)] sm:p-5 ${className}`}>
             <div className="mb-4 flex gap-3">
                 <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[11px] bg-orange-50 text-orange-600"><FontAwesomeIcon icon={icon} className="h-4 w-4" /></span>
                 <span>

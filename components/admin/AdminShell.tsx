@@ -11,6 +11,7 @@ import {
     faChartPie,
     faCreditCard,
     faDatabase,
+    faClockRotateLeft,
     faFlag,
     faListCheck,
     faRightFromBracket,
@@ -61,6 +62,13 @@ const links = [
         href: "/admin/payments",
         icon: faCreditCard,
         adminOnly: false,
+    },
+    {
+        label: "System Trace",
+        description: "Staff activity audit",
+        href: "/admin/activity",
+        icon: faClockRotateLeft,
+        adminOnly: true,
     },
     {
         label: "Backups",

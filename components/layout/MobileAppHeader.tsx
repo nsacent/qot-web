@@ -39,6 +39,7 @@ const EXACT_TITLES: Record<string, string> = {
     "/recently-viewed": "Recently Viewed",
     "/admin": "Admin Overview",
     "/admin/ads": "Manage Ads",
+    "/admin/activity": "System Trace",
     "/admin/backups": "Backups",
     "/admin/listings": "Manage Listings",
     "/admin/payments": "Payments",

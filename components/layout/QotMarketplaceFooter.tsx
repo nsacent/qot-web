@@ -1,6 +1,7 @@
 import Link from "next/link";
 import QotLogo from "@/components/brand/QotLogo";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import CookieSettingsButton from "@/components/privacy/CookieSettingsButton";
 import {
     faCircleCheck,
     faEnvelope,
@@ -190,6 +191,7 @@ export default function QotMarketplaceFooter() {
                             <Link href="/terms" className="font-black text-slate-400 transition hover:text-white">
                                 Terms
                             </Link>
+                            <CookieSettingsButton className="font-black text-slate-400 transition hover:text-white" />
                             <a href="tel:+256200911678" className="font-black text-slate-400 transition hover:text-white">
                                 0200 911 678
                             </a>

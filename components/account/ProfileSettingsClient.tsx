@@ -25,6 +25,7 @@ import {
 } from "@/lib/ugandanPhone";
 import { DEFAULT_TIME_ZONE, TIME_ZONE_OPTIONS } from "@/lib/dateTime";
 import UserAvatar from "@/components/account/UserAvatar";
+import InlineError from "@/components/forms/InlineError";
 
 function getUserObject(data: any) {
     return data?.user || data?.data || data;
@@ -66,6 +67,9 @@ export default function ProfileSettingsClient() {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState("");
+    const [imageError, setImageError] = useState("");
+    const [saveError, setSaveError] = useState("");
+    const [connectionError, setConnectionError] = useState("");
     const [message, setMessage] = useState("");
 
     const [fullName, setFullName] = useState("");
@@ -146,22 +150,22 @@ export default function ProfileSettingsClient() {
 
         if (!file) return;
         if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
-            setError("Use a JPG, PNG, or WEBP image.");
+            setImageError("Use a JPG, PNG, or WEBP image.");
             return;
         }
         if (file.size > 5 * 1024 * 1024) {
-            setError("Profile images must be 5MB or smaller.");
+            setImageError("Profile images must be 5MB or smaller.");
             return;
         }
 
-        setError("");
+        setImageError("");
         setter(file);
     }
 
     async function handleSave(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
         setSaving(true);
-        setError("");
+        setSaveError("");
         setMessage("");
 
         try {
@@ -194,7 +198,7 @@ export default function ProfileSettingsClient() {
             window.dispatchEvent(new Event("qot_session_updated"));
             setMessage("Profile, default location, and timezone saved.");
         } catch (err: any) {
-            setError(err.message || "Failed to update your profile.");
+            setSaveError(err.message || "Failed to update your profile.");
         } finally {
             setSaving(false);
         }
@@ -206,7 +210,7 @@ export default function ProfileSettingsClient() {
         setConnectionMode(mode);
         setConnections([]);
         setConnectionsLoading(true);
-        setError("");
+        setConnectionError("");
 
         try {
             const response = await fetch(
@@ -224,7 +228,7 @@ export default function ProfileSettingsClient() {
 
             setConnections(getArray(data));
         } catch (err: any) {
-            setError(err.message || `Failed to load ${mode}.`);
+            setConnectionError(err.message || `Failed to load ${mode}.`);
         } finally {
             setConnectionsLoading(false);
         }
@@ -308,6 +312,13 @@ export default function ProfileSettingsClient() {
                 </div>
 
                 {error && <div className="mb-5 rounded-2xl bg-red-50 px-4 py-3 text-sm font-bold text-red-700 ring-1 ring-red-100">{error}</div>}
+                {imageError && (
+                    <InlineError
+                        message={imageError}
+                        onDismiss={() => setImageError("")}
+                        className="mb-5"
+                    />
+                )}
                 {message && <div className="mb-5 flex items-center gap-2 rounded-2xl bg-green-50 px-4 py-3 text-sm font-bold text-green-700 ring-1 ring-green-100"><FontAwesomeIcon icon={faCircleCheck} className="h-4 w-4" />{message}</div>}
 
                 <div className="grid gap-5 md:grid-cols-2">
@@ -425,6 +436,13 @@ export default function ProfileSettingsClient() {
                 </label>
 
                 <div className="fixed inset-x-0 bottom-[68px] z-[80] mt-6 border-t border-slate-100 bg-white/95 px-4 py-3 shadow-[0_-10px_30px_rgba(15,23,42,0.08)] backdrop-blur sm:static sm:mx-0 sm:border-0 sm:bg-transparent sm:p-0 sm:shadow-none">
+                    {saveError && (
+                        <InlineError
+                            message={saveError}
+                            onDismiss={() => setSaveError("")}
+                            className="mb-2 sm:max-w-xl"
+                        />
+                    )}
                     <button type="submit" disabled={saving} className="inline-flex w-full items-center justify-center rounded-2xl bg-orange-500 px-6 py-3.5 text-sm font-black text-white shadow-[0_10px_24px_rgba(249,115,22,0.20)] hover:bg-orange-600 disabled:opacity-60 sm:w-auto">
                         {saving ? "Saving profile..." : "Save profile"}
                     </button>
@@ -464,7 +482,12 @@ export default function ProfileSettingsClient() {
                         </header>
 
                         <div className="max-h-[60vh] overflow-y-auto p-4">
-                            {connectionsLoading ? (
+                            {connectionError ? (
+                                <InlineError
+                                    message={connectionError}
+                                    onDismiss={() => setConnectionError("")}
+                                />
+                            ) : connectionsLoading ? (
                                 <p className="p-6 text-center text-sm font-bold text-slate-500">
                                     Loading {connectionMode}...
                                 </p>

@@ -4,6 +4,7 @@ import LegalPageShell, {
     LegalListItem,
     LegalSection,
 } from "@/components/legal/LegalPageShell";
+import CookieSettingsButton from "@/components/privacy/CookieSettingsButton";
 
 export const metadata: Metadata = {
     title: "Privacy Policy | QOT Uganda",
@@ -40,7 +41,7 @@ export default function PrivacyPolicyPage() {
             eyebrow="Your privacy"
             title="Privacy Policy"
             summary="This policy explains what information QOT Uganda handles when you browse, register, post adverts, contact other members, or use our marketplace services."
-            updated="21 July 2026"
+            updated="24 July 2026"
             sections={sections}
         >
             <LegalSection id="who-we-are" title="1. Who we are">
@@ -154,8 +155,9 @@ export default function PrivacyPolicyPage() {
                     QOT uses cookies and similar browser storage that are necessary for sign-in, security, preferences, and core marketplace functions. We may also use limited measurement technology to understand service performance and improve QOT.
                 </p>
                 <p>
-                    You can control cookies through your browser. Blocking essential cookies may prevent sign-in, saved preferences, or other account functions from working correctly.
+                    You can accept optional cookies or keep only essential cookies through QOT&apos;s cookie controls. You can change your choice later from the footer or the button below. Blocking essential cookies in your browser may prevent sign-in, saved preferences, or other account functions from working correctly.
                 </p>
+                <CookieSettingsButton className="inline-flex rounded-[14px] bg-slate-950 px-4 py-3 text-xs font-black text-white transition hover:bg-orange-500" />
             </LegalSection>
 
             <LegalSection id="children" title="11. Children">

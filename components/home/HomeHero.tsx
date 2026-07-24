@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCircleCheck, faStar } from "@/lib/faIcons";
+import { faGift, faShieldHalved, faUserCheck } from "@fortawesome/free-solid-svg-icons";
 import ListingCardImage from "@/components/listings/ListingCardImage";
 
 type HeroListing = Record<string, unknown> & {
@@ -16,6 +17,24 @@ type HeroListing = Record<string, unknown> & {
 type HomeHeroProps = {
     featuredAds?: HeroListing[];
 };
+
+const trustBadges = [
+    {
+        label: "100% Free to Use",
+        icon: faGift,
+        iconClass: "bg-orange-100 text-orange-600",
+    },
+    {
+        label: "Verified Sellers",
+        icon: faUserCheck,
+        iconClass: "bg-emerald-100 text-emerald-700",
+    },
+    {
+        label: "Safe & Secure",
+        icon: faShieldHalved,
+        iconClass: "bg-blue-100 text-blue-700",
+    },
+];
 
 function formatPrice(value: unknown, currency = "UGX") {
     if (!value) return "Price on request";
@@ -104,10 +123,18 @@ export default function HomeHero({ featuredAds = [] }: HomeHeroProps) {
                         </Link>
                     </div>
 
-                    <div className="mt-5 flex flex-wrap gap-4 text-xs font-black text-slate-800">
-                        <span>100% Free to Use</span>
-                        <span>Verified Sellers</span>
-                        <span>Safe &amp; Secure</span>
+                    <div className="mt-5 flex flex-wrap gap-2.5">
+                        {trustBadges.map((badge) => (
+                            <span
+                                key={badge.label}
+                                className="inline-flex items-center gap-2 rounded-full bg-white/85 py-1.5 pl-1.5 pr-3 text-[11px] font-black text-slate-800 shadow-sm ring-1 ring-slate-200/80 backdrop-blur"
+                            >
+                                <span className={`flex h-7 w-7 items-center justify-center rounded-full ${badge.iconClass}`}>
+                                    <FontAwesomeIcon icon={badge.icon} className="h-3 w-3" />
+                                </span>
+                                {badge.label}
+                            </span>
+                        ))}
                     </div>
                 </div>
 

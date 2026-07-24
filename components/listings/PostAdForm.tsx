@@ -10,6 +10,7 @@ import {
     type DragEvent,
     type FormEvent,
     type ReactNode,
+    type Ref,
 } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -38,6 +39,7 @@ import {
 import AdPreviewPanel from "@/components/listings/AdPreviewPanel";
 import AdActionModal from "@/components/listings/AdActionModal";
 import PhotoViewerModal from "@/components/listings/PhotoViewerModal";
+import InlineError from "@/components/forms/InlineError";
 import { fetchAllProxyPages } from "@/lib/marketplaceCatalog";
 import {
     getCategoryFilterDisplayValue,
@@ -327,6 +329,12 @@ export default function PostAdForm() {
     const [filtersLoading, setFiltersLoading] = useState(false);
     const [uploadProgress, setUploadProgress] = useState("");
     const [error, setError] = useState("");
+    const [photoError, setPhotoError] = useState("");
+    const [categoryError, setCategoryError] = useState("");
+    const [detailsError, setDetailsError] = useState("");
+    const [pricingError, setPricingError] = useState("");
+    const [actionError, setActionError] = useState("");
+    const [draftError, setDraftError] = useState("");
     const [draftReady, setDraftReady] = useState(false);
     const [draftSaving, setDraftSaving] = useState(false);
     const [draftMessage, setDraftMessage] = useState("");
@@ -338,6 +346,11 @@ export default function PostAdForm() {
     const [uploadingPhotos, setUploadingPhotos] = useState<UploadingPhoto[]>([]);
     const [viewerPhoto, setViewerPhoto] = useState<{ url: string; name: string } | null>(null);
     const pendingDraftFilterValues = useRef<Record<string, string>>({});
+    const photoSectionRef = useRef<HTMLElement>(null);
+    const categorySectionRef = useRef<HTMLElement>(null);
+    const detailsSectionRef = useRef<HTMLElement>(null);
+    const pricingSectionRef = useRef<HTMLElement>(null);
+    const draftActionsRef = useRef<HTMLDivElement>(null);
 
     const [categoryModalOpen, setCategoryModalOpen] = useState(false);
     const [locationModalOpen, setLocationModalOpen] = useState(false);
@@ -365,6 +378,12 @@ export default function PostAdForm() {
     );
 
     const stagedPhotoIds = useMemo(() => photos.map((photo) => photo.id), [photos]);
+
+    function revealSection(sectionRef: { readonly current: HTMLElement | null }) {
+        window.requestAnimationFrame(() => {
+            sectionRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+        });
+    }
 
     useEffect(() => {
         async function loadFormData() {
@@ -556,22 +575,24 @@ export default function PostAdForm() {
         );
 
         if (!hasContent) {
-            setError("Add at least one detail before saving a draft.");
+            setDraftError("Add at least one detail before saving a draft.");
+            revealSection(draftActionsRef);
             return;
         }
 
         setDraftSaving(true);
-        setError("");
+        setDraftError("");
 
         try {
             await clientApiPut("/listings/draft/", getDraftPayload());
+            setDraftError("");
             setDraftMessage("Draft saved. You can safely come back to it later.");
         } catch (err: any) {
             if (err?.message === "__AUTH__") {
                 router.push("/login?next=/post-ad");
                 return;
             }
-            setError(err.message || "Failed to save draft.");
+            setDraftError(err.message || "Failed to save draft.");
         } finally {
             setDraftSaving(false);
         }
@@ -612,6 +633,7 @@ export default function PostAdForm() {
             pendingDraftFilterValues.current = {};
             setUploadProgress("");
             setError("");
+            setDraftError("");
             setDraftMessage("Draft cleared. You can start a fresh ad.");
             setClearDraftOpen(false);
         } catch (err: any) {
@@ -646,10 +668,11 @@ export default function PostAdForm() {
         const timeout = window.setTimeout(async () => {
             try {
                 await clientApiPut("/listings/draft/", payload);
+                setDraftError("");
                 setDraftMessage("Draft saved automatically.");
             } catch (err: any) {
                 if (err?.message !== "__AUTH__") {
-                    setError(err.message || "Failed to save draft.");
+                    setDraftError(err.message || "Failed to save draft.");
                 }
             }
         }, 1200);
@@ -690,12 +713,15 @@ export default function PostAdForm() {
 
     function selectCategoryValue(value: string) {
         setCategory(value);
+        setPhotoError("");
+        setCategoryError("");
         setCategorySearch("");
         setCategoryModalOpen(false);
     }
 
     function selectCityValue(value: string) {
         setCity(value);
+        setCategoryError("");
         setLocationSearch("");
         setLocationModalOpen(false);
     }
@@ -706,7 +732,8 @@ export default function PostAdForm() {
 
         if (!selectedFiles.length) return;
         if (!category) {
-            setError("Choose a category before adding photos so QOT can apply the correct photo limit.");
+            setError("");
+            setPhotoError("Choose a category before adding photos so QOT can apply the correct photo limit.");
             return;
         }
 
@@ -715,19 +742,22 @@ export default function PostAdForm() {
         );
 
         if (invalidType) {
-            setError("Photos must be JPG, JPEG, PNG, or WEBP files.");
+            setError("");
+            setPhotoError("Photos must be JPG, JPEG, PNG, or WEBP files.");
             return;
         }
 
         const oversized = selectedFiles.find((file) => file.size > 8 * 1024 * 1024);
 
         if (oversized) {
-            setError(`${oversized.name} is larger than the 8MB limit.`);
+            setError("");
+            setPhotoError(`${oversized.name} is larger than the 8MB limit.`);
             return;
         }
 
         if (photos.length + selectedFiles.length > photoRequirements.maximum) {
-            setError(
+            setError("");
+            setPhotoError(
                 `${getSelectedCategoryName()} allows a maximum of ${photoRequirements.maximum} photos.`
             );
             return;
@@ -736,15 +766,18 @@ export default function PostAdForm() {
         try {
             const lowResolutionPhoto = await findLowResolutionPhoto(selectedFiles);
             if (lowResolutionPhoto) {
-                setError(`${lowResolutionPhoto.name} is too small. Use a photo of at least 600 × 450 pixels.`);
+                setError("");
+                setPhotoError(`${lowResolutionPhoto.name} is too small. Use a photo of at least 600 × 450 pixels.`);
                 return;
             }
         } catch {
-            setError("One of the selected files could not be read as a photo.");
+            setError("");
+            setPhotoError("One of the selected files could not be read as a photo.");
             return;
         }
 
         setError("");
+        setPhotoError("");
         setPhotosUploading(true);
         const pendingPhotos = selectedFiles.map((file, index) => ({
             key: `${Date.now()}-${index}-${file.name}`,
@@ -782,7 +815,8 @@ export default function PostAdForm() {
                 window.location.href = "/login?next=/post-ad";
                 return;
             }
-            setError(err.message || "Failed to upload and optimize the photo.");
+            setError("");
+            setPhotoError(err.message || "Failed to upload and optimize the photo.");
             setUploadProgress("Photo upload failed. Please try again.");
         } finally {
             pendingPhotos.forEach((photo) => URL.revokeObjectURL(photo.url));
@@ -798,7 +832,8 @@ export default function PostAdForm() {
             try {
                 await clientApiDelete(`/listings/images/stage/${stagedId}/`);
             } catch (err: any) {
-                setError(err.message || "Failed to remove uploaded photo.");
+                setError("");
+                setPhotoError(err.message || "Failed to remove uploaded photo.");
                 return;
             }
         }
@@ -859,14 +894,35 @@ export default function PostAdForm() {
     function handlePreview(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
         setError("");
+        setActionError("");
+        setCategoryError("");
+        setDetailsError("");
+        setPricingError("");
+        setPhotoError("");
 
         const validationError = validateForm();
 
         if (validationError) {
-            setError(validationError);
+            if (!title.trim() || !description.trim()) {
+                setDetailsError(validationError);
+                revealSection(detailsSectionRef);
+            } else if (!price || !condition) {
+                setPricingError(validationError);
+                revealSection(pricingSectionRef);
+            } else if (!category || !city) {
+                setCategoryError(validationError);
+                revealSection(categorySectionRef);
+            } else {
+                setPhotoError(validationError);
+                revealSection(photoSectionRef);
+            }
             return;
         }
 
+        setCategoryError("");
+        setDetailsError("");
+        setPricingError("");
+        setPhotoError("");
         setShowPreview(true);
         window.scrollTo({ top: 0, behavior: "smooth" });
     }
@@ -874,6 +930,8 @@ export default function PostAdForm() {
     async function submitAdvert() {
         setLoading(true);
         setError("");
+        setPhotoError("");
+        setActionError("");
         setUploadProgress("");
 
         try {
@@ -908,7 +966,7 @@ export default function PostAdForm() {
                 return;
             }
 
-            setError(err.message || "Something went wrong.");
+            setActionError(err.message || "Something went wrong.");
         } finally {
             setLoading(false);
         }
@@ -960,36 +1018,45 @@ export default function PostAdForm() {
                     </div>
                 )}
 
-                <div className="sticky bottom-3 z-20 flex flex-col gap-3 rounded-[22px] border border-slate-200/80 bg-white/95 p-3 shadow-[0_16px_45px_rgba(15,23,42,0.14)] backdrop-blur sm:flex-row sm:items-center">
-                    <button
-                        type="button"
-                        onClick={() => {
-                            setShowPreview(false);
-                            window.scrollTo({ top: 0, behavior: "smooth" });
-                        }}
-                        disabled={loading}
-                        className="inline-flex h-12 items-center justify-center gap-2 rounded-[16px] bg-slate-100 px-5 text-sm font-black text-slate-700 hover:bg-slate-200 disabled:opacity-60"
-                    >
-                        <FontAwesomeIcon icon={faArrowLeft} className="h-4 w-4" />
-                        Edit details
-                    </button>
+                <div className="sticky bottom-3 z-20 rounded-[22px] border border-slate-200/80 bg-white/95 p-3 shadow-[0_16px_45px_rgba(15,23,42,0.14)] backdrop-blur">
+                    {actionError && (
+                        <div className="mb-3">
+                            <InlineError message={actionError} onDismiss={() => setActionError("")} />
+                        </div>
+                    )}
 
-                    <div className="hidden min-w-0 flex-1 px-2 sm:block">
-                        <p className="text-sm font-black text-slate-900">Ready to publish?</p>
-                        <p className="truncate text-xs font-semibold text-slate-500">
-                            {photos.length} photo{photos.length === 1 ? "" : "s"} · Review complete
-                        </p>
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setActionError("");
+                                setShowPreview(false);
+                                window.scrollTo({ top: 0, behavior: "smooth" });
+                            }}
+                            disabled={loading}
+                            className="inline-flex h-12 items-center justify-center gap-2 rounded-[16px] bg-slate-100 px-5 text-sm font-black text-slate-700 hover:bg-slate-200 disabled:opacity-60"
+                        >
+                            <FontAwesomeIcon icon={faArrowLeft} className="h-4 w-4" />
+                            Edit details
+                        </button>
+
+                        <div className="hidden min-w-0 flex-1 px-2 sm:block">
+                            <p className="text-sm font-black text-slate-900">Ready to publish?</p>
+                            <p className="truncate text-xs font-semibold text-slate-500">
+                                {photos.length} photo{photos.length === 1 ? "" : "s"} · Review complete
+                            </p>
+                        </div>
+
+                        <button
+                            type="button"
+                            onClick={submitAdvert}
+                            disabled={loading}
+                            className="inline-flex h-12 items-center justify-center gap-2 rounded-[16px] bg-orange-500 px-6 text-sm font-black text-white shadow-lg shadow-orange-200 hover:bg-orange-600 disabled:opacity-60"
+                        >
+                            {loading ? uploadProgress || "Publishing ad..." : "Publish Ad"}
+                            <FontAwesomeIcon icon={faArrowRight} className="h-4 w-4" />
+                        </button>
                     </div>
-
-                    <button
-                        type="button"
-                        onClick={submitAdvert}
-                        disabled={loading}
-                        className="inline-flex h-12 items-center justify-center gap-2 rounded-[16px] bg-orange-500 px-6 text-sm font-black text-white shadow-lg shadow-orange-200 hover:bg-orange-600 disabled:opacity-60"
-                    >
-                        {loading ? uploadProgress || "Publishing ad..." : "Publish Ad"}
-                        <FontAwesomeIcon icon={faArrowRight} className="h-4 w-4" />
-                    </button>
                 </div>
             </section>
         );
@@ -1008,6 +1075,7 @@ export default function PostAdForm() {
 
             <FormCard
                 className="order-2"
+                sectionRef={photoSectionRef}
                 icon={faCamera}
                 eyebrow="Step 2"
                 title="Add photos"
@@ -1016,6 +1084,10 @@ export default function PostAdForm() {
                     : "Choose a category in Step 1 to unlock photos and see the correct limit."
                 }
             >
+                {photoError && (
+                    <InlineError message={photoError} onDismiss={() => setPhotoError("")} />
+                )}
+
                 <div className={`rounded-[18px] border-2 border-dashed p-3 transition ${category
                     ? "border-orange-200 bg-orange-50/70 hover:border-orange-300 hover:bg-orange-50"
                     : "border-slate-200 bg-slate-50"
@@ -1160,15 +1232,23 @@ export default function PostAdForm() {
 
             <FormCard
                 className="order-3"
+                sectionRef={detailsSectionRef}
                 icon={faPenToSquare}
                 eyebrow="Step 3"
                 title="What are you selling?"
                 description="Add a short title and the important details."
             >
+                {detailsError && (
+                    <InlineError message={detailsError} onDismiss={() => setDetailsError("")} />
+                )}
+
                 <Field label="Advert Title" icon={faBullhorn}>
                     <input
                         value={title}
-                        onChange={(event) => setTitle(event.target.value)}
+                        onChange={(event) => {
+                            setTitle(event.target.value);
+                            setDetailsError("");
+                        }}
                         placeholder="Example: HP EliteBook Core i5"
                         className={inputClass}
                         required
@@ -1178,7 +1258,10 @@ export default function PostAdForm() {
                 <Field label="Description" icon={faFileLines}>
                     <textarea
                         value={description}
-                        onChange={(event) => setDescription(event.target.value)}
+                        onChange={(event) => {
+                            setDescription(event.target.value);
+                            setDetailsError("");
+                        }}
                         placeholder="Describe the item, condition, features, and location..."
                         rows={4}
                         className={inputClass}
@@ -1189,17 +1272,25 @@ export default function PostAdForm() {
 
             <FormCard
                 className="order-4"
+                sectionRef={pricingSectionRef}
                 icon={faMoneyBillWave}
                 eyebrow="Step 4"
                 title="Price and condition"
                 description="Set the price and item condition."
             >
+                {pricingError && (
+                    <InlineError message={pricingError} onDismiss={() => setPricingError("")} />
+                )}
+
                 <div className="grid gap-5 md:grid-cols-2">
                     <Field label="Price" icon={faMoneyBillWave}>
                         <input
                             type="number"
                             value={price}
-                            onChange={(event) => setPrice(event.target.value)}
+                            onChange={(event) => {
+                                setPrice(event.target.value);
+                                setPricingError("");
+                            }}
                             placeholder="Example: 850000"
                             className={inputClass}
                             required
@@ -1225,7 +1316,10 @@ export default function PostAdForm() {
                         <SelectWrap>
                             <select
                                 value={condition}
-                                onChange={(event) => setCondition(event.target.value)}
+                                onChange={(event) => {
+                                    setCondition(event.target.value);
+                                    setPricingError("");
+                                }}
                                 className={selectClass}
                             >
                                 <option value="new">New</option>
@@ -1238,11 +1332,16 @@ export default function PostAdForm() {
 
             <FormCard
                 className="order-1"
+                sectionRef={categorySectionRef}
                 icon={faLayerGroup}
                 eyebrow="Step 1"
                 title="Choose category and location"
                 description="Choose the category first so QOT can apply the right photo requirement."
             >
+                {categoryError && (
+                    <InlineError message={categoryError} onDismiss={() => setCategoryError("")} />
+                )}
+
                 <div className="grid gap-5 md:grid-cols-2">
                     <Field label="Category" icon={faLayerGroup}>
                         <button
@@ -1398,7 +1497,12 @@ export default function PostAdForm() {
                 You&apos;ll preview everything before the advert goes live.
             </div>
 
-            <div className="order-7 grid gap-3 sm:grid-cols-[auto_auto_1fr] lg:col-span-2">
+            <div ref={draftActionsRef} className="order-7 space-y-3 lg:col-span-2">
+                {draftError && (
+                    <InlineError message={draftError} onDismiss={() => setDraftError("")} />
+                )}
+
+                <div className="grid gap-3 sm:grid-cols-[auto_auto_1fr]">
                 <button
                     type="button"
                     onClick={() => {
@@ -1427,6 +1531,7 @@ export default function PostAdForm() {
                     Preview Advert
                     <FontAwesomeIcon icon={faArrowRight} className="h-4 w-4" />
                 </button>
+                </div>
             </div>
 
             <PhotoViewerModal
@@ -1456,6 +1561,7 @@ export default function PostAdForm() {
 
 function FormCard({
     className = "",
+    sectionRef,
     icon,
     eyebrow,
     title,
@@ -1463,6 +1569,7 @@ function FormCard({
     children,
 }: {
     className?: string;
+    sectionRef?: Ref<HTMLElement>;
     icon: any;
     eyebrow: string;
     title: string;
@@ -1470,7 +1577,7 @@ function FormCard({
     children?: ReactNode;
 }) {
     return (
-        <section className={`rounded-[22px] border border-slate-200/80 bg-white p-4 shadow-[0_10px_28px_rgba(15,23,42,0.05)] sm:p-5 ${className}`}>
+        <section ref={sectionRef} className={`rounded-[22px] border border-slate-200/80 bg-white p-4 shadow-[0_10px_28px_rgba(15,23,42,0.05)] sm:p-5 ${className}`}>
             <div className="mb-4 flex gap-3">
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[11px] bg-orange-50 text-orange-600">
                     <FontAwesomeIcon icon={icon} className="h-4 w-4" />

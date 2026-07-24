@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import MobileBottomNav from "@/components/layout/MobileBottomNav";
 import MobileAppHeader from "@/components/layout/MobileAppHeader";
+import CookieConsent from "@/components/privacy/CookieConsent";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -49,6 +50,7 @@ export default function RootLayout({
         <MobileAppHeader />
         {children}
         <MobileBottomNav />
+        <CookieConsent />
 
       </body>
     </html>
