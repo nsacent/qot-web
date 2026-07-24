@@ -58,7 +58,7 @@ export default function MyListingCard({
 
                 <div className="mt-5 grid gap-2">
                     <a
-                        href={`/my-ads/${listing.id}/edit`}
+                        href={`/account/my-ads/${listing.id}/edit`}
                         className="rounded-xl border px-4 py-2 text-center text-sm font-semibold hover:bg-slate-50"
                     >
                         Edit Ad

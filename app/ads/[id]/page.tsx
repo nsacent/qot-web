@@ -310,7 +310,7 @@ export default async function ListingDetailsPage({ params }: PageProps) {
                                 </p>
                             </div>
                             <Link
-                                href={`/my-ads/${id}`}
+                                href={`/account/my-ads/${id}`}
                                 className={`inline-flex h-10 shrink-0 items-center justify-center rounded-[14px] bg-white px-4 text-xs font-black ring-1 ${
                                     isRejected
                                         ? "text-red-800 ring-red-200 hover:bg-red-100"
@@ -336,7 +336,7 @@ export default async function ListingDetailsPage({ params }: PageProps) {
                                         {rejectionReason || "A specific moderation reason was not included. Review QOT posting rules or contact support before resubmitting this ad."}
                                     </p>
                                     <Link
-                                        href={`/my-ads/${id}/edit`}
+                                        href={`/account/my-ads/${id}/edit`}
                                         className="mt-4 inline-flex rounded-xl bg-red-600 px-4 py-2.5 text-xs font-black text-white transition hover:bg-red-700"
                                     >
                                         Edit and resubmit

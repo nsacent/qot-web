@@ -901,7 +901,7 @@ export default function PostAdForm() {
             setDraftReady(false);
             await clientApiDelete("/listings/draft/").catch(() => undefined);
             setUploadProgress("Advert submitted successfully.");
-            router.push(`/my-ads/${listingId}`);
+            router.push(`/account/my-ads/${listingId}`);
         } catch (err: any) {
             if (err?.message === "__AUTH__") {
                 router.push("/login?next=/post-ad");

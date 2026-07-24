@@ -25,7 +25,7 @@ const footerGroups = [
         title: "Selling",
         links: [
             { label: "My Dashboard", href: "/account/dashboard" },
-            { label: "My adverts", href: "/my-ads" },
+            { label: "My adverts", href: "/account/my-ads" },
             { label: "Analytics", href: "/account/analytics" },
             { label: "Renewals", href: "/account/renewals" },
         ],

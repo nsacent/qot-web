@@ -192,7 +192,7 @@ export default function SellerAnalyticsClient() {
                         <p className="mt-3 max-w-2xl text-sm font-semibold leading-6 text-slate-300 sm:text-base">Compare advert performance and turn buyer activity into better selling decisions.</p>
                     </div>
 
-                    <a href="/my-ads" className="rounded-[16px] bg-white/10 px-5 py-3 text-center text-sm font-black text-white ring-1 ring-white/15 hover:bg-white/15">My Ads</a>
+                    <a href="/account/my-ads" className="rounded-[16px] bg-white/10 px-5 py-3 text-center text-sm font-black text-white ring-1 ring-white/15 hover:bg-white/15">My Ads</a>
                 </div>
             </div>
 

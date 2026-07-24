@@ -314,7 +314,7 @@ function ListingMiniCard({
                         </a>
 
                         <a
-                            href={`/my-ads/${listingId}/edit`}
+                            href={`/account/my-ads/${listingId}/edit`}
                             className="rounded-xl bg-white px-4 py-2.5 text-center text-xs font-black text-slate-700 ring-1 ring-slate-200 hover:bg-slate-100"
                         >
                             Edit

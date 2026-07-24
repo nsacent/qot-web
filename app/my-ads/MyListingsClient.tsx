@@ -252,7 +252,7 @@ function SellerAdCard({ ad, onChanged }: { ad: any; onChanged: () => void }) {
     const title = getAdTitle(ad);
     const status = normalizeStatus(ad);
     const isDraft = status === "draft" && ad?.is_incomplete_draft;
-    const manageHref = isDraft ? "/post-ad" : `/my-ads/${id}`;
+    const manageHref = isDraft ? "/post-ad" : `/account/my-ads/${id}`;
     const viewHref = isDraft ? "/post-ad" : `/ads/${id}`;
     const statusLabel = statusTabs.find((tab) => tab.value === status)?.label || status.replaceAll("_", " ");
     const [pendingAction, setPendingAction] = useState<CardAction | null>(null);
@@ -287,7 +287,7 @@ function SellerAdCard({ ad, onChanged }: { ad: any; onChanged: () => void }) {
             }
 
             if (response.status === 401) {
-                window.location.href = "/login?next=/my-ads";
+                window.location.href = "/login?next=/account/my-ads";
                 return;
             }
 
@@ -339,7 +339,7 @@ function SellerAdCard({ ad, onChanged }: { ad: any; onChanged: () => void }) {
 
             <div className="border-t border-slate-100 px-3 py-2.5">
                 <div className="grid grid-cols-2 gap-1.5">
-                    <Link href={isDraft ? "/post-ad" : `/my-ads/${id}/edit`} className="inline-flex min-h-10 min-w-0 items-center justify-center gap-1.5 rounded-xl bg-orange-50 px-2 py-1.5 text-[10px] font-black leading-tight text-orange-700 transition hover:bg-orange-100 sm:text-[11px]">
+                    <Link href={isDraft ? "/post-ad" : `/account/my-ads/${id}/edit`} className="inline-flex min-h-10 min-w-0 items-center justify-center gap-1.5 rounded-xl bg-orange-50 px-2 py-1.5 text-[10px] font-black leading-tight text-orange-700 transition hover:bg-orange-100 sm:text-[11px]">
                         <FontAwesomeIcon icon={faPenToSquare} className="h-3 w-3 shrink-0" />
                         <span className="text-center">Edit</span>
                     </Link>
@@ -408,7 +408,7 @@ function MyListingsContent() {
             await getCurrentUser();
             setCheckingSession(false);
         } catch {
-            window.location.href = "/login?next=/my-ads";
+            window.location.href = "/login?next=/account/my-ads";
         }
     }
 
@@ -446,7 +446,7 @@ function MyListingsContent() {
             setAds(draftAd ? [draftAd, ...loadedAds] : loadedAds);
         } catch (err: any) {
             if (err?.message === "__AUTH__") {
-                window.location.href = "/login?next=/my-ads";
+                window.location.href = "/login?next=/account/my-ads";
                 return;
             }
 

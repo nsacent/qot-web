@@ -215,7 +215,7 @@ function buildSellerListingItems(listings: any[]): ActivityItem[] {
             type: "seller_listing",
             title: `Your advert: ${getListingTitle(listing)}`,
             description: `Current status: ${getStatusLabel(status)}`,
-            href: id ? `/my-ads/${id}/edit` : "/my-ads",
+            href: id ? `/account/my-ads/${id}/edit` : "/account/my-ads",
             date: safeDate(
                 listing?.updated_at ||
                 listing?.created_at ||
@@ -523,7 +523,7 @@ export default function ActivityHistoryClient() {
                         { href: "/account/saved", label: "Saved Ads" },
                         { href: "/account/recently-viewed", label: "Recently Viewed" },
                         { href: "/account/my-reviews", label: "My Reviews" },
-                        { href: "/my-ads", label: "My Ads" },
+                        { href: "/account/my-ads", label: "My Ads" },
                     ].map((item) => (
                         <Link
                             key={item.href}

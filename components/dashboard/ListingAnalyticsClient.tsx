@@ -283,7 +283,7 @@ export default function ListingAnalyticsClient({
                                     </a>
 
                                     <a
-                                        href={`/my-ads/${listingId}/edit`}
+                                        href={`/account/my-ads/${listingId}/edit`}
                                         className="rounded-xl bg-orange-500 px-4 py-3 text-center text-sm font-black text-white shadow-[0_10px_24px_rgba(249,115,22,0.20)] hover:bg-orange-600"
                                     >
                                         Edit Advert

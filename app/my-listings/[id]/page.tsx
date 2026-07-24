@@ -9,5 +9,5 @@ export default async function OldMyListingRedirectPage({
 }) {
     const { id } = await params;
 
-    redirect(`/my-ads/${id}`);
+    redirect(`/account/my-ads/${id}`);
 }

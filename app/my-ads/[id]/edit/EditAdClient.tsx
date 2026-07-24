@@ -399,7 +399,7 @@ function EditAdForm({ id }: { id: string }) {
             await getCurrentUser();
             setCheckingSession(false);
         } catch {
-            window.location.href = `/login?next=/my-ads/${id}/edit`;
+            window.location.href = `/login?next=/account/my-ads/${id}/edit`;
         }
     }
 
@@ -432,7 +432,7 @@ function EditAdForm({ id }: { id: string }) {
             });
 
             if (response.status === 401) {
-                window.location.href = `/login?next=/my-ads/${id}/edit`;
+                window.location.href = `/login?next=/account/my-ads/${id}/edit`;
                 return;
             }
 
@@ -843,7 +843,7 @@ function EditAdForm({ id }: { id: string }) {
             await deleteRemovedImages();
             const uploadedIds = await uploadNewImages();
             await savePhotoOrder(uploadedIds);
-            router.replace("/my-ads");
+            router.replace("/account/my-ads");
             router.refresh();
         } catch (requestError: any) {
             setError(requestError.message || "Failed to save ad.");
@@ -859,7 +859,7 @@ function EditAdForm({ id }: { id: string }) {
             <div className="rounded-[28px] bg-white p-8 text-center shadow-sm ring-1 ring-black/5">
                 <h2 className="text-2xl font-black">Ad unavailable</h2>
                 <p className="mt-2 text-sm font-bold text-red-600">{error}</p>
-                <Link href="/my-ads" className="mt-6 inline-flex rounded-2xl bg-orange-500 px-5 py-3 text-sm font-black text-white">
+                <Link href="/account/my-ads" className="mt-6 inline-flex rounded-2xl bg-orange-500 px-5 py-3 text-sm font-black text-white">
                     Back to My Ads
                 </Link>
             </div>
@@ -1162,7 +1162,7 @@ function EditAdForm({ id }: { id: string }) {
             </div>
 
             <div className="order-7 grid gap-3 sm:grid-cols-[auto_1fr] lg:col-span-2">
-                <Link href={`/my-ads/${id}`} className="inline-flex h-12 items-center justify-center gap-2 rounded-[18px] bg-white px-5 text-sm font-black text-slate-700 ring-1 ring-slate-200 hover:bg-slate-50">
+                <Link href={`/account/my-ads/${id}`} className="inline-flex h-12 items-center justify-center gap-2 rounded-[18px] bg-white px-5 text-sm font-black text-slate-700 ring-1 ring-slate-200 hover:bg-slate-50">
                     <FontAwesomeIcon icon={faArrowLeft} className="h-4 w-4" />
                     Cancel
                 </Link>

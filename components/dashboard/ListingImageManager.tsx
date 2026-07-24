@@ -188,7 +188,7 @@ export default function ListingImageManager({
                 "Images uploaded successfully. You can upload more images, edit the advert, or return to your ads."
             );
             setTimeout(() => {
-                router.push("/my-ads");
+                router.push("/account/my-ads");
             }, 1800);
         } catch (error: any) {
             setError(error.message || "Failed to upload image.");
@@ -271,7 +271,7 @@ export default function ListingImageManager({
 
                     <div className="mt-4 flex flex-col gap-3 sm:flex-row">
                         <a
-                            href="/my-ads"
+                            href="/account/my-ads"
                             className="rounded-xl bg-green-600 px-5 py-3 text-center text-sm font-semibold text-white hover:bg-green-700"
                         >
                             Go to My Ads

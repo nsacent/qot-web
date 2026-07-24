@@ -230,7 +230,7 @@ export default function SellerRenewalsClient() {
                         <p className="mt-3 max-w-2xl text-sm font-semibold leading-6 text-slate-300 sm:text-base">Renew expiring adverts and bring older ads back to buyers without starting over.</p>
                     </div>
 
-                    <a href="/my-ads" className="rounded-[16px] bg-white/10 px-5 py-3 text-center text-sm font-black text-white ring-1 ring-white/15 hover:bg-white/15">View My Ads</a>
+                    <a href="/account/my-ads" className="rounded-[16px] bg-white/10 px-5 py-3 text-center text-sm font-black text-white ring-1 ring-white/15 hover:bg-white/15">View My Ads</a>
                 </div>
             </div>
 
@@ -305,7 +305,7 @@ export default function SellerRenewalsClient() {
                         </p>
 
                         <a
-                            href="/my-ads"
+                            href="/account/my-ads"
                             className="mt-5 inline-block rounded-xl bg-orange-500 px-5 py-3 text-sm font-semibold text-white hover:bg-orange-600"
                         >
                             View My Ads
@@ -382,7 +382,7 @@ export default function SellerRenewalsClient() {
                                             )}
 
                                             <a
-                                                href={`/my-ads/${id}/edit`}
+                                                href={`/account/my-ads/${id}/edit`}
                                                 className="rounded-xl bg-white px-4 py-3 text-center text-sm font-black text-slate-700 ring-1 ring-slate-200 hover:bg-orange-50"
                                             >
                                                 Edit

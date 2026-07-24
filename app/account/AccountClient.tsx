@@ -102,6 +102,24 @@ export default function AccountClient() {
 
     return (
         <section className="space-y-4 sm:space-y-5">
+            {!phoneVerified && (
+                <Link
+                    href="/account/verification?next=/account"
+                    className="flex items-center gap-3 rounded-[22px] bg-red-600 p-4 text-white shadow-[0_14px_30px_rgba(220,38,38,0.24)] transition hover:bg-red-700"
+                >
+                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white/15">
+                        <FontAwesomeIcon icon={faShieldHalved} className="h-5 w-5" />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                        <span className="block text-sm font-black">Verify your phone</span>
+                        <span className="mt-0.5 block text-[11px] font-semibold text-red-50">
+                            Build buyer trust and unlock all seller tools.
+                        </span>
+                    </span>
+                    <FontAwesomeIcon icon={faChevronRight} className="h-4 w-4 shrink-0" />
+                </Link>
+            )}
+
             <div className="overflow-hidden rounded-[28px] bg-white shadow-[0_16px_50px_rgba(15,23,42,0.08)] ring-1 ring-black/5">
                 <div className="relative h-28 overflow-hidden bg-gradient-to-br from-slate-800 via-slate-900 to-orange-950 sm:h-36 lg:h-44">
                     {coverPhoto && (
@@ -115,13 +133,13 @@ export default function AccountClient() {
                 </div>
 
                 <div className="px-4 pb-5 sm:px-6 sm:pb-6">
-                    <div className="-mt-9 flex items-end justify-between gap-3 sm:-mt-11">
-                        <div className="flex min-w-0 items-end gap-3">
+                    <div className="flex items-start justify-between gap-3">
+                        <div className="flex min-w-0 items-start gap-3">
                             <UserAvatar
                                 user={user}
-                                className="h-20 w-20 shrink-0 rounded-[24px] border-4 border-white bg-orange-500 text-2xl text-white shadow-lg sm:h-24 sm:w-24 sm:rounded-[28px]"
+                                className="relative z-10 -mt-9 h-20 w-20 shrink-0 rounded-[24px] border-4 border-white bg-orange-500 text-2xl text-white shadow-lg sm:-mt-11 sm:h-24 sm:w-24 sm:rounded-[28px]"
                             />
-                            <div className="min-w-0 pb-1">
+                            <div className="min-w-0 pt-3 sm:pt-4">
                                 <div className="flex min-w-0 items-center gap-2">
                                     <h1 className="truncate text-xl font-black text-slate-950 sm:text-2xl">
                                         {user?.full_name || "QOT Member"}
@@ -141,7 +159,7 @@ export default function AccountClient() {
 
                         <Link
                             href="/account/profile"
-                            className="mb-1 shrink-0 rounded-2xl bg-slate-950 px-3 py-2.5 text-[10px] font-black text-white transition hover:bg-orange-500 sm:px-4 sm:text-xs"
+                            className="mt-3 shrink-0 rounded-2xl bg-slate-950 px-3 py-2.5 text-[10px] font-black text-white transition hover:bg-orange-500 sm:mt-4 sm:px-4 sm:text-xs"
                         >
                             Edit profile
                         </Link>
@@ -151,7 +169,7 @@ export default function AccountClient() {
                         {stats.map((stat) => (
                             <Link
                                 key={stat.label}
-                                href={stat.label === "Active ads" ? "/my-ads" : "/account/profile"}
+                                href={stat.label === "Active ads" ? "/account/my-ads" : "/account/profile"}
                                 className="min-w-0 px-2 text-center"
                             >
                                 <span className="block text-lg font-black text-slate-950 sm:text-xl">
@@ -165,24 +183,6 @@ export default function AccountClient() {
                     </div>
                 </div>
             </div>
-
-            {!phoneVerified && (
-                <Link
-                    href="/account/verification?next=/account"
-                    className="flex items-center gap-3 rounded-[22px] bg-orange-500 p-4 text-white shadow-[0_14px_30px_rgba(249,115,22,0.20)]"
-                >
-                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white/15">
-                        <FontAwesomeIcon icon={faShieldHalved} className="h-5 w-5" />
-                    </span>
-                    <span className="min-w-0 flex-1">
-                        <span className="block text-sm font-black">Verify your phone</span>
-                        <span className="mt-0.5 block text-[11px] font-semibold text-orange-50">
-                            Build buyer trust and unlock all seller tools.
-                        </span>
-                    </span>
-                    <FontAwesomeIcon icon={faChevronRight} className="h-4 w-4 shrink-0" />
-                </Link>
-            )}
 
             <div className="rounded-[26px] bg-white p-4 shadow-sm ring-1 ring-black/5 sm:p-5">
                 <div className="flex items-center justify-between gap-3">

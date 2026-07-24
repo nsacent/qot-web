@@ -86,7 +86,7 @@ function MyAdViewContent({ id }: { id: string }) {
             await getCurrentUser();
             setCheckingSession(false);
         } catch {
-            window.location.href = `/login?next=/my-ads/${id}`;
+            window.location.href = `/login?next=/account/my-ads/${id}`;
         }
     }
 
@@ -103,7 +103,7 @@ function MyAdViewContent({ id }: { id: string }) {
             });
 
             if (response.status === 401) {
-                window.location.href = `/login?next=/my-ads/${id}`;
+                window.location.href = `/login?next=/account/my-ads/${id}`;
                 return;
             }
 
@@ -292,7 +292,7 @@ function MyAdViewContent({ id }: { id: string }) {
             const data = await response.json().catch(() => ({}));
 
             if (response.status === 401) {
-                window.location.href = `/login?next=/my-ads/${id}`;
+                window.location.href = `/login?next=/account/my-ads/${id}`;
                 return;
             }
 
@@ -323,7 +323,7 @@ function MyAdViewContent({ id }: { id: string }) {
                 throw new Error(data?.detail || data?.message || "Failed to delete ad.");
             }
 
-            window.location.href = "/my-ads";
+            window.location.href = "/account/my-ads";
         } catch (err: any) {
             setDeleteError(err.message || "Failed to remove ad.");
         } finally {
@@ -346,7 +346,7 @@ function MyAdViewContent({ id }: { id: string }) {
                     <p className="mt-2 text-sm font-bold text-red-600">{error}</p>
 
                     <a
-                        href="/my-ads"
+                        href="/account/my-ads"
                         className="mt-6 inline-flex rounded-2xl bg-orange-500 px-5 py-3 text-sm font-black text-white hover:bg-orange-600"
                     >
                         Back to My Ads
@@ -379,7 +379,7 @@ function MyAdViewContent({ id }: { id: string }) {
     return (
         <section className="pb-10 pt-5 text-slate-950">
             <a
-                href="/my-ads"
+                href="/account/my-ads"
                 className="inline-flex items-center gap-2 rounded-xl px-1 py-2 text-sm font-black text-slate-600 hover:text-orange-600"
             >
                 <FontAwesomeIcon icon={faArrowLeft} className="h-3.5 w-3.5" />
@@ -428,7 +428,7 @@ function MyAdViewContent({ id }: { id: string }) {
                                 Public page
                             </a>
                             <a
-                                href={`/my-ads/${id}/edit`}
+                                href={`/account/my-ads/${id}/edit`}
                                 className="inline-flex h-11 items-center justify-center gap-2 rounded-[14px] bg-orange-500 px-5 text-sm font-black text-white shadow-lg shadow-orange-200 hover:bg-orange-600"
                             >
                                 <FontAwesomeIcon icon={faPenToSquare} className="h-4 w-4" />
@@ -453,7 +453,7 @@ function MyAdViewContent({ id }: { id: string }) {
                                 </p>
                                 <div className="mt-3 flex flex-wrap gap-2">
                                     <a
-                                        href={`/my-ads/${id}/edit`}
+                                        href={`/account/my-ads/${id}/edit`}
                                         className="inline-flex items-center gap-2 rounded-xl bg-red-600 px-4 py-2.5 text-xs font-black text-white transition hover:bg-red-700"
                                     >
                                         <FontAwesomeIcon icon={faPenToSquare} className="h-3.5 w-3.5" />
@@ -568,7 +568,7 @@ function MyAdViewContent({ id }: { id: string }) {
                         </p>
 
                         <div className="mt-5 grid gap-2">
-                            <a href={`/my-ads/${id}/edit`} className="inline-flex h-12 items-center justify-center gap-2 rounded-[16px] bg-orange-500 px-5 text-sm font-black text-white hover:bg-orange-600">
+                            <a href={`/account/my-ads/${id}/edit`} className="inline-flex h-12 items-center justify-center gap-2 rounded-[16px] bg-orange-500 px-5 text-sm font-black text-white hover:bg-orange-600">
                                 <FontAwesomeIcon icon={faPenToSquare} className="h-4 w-4" />
                                 Edit Ad Details
                             </a>

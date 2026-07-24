@@ -29,7 +29,7 @@ export type AccountNavigationSection = {
 
 export const accountQuickActions: AccountNavigationItem[] = [
     {
-        href: "/my-ads",
+        href: "/account/my-ads",
         label: "My Ads",
         description: "Manage your ads",
         icon: faStore,
@@ -65,7 +65,7 @@ export const accountNavigationSections: AccountNavigationSection[] = [
                 icon: faGaugeHigh,
             },
             {
-                href: "/my-ads",
+                href: "/account/my-ads",
                 label: "My Ads",
                 description: "Manage all your ads",
                 icon: faStore,

@@ -109,7 +109,7 @@ export default function BuyerListingActions({
 
                 <div className="mt-4 grid grid-cols-2 gap-3">
                     <a
-                        href={`/my-ads/${listingId}`}
+                        href={`/account/my-ads/${listingId}`}
                         className="flex items-center justify-center gap-2 rounded-[18px] bg-slate-950 px-4 py-3 text-xs font-black text-white transition hover:bg-slate-800"
                     >
                         <FontAwesomeIcon icon={faBullhorn} className="h-3.5 w-3.5" />
@@ -117,7 +117,7 @@ export default function BuyerListingActions({
                     </a>
 
                     <a
-                        href={`/my-ads/${listingId}/edit`}
+                        href={`/account/my-ads/${listingId}/edit`}
                         className="flex items-center justify-center gap-2 rounded-[18px] bg-orange-500 px-4 py-3 text-xs font-black text-white transition hover:bg-orange-600"
                     >
                         <FontAwesomeIcon icon={faPenToSquare} className="h-3.5 w-3.5" />
@@ -126,7 +126,7 @@ export default function BuyerListingActions({
                 </div>
 
                 <a
-                    href="/my-ads"
+                    href="/account/my-ads"
                     className="mt-3 inline-flex w-full items-center justify-center gap-2 text-xs font-black text-orange-700 hover:text-orange-800"
                 >
                     <FontAwesomeIcon icon={faArrowLeft} className="h-3 w-3" />

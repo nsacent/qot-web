@@ -55,7 +55,7 @@ const accountLinks = [
         icon: faStore,
     },
     {
-        href: "/my-ads",
+        href: "/account/my-ads",
         label: "My Ads",
         description: "Manage ads",
         icon: faList,

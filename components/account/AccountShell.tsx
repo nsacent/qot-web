@@ -175,7 +175,7 @@ export default function AccountShell({ children }: { children: ReactNode }) {
                         className={`mt-3 flex items-center gap-2.5 rounded-[18px] px-3 py-2.5 text-xs font-black ${
                             phoneVerified
                                 ? "bg-emerald-50 text-emerald-700"
-                                : "bg-orange-50 text-orange-700"
+                                : "bg-red-50 text-red-700 ring-1 ring-red-100"
                         }`}
                     >
                         <FontAwesomeIcon
