@@ -244,7 +244,7 @@ export default function AccountShell({ children }: { children: ReactNode }) {
 
                 <div className="min-w-0">
                     {!isOverview && (
-                        <div className="mb-3 flex items-center gap-3 rounded-[20px] bg-white p-3 shadow-sm ring-1 ring-black/5 lg:hidden">
+                        <div className="mb-3 hidden items-center gap-3 rounded-[20px] bg-white p-3 shadow-sm ring-1 ring-black/5 md:flex lg:hidden">
                             <Link
                                 href="/account"
                                 aria-label="Back to My Account"

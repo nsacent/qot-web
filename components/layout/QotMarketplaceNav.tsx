@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
 import QotLogo from "@/components/brand/QotLogo";
 import UserProfileTab from "@/components/layout/UserProfileTab";
 import UserAvatar from "@/components/account/UserAvatar";
@@ -312,6 +313,7 @@ export default function QotMarketplaceNav({
     categories = EMPTY_CATEGORIES,
     cities = EMPTY_CITIES,
 }: QotMarketplaceNavProps) {
+    const pathname = usePathname();
     const [counts, setCounts] = useState<NavCounts>({
         favorites: 0,
         messages: 0,
@@ -585,7 +587,7 @@ export default function QotMarketplaceNav({
 
     return (
         <>
-            <header className="sticky top-3 z-40 mb-4 rounded-[24px] border border-white/80 bg-white/95 px-3 py-2.5 shadow-[0_14px_40px_rgba(15,23,42,0.09)] backdrop-blur-xl md:px-4">
+            <header className={`${pathname === "/" ? "" : "hidden md:block"} sticky top-3 z-40 mb-4 rounded-[24px] border border-white/80 bg-white/95 px-3 py-2.5 shadow-[0_14px_40px_rgba(15,23,42,0.09)] backdrop-blur-xl md:px-4`}>
                 <div className="flex items-center gap-2 lg:gap-3">
                     <a href="/" aria-label="QOT Uganda home" className="flex shrink-0 items-center">
                         <QotLogo markOnly className="h-10 w-10 text-orange-500 sm:hidden md:h-11 md:w-11" />

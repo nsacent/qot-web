@@ -200,7 +200,7 @@ function VerificationForm({ embedded = false }: { embedded?: boolean }) {
     return (
         <section className={embedded ? "text-slate-950" : "min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(249,115,22,0.12),transparent_30%),linear-gradient(180deg,#fffaf7_0%,#fff7f2_100%)] px-4 py-4 text-slate-950 sm:px-6 sm:py-6"}>
             {!embedded && (
-                <header className="mx-auto flex max-w-[1180px] items-center justify-between rounded-[22px] bg-white/90 px-4 py-3 shadow-sm ring-1 ring-black/5 backdrop-blur sm:px-5">
+                <header className="mx-auto hidden max-w-[1180px] items-center justify-between rounded-[22px] bg-white/90 px-4 py-3 shadow-sm ring-1 ring-black/5 backdrop-blur md:flex md:px-5">
                     <a href="/" aria-label="QOT Uganda home" className="inline-flex items-center">
                         <QotLogo className="h-10 w-auto text-orange-500 sm:h-11" />
                     </a>

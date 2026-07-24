@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import QotLogo from "@/components/brand/QotLogo";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
     faArrowUpRightFromSquare,
+    faArrowLeft,
     faBars,
     faChartPie,
     faCreditCard,
@@ -79,8 +80,23 @@ function isActivePath(pathname: string, href: string) {
     return pathname === href || pathname.startsWith(`${href}/`);
 }
 
+function getAdminBackHref(pathname: string) {
+    if (pathname === "/admin") return "/";
+    if (/^\/admin\/users\/[^/]+$/.test(pathname)) return "/admin/users";
+    if (/^\/admin\/user\/[^/]+$/.test(pathname)) return "/admin/users";
+    if (/^\/admin\/(ads|listings)\/[^/]+\/edit$/.test(pathname)) {
+        return pathname.replace(/\/edit$/, "");
+    }
+    if (/^\/admin\/(ads|listings)\/[^/]+$/.test(pathname)) {
+        return pathname.split("/").slice(0, -1).join("/");
+    }
+
+    return "/admin";
+}
+
 export default function AdminShell({ children }: AdminShellProps) {
     const pathname = usePathname();
+    const router = useRouter();
     const [checking, setChecking] = useState(true);
     const [user, setUser] = useState<any>(null);
     const [accessError, setAccessError] = useState("");
@@ -143,6 +159,16 @@ export default function AdminShell({ children }: AdminShellProps) {
     useEffect(() => {
         setMenuOpen(false);
     }, [pathname]);
+
+    useEffect(() => {
+        const openMobileMenu = () => setMenuOpen(true);
+
+        window.addEventListener("qot_open_admin_menu", openMobileMenu);
+
+        return () => {
+            window.removeEventListener("qot_open_admin_menu", openMobileMenu);
+        };
+    }, []);
 
     async function logout() {
         await fetch("/api/auth/logout", {
@@ -345,16 +371,16 @@ export default function AdminShell({ children }: AdminShellProps) {
             </aside>
 
             <div className="lg:pl-[285px]">
-                <header className="sticky top-0 z-30 border-b border-slate-200/70 bg-[#f7f8fc]/90 px-4 py-3 backdrop-blur-xl sm:px-6 lg:px-8">
+                <header className="sticky top-0 z-30 hidden border-b border-slate-200/70 bg-[#f7f8fc]/90 px-4 py-3 backdrop-blur-xl md:block md:px-6 lg:px-8">
                     <div className="mx-auto flex max-w-[1500px] items-center justify-between gap-4">
                         <div className="flex min-w-0 items-center gap-3">
                             <button
                                 type="button"
-                                onClick={() => setMenuOpen(true)}
-                                aria-label="Open admin navigation"
-                                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-slate-950 text-white shadow-sm lg:hidden"
+                                onClick={() => router.push(getAdminBackHref(pathname))}
+                                aria-label="Go back"
+                                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-slate-800 transition active:bg-slate-200 lg:hidden"
                             >
-                                <FontAwesomeIcon icon={faBars} className="h-4 w-4" />
+                                <FontAwesomeIcon icon={faArrowLeft} className="h-4 w-4" />
                             </button>
                             <div className="min-w-0">
                                 <p className="truncate text-[10px] font-black uppercase tracking-[0.18em] text-orange-600">
@@ -366,16 +392,27 @@ export default function AdminShell({ children }: AdminShellProps) {
                             </div>
                         </div>
 
-                        <a
-                            href="/"
-                            className="inline-flex items-center gap-2 rounded-2xl bg-white px-4 py-3 text-xs font-black text-slate-700 shadow-sm ring-1 ring-slate-200 transition hover:text-orange-600"
-                        >
-                            <span className="hidden sm:inline">Open marketplace</span>
-                            <FontAwesomeIcon
-                                icon={faArrowUpRightFromSquare}
-                                className="h-3.5 w-3.5"
-                            />
-                        </a>
+                        <div className="flex shrink-0 items-center gap-2">
+                            <button
+                                type="button"
+                                onClick={() => setMenuOpen(true)}
+                                aria-label="Open admin navigation"
+                                className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-950 text-white shadow-sm lg:hidden"
+                            >
+                                <FontAwesomeIcon icon={faBars} className="h-4 w-4" />
+                            </button>
+
+                            <a
+                                href="/"
+                                className="hidden items-center gap-2 rounded-2xl bg-white px-4 py-3 text-xs font-black text-slate-700 shadow-sm ring-1 ring-slate-200 transition hover:text-orange-600 sm:inline-flex"
+                            >
+                                <span className="hidden xl:inline">Open marketplace</span>
+                                <FontAwesomeIcon
+                                    icon={faArrowUpRightFromSquare}
+                                    className="h-3.5 w-3.5"
+                                />
+                            </a>
+                        </div>
                     </div>
                 </header>
 
