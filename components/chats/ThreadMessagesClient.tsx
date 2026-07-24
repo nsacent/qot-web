@@ -14,7 +14,6 @@ import {
     faStar,
     faXmark,
 } from "@fortawesome/free-solid-svg-icons";
-import UserAvatar from "@/components/account/UserAvatar";
 import InlineError from "@/components/forms/InlineError";
 import AdActionModal from "@/components/listings/AdActionModal";
 import MessageText from "@/components/chats/MessageText";
@@ -116,6 +115,7 @@ export default function ThreadMessagesClient({ threadId }: { threadId: string })
     const chatSocketRef = useRef<ChatSocketController | null>(null);
     const typingStopTimerRef = useRef<number | null>(null);
     const otherTypingTimerRef = useRef<number | null>(null);
+    const menuAreaRef = useRef<HTMLDivElement | null>(null);
 
     const loadConversation = useCallback(async (showLoader = false) => {
         if (showLoader) setLoading(true);
@@ -295,6 +295,22 @@ export default function ThreadMessagesClient({ threadId }: { threadId: string })
             window.clearTimeout(typingStopTimerRef.current);
         }
     }, []);
+
+    useEffect(() => {
+        if (!menuOpen) return;
+
+        const closeOutside = (event: PointerEvent) => {
+            if (
+                menuAreaRef.current &&
+                !menuAreaRef.current.contains(event.target as Node)
+            ) {
+                setMenuOpen(false);
+            }
+        };
+
+        document.addEventListener("pointerdown", closeOutside);
+        return () => document.removeEventListener("pointerdown", closeOutside);
+    }, [menuOpen]);
 
     function stopTyping() {
         if (typingStopTimerRef.current !== null) {
@@ -493,7 +509,15 @@ export default function ThreadMessagesClient({ threadId }: { threadId: string })
                             <FontAwesomeIcon icon={faArrowLeft} className="h-4 w-4" />
                         </Link>
                         <span className="relative shrink-0">
-                            <UserAvatar src={thread?.other_user_avatar} name={participantName} className="h-11 w-11 rounded-[15px] bg-slate-950 text-sm text-white" />
+                            <span className="flex h-11 w-11 overflow-hidden rounded-[15px] bg-slate-100 text-slate-300 ring-1 ring-slate-200">
+                                {listingImage ? (
+                                    <img src={listingImage} alt={listingTitle} className="h-full w-full object-cover" />
+                                ) : (
+                                    <span className="flex h-full w-full items-center justify-center">
+                                        <FontAwesomeIcon icon={faEnvelope} className="h-4 w-4" />
+                                    </span>
+                                )}
+                            </span>
                             <span className={`absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-[3px] border-white ${otherUserOnline ? "bg-emerald-500" : "bg-slate-300"}`} />
                         </span>
                         <div className="min-w-0">
@@ -508,7 +532,7 @@ export default function ThreadMessagesClient({ threadId }: { threadId: string })
                         </div>
                     </div>
 
-                    <div className="relative flex shrink-0 items-center gap-1">
+                    <div ref={menuAreaRef} className="relative flex shrink-0 items-center gap-1">
                         <button type="button" disabled={actionLoading} onClick={() => void updateThreadState({ is_favourite: !thread?.is_favourite })} aria-label={thread?.is_favourite ? "Remove from favourites" : "Favourite chat"} className={`flex h-10 w-10 items-center justify-center rounded-[13px] transition disabled:opacity-40 ${thread?.is_favourite ? "bg-amber-50 text-amber-500" : "bg-slate-50 text-slate-400 hover:text-amber-500"}`}>
                             <FontAwesomeIcon icon={faStar} className="h-3.5 w-3.5" />
                         </button>
@@ -524,7 +548,14 @@ export default function ThreadMessagesClient({ threadId }: { threadId: string })
                                 <button type="button" onClick={() => void updateThreadState({ is_archived: !thread?.is_archived })} className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-xs font-black text-slate-700 hover:bg-slate-50">
                                     <FontAwesomeIcon icon={thread?.is_archived ? faRotateLeft : faBoxArchive} className="h-3.5 w-3.5 text-blue-500" />{thread?.is_archived ? "Unarchive chat" : "Archive chat"}
                                 </button>
-                                <button type="button" onClick={() => thread?.is_spam ? void updateThreadState({ is_spam: false }) : setSpamModalOpen(true)} className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-xs font-black text-red-600 hover:bg-red-50">
+                                <button type="button" onClick={() => {
+                                    if (thread?.is_spam) {
+                                        void updateThreadState({ is_spam: false });
+                                    } else {
+                                        setMenuOpen(false);
+                                        setSpamModalOpen(true);
+                                    }
+                                }} className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-xs font-black text-red-600 hover:bg-red-50">
                                     <FontAwesomeIcon icon={thread?.is_spam ? faRotateLeft : faShieldHalved} className="h-3.5 w-3.5" />{thread?.is_spam ? "Not spam" : "Report as spam"}
                                 </button>
                             </div>

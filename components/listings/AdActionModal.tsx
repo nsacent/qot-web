@@ -29,7 +29,15 @@ export default function AdActionModal({
     if (!open) return null;
 
     return (
-        <div className="fixed inset-0 z-[145] flex items-center justify-center bg-slate-950/65 p-4 backdrop-blur-sm sm:p-5" role="dialog" aria-modal="true" aria-labelledby="ad-action-modal-title">
+        <div
+            className="fixed inset-0 z-[145] flex items-center justify-center bg-slate-950/65 p-4 backdrop-blur-sm sm:p-5"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="ad-action-modal-title"
+            onPointerDown={(event) => {
+                if (event.target === event.currentTarget && !loading) onClose();
+            }}
+        >
             <div className="max-h-[calc(100dvh-2rem)] w-full max-w-md overflow-y-auto rounded-[28px] bg-white p-5 shadow-2xl sm:p-6">
                 <div className="flex items-start justify-between gap-4">
                     <span className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-[18px] ${destructive ? "bg-red-50 text-red-600" : "bg-orange-50 text-orange-600"}`}>
