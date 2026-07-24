@@ -194,7 +194,7 @@ function getCardActions(status: string, isDraft: boolean): CardAction[] {
         return [
             {
                 action: "mark-sold",
-                label: "Sold",
+                label: "Mark as sold",
                 title: "Mark this ad as sold?",
                 description: "Buyers will see that the item is no longer available.",
                 confirmLabel: "Mark as sold",
@@ -338,27 +338,25 @@ function SellerAdCard({ ad, onChanged }: { ad: any; onChanged: () => void }) {
             </Link>
 
             <div className="border-t border-slate-100 px-3 py-2.5">
-                <div className="overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                    <div className="flex min-w-max gap-1.5">
-                        <Link href={isDraft ? "/post-ad" : `/my-ads/${id}/edit`} className="inline-flex h-8 items-center gap-1.5 rounded-xl bg-orange-50 px-2.5 text-[10px] font-black text-orange-700 transition hover:bg-orange-100">
-                            <FontAwesomeIcon icon={faPenToSquare} className="h-2.5 w-2.5" />
-                            Edit
-                        </Link>
-                        {actions.map((action) => (
-                            <button
-                                key={action.action}
-                                type="button"
-                                onClick={() => {
-                                    setActionError("");
-                                    setPendingAction(action);
-                                }}
-                                className={`inline-flex h-8 items-center gap-1.5 rounded-xl px-2.5 text-[10px] font-black transition hover:brightness-95 ${action.tone}`}
-                            >
-                                <FontAwesomeIcon icon={action.icon} className="h-2.5 w-2.5" />
-                                {action.label}
-                            </button>
-                        ))}
-                    </div>
+                <div className="grid grid-cols-2 gap-1.5">
+                    <Link href={isDraft ? "/post-ad" : `/my-ads/${id}/edit`} className="inline-flex min-h-10 min-w-0 items-center justify-center gap-1.5 rounded-xl bg-orange-50 px-2 py-1.5 text-[10px] font-black leading-tight text-orange-700 transition hover:bg-orange-100 sm:text-[11px]">
+                        <FontAwesomeIcon icon={faPenToSquare} className="h-3 w-3 shrink-0" />
+                        <span className="text-center">Edit</span>
+                    </Link>
+                    {actions.map((action) => (
+                        <button
+                            key={action.action}
+                            type="button"
+                            onClick={() => {
+                                setActionError("");
+                                setPendingAction(action);
+                            }}
+                            className={`inline-flex min-h-10 min-w-0 items-center justify-center gap-1.5 rounded-xl px-2 py-1.5 text-[10px] font-black leading-tight transition hover:brightness-95 sm:text-[11px] ${action.tone}`}
+                        >
+                            <FontAwesomeIcon icon={action.icon} className="h-3 w-3 shrink-0" />
+                            <span className="text-center">{action.label}</span>
+                        </button>
+                    ))}
                 </div>
             </div>
 
