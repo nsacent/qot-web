@@ -119,6 +119,17 @@ function getCategoryName(listing: any) {
     return listing?.category?.name || listing?.category_name || "Ad";
 }
 
+function getCategoryBreadcrumb(listing: any) {
+    const category = getCategoryName(listing);
+    const parent =
+        listing?.category?.parent?.name ||
+        listing?.category?.parent_name ||
+        listing?.category_parent_name ||
+        "";
+
+    return parent && parent !== category ? `${parent} › ${category}` : category;
+}
+
 function cleanLabel(value: any, fallback = "Not specified") {
     if (!value) return fallback;
 
@@ -263,7 +274,7 @@ export default async function ListingDetailsPage({ params }: PageProps) {
         sellerProfile?.full_name ||
         getSellerName(listing);
     const location = getLocation(listing);
-    const categoryName = getCategoryName(listing);
+    const categoryName = getCategoryBreadcrumb(listing);
     const statusLabel = cleanLabel(listing?.status, "Available");
     const conditionLabel = cleanLabel(listing?.condition);
     const isNegotiable = Boolean(

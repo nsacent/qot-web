@@ -42,7 +42,7 @@ export default function SellerFollowCard({
                     credentials: "include",
                     cache: "no-store",
                 }),
-                fetch("/api/auth/me", {
+                fetch("/api/auth/session", {
                     credentials: "include",
                     cache: "no-store",
                 }),
@@ -57,8 +57,8 @@ export default function SellerFollowCard({
 
             if (meResponse.status === "fulfilled" && meResponse.value.ok) {
                 const payload = await meResponse.value.json();
-                const me = payload?.user || payload?.data || payload;
-                setIsOwnProfile(String(me?.id) === String(sellerId));
+                const me = payload?.authenticated ? payload.user : null;
+                setIsOwnProfile(Boolean(me) && String(me?.id) === String(sellerId));
             }
         }
 

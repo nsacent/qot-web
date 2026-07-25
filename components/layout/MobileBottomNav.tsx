@@ -10,7 +10,7 @@ import {
     faPlus,
     faUserRegular,
 } from "@/lib/faIcons";
-import { getCurrentUser } from "@/lib/sessionClient";
+import { getOptionalCurrentUser } from "@/lib/sessionClient";
 import UserAvatar from "@/components/account/UserAvatar";
 
 const FOCUSED_ROUTES = [
@@ -109,8 +109,10 @@ export default function MobileBottomNav() {
 
         async function refreshNav() {
             try {
-                const currentUser = await getCurrentUser();
-                const messagesData = await getAuthenticatedData("/chats/threads/");
+                const currentUser = await getOptionalCurrentUser();
+                const messagesData = currentUser
+                    ? await getAuthenticatedData("/chats/threads/")
+                    : null;
 
                 if (!active) return;
 

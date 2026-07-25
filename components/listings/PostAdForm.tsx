@@ -20,6 +20,7 @@ import {
     faCamera,
     faChevronDown,
     faCircleCheck,
+    faCropSimple,
     faExpand,
     faFileLines,
     faLayerGroup,
@@ -39,6 +40,7 @@ import {
 import AdPreviewPanel from "@/components/listings/AdPreviewPanel";
 import AdActionModal from "@/components/listings/AdActionModal";
 import PhotoViewerModal from "@/components/listings/PhotoViewerModal";
+import PhotoCropModal from "@/components/listings/PhotoCropModal";
 import CurrentLocationButton from "@/components/listings/CurrentLocationButton";
 import InlineError from "@/components/forms/InlineError";
 import { QotInlineLoader } from "@/components/common/QotLoader";
@@ -65,6 +67,7 @@ import {
     getAdCopyValidationError,
 } from "@/lib/listingValidation";
 import { normalizeListingText } from "@/lib/listingText";
+import { getCropSourceUrl } from "@/lib/photoCrop";
 
 type CategoryFilterField = {
     id: number | string;
@@ -79,6 +82,7 @@ type DraftPhoto = {
     id: number;
     name: string;
     url: string;
+    sourceUrl: string;
 };
 
 type UploadingPhoto = {
@@ -170,6 +174,32 @@ async function clientApiPostForm(path: string, payload: FormData) {
             data?.error ||
             (Array.isArray(fieldError) ? fieldError[0] : fieldError) ||
             "Failed to submit advert."
+        );
+    }
+
+    return data;
+}
+
+async function clientApiPatchForm(path: string, payload: FormData) {
+    const response = await fetch(`/api/proxy${path}`, {
+        method: "PATCH",
+        credentials: "include",
+        body: payload,
+    });
+    const data = await response.json().catch(() => null);
+
+    if (response.status === 401 || response.status === 403) {
+        throw new Error("__AUTH__");
+    }
+
+    if (!response.ok) {
+        const fieldError = data?.image || data?.images;
+        throw new Error(
+            data?.detail ||
+            data?.message ||
+            data?.error ||
+            (Array.isArray(fieldError) ? fieldError[0] : fieldError) ||
+            "Failed to update the photo."
         );
     }
 
@@ -357,6 +387,8 @@ export default function PostAdForm() {
     const [dragOverPhotoId, setDragOverPhotoId] = useState<number | null>(null);
     const [uploadingPhotos, setUploadingPhotos] = useState<UploadingPhoto[]>([]);
     const [viewerPhoto, setViewerPhoto] = useState<{ url: string; name: string } | null>(null);
+    const [cropPhoto, setCropPhoto] = useState<DraftPhoto | null>(null);
+    const [cropSaving, setCropSaving] = useState(false);
     const pendingDraftFilterValues = useRef<Record<string, string>>({});
     const photoSectionRef = useRef<HTMLElement>(null);
     const categorySectionRef = useRef<HTMLElement>(null);
@@ -431,7 +463,8 @@ export default function PostAdForm() {
                         getArray(draft.staged_images).map((photo: any) => ({
                             id: Number(photo.id),
                             name: String(photo.image_url || "draft-photo").split("/").pop() || "draft-photo",
-                            url: photo.card_image_url || photo.image_url,
+                            url: photo.source_image_url || photo.image_url || photo.card_image_url,
+                            sourceUrl: photo.source_image_url || photo.image_url,
                         }))
                     );
                     setDraftMessage("Your saved draft has been restored.");
@@ -820,7 +853,8 @@ export default function PostAdForm() {
                     setPhotos((current) => [...current, {
                         id: Number(data.id),
                         name: file.name,
-                        url: data.card_image_url || data.image_url || "",
+                        url: data.source_image_url || data.image_url || data.card_image_url || "",
+                        sourceUrl: data.source_image_url || data.image_url || "",
                     }]);
                     uploadedCount += 1;
                 } catch (err: any) {
@@ -844,6 +878,48 @@ export default function PostAdForm() {
         } finally {
             pendingPhotos.forEach((photo) => URL.revokeObjectURL(photo.url));
             setUploadingPhotos([]);
+            setPhotosUploading(false);
+        }
+    }
+
+    async function confirmPhotoCrop(file: File) {
+        if (!cropPhoto) return;
+
+        setCropSaving(true);
+        setPhotosUploading(true);
+        setPhotoError("");
+
+        try {
+            const formData = new FormData();
+            formData.append("image", file);
+            const data = await clientApiPatchForm(
+                `/listings/images/stage/${cropPhoto.id}/`,
+                formData,
+            );
+
+            setPhotos((current) => current.map((photo) => (
+                photo.id === cropPhoto.id
+                    ? {
+                        ...photo,
+                        name: file.name,
+                        url: data.source_image_url || data.image_url || data.card_image_url || photo.url,
+                        sourceUrl: data.source_image_url || data.image_url || photo.sourceUrl,
+                    }
+                    : photo
+            )));
+            setCropPhoto(null);
+            setUploadProgress("Photo crop updated and optimized.");
+        } catch (cropError: unknown) {
+            const message = cropError instanceof Error
+                ? cropError.message
+                : "Failed to update the photo crop.";
+            if (message === "__AUTH__") {
+                window.location.href = "/login?next=/post-ad";
+                return;
+            }
+            setPhotoError(message);
+        } finally {
+            setCropSaving(false);
             setPhotosUploading(false);
         }
     }
@@ -1150,7 +1226,7 @@ export default function PostAdForm() {
                     {(photos.length > 0 || uploadingPhotos.length > 0) && (
                         <div className="mt-3 border-t border-orange-200/70 pt-3">
                             <p className="mb-2.5 text-[10px] font-bold leading-4 text-slate-500">
-                                Drag photos to reorder them. The first photo is your main cover.
+                                Drag photos to reorder them. Cropping is optional; QOT optimizes every photo automatically.
                             </p>
 
                             <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
@@ -1180,7 +1256,7 @@ export default function PostAdForm() {
                                         <img
                                             src={photo.url}
                                             alt={`Selected photo ${index + 1}`}
-                                            className="pointer-events-none h-full w-full object-cover"
+                                            className="pointer-events-none h-full w-full object-contain"
                                         />
 
                                         {index === 0 ? (
@@ -1200,10 +1276,21 @@ export default function PostAdForm() {
 
                                         <button
                                             type="button"
-                                            onClick={() => setViewerPhoto({ url: photo.url, name: photo.name })}
+                                            onClick={() => setCropPhoto(photo)}
+                                            disabled={photosUploading}
+                                            aria-label={`Crop ${photo.name}`}
+                                            title="Crop photo"
+                                            className="absolute left-1.5 top-1.5 flex h-7 w-7 items-center justify-center rounded-full bg-white/95 text-orange-600 shadow-sm transition hover:bg-orange-500 hover:text-white disabled:opacity-50"
+                                        >
+                                            <FontAwesomeIcon icon={faCropSimple} className="h-3 w-3" />
+                                        </button>
+
+                                        <button
+                                            type="button"
+                                            onClick={() => setViewerPhoto({ url: photo.sourceUrl || photo.url, name: photo.name })}
                                             aria-label={`View ${photo.name} full screen`}
                                             title="View photo"
-                                            className="absolute left-1.5 top-1.5 flex h-7 w-7 items-center justify-center rounded-full bg-white/95 text-slate-700 shadow-sm transition hover:bg-orange-500 hover:text-white"
+                                            className="absolute left-9 top-1.5 flex h-7 w-7 items-center justify-center rounded-full bg-white/95 text-slate-700 shadow-sm transition hover:bg-orange-500 hover:text-white"
                                         >
                                             <FontAwesomeIcon icon={faExpand} className="h-3 w-3" />
                                         </button>
@@ -1583,6 +1670,17 @@ export default function PostAdForm() {
                 imageUrl={viewerPhoto?.url || ""}
                 title={viewerPhoto?.name || "Ad photo"}
                 onClose={() => setViewerPhoto(null)}
+            />
+            <PhotoCropModal
+                open={Boolean(cropPhoto)}
+                sourceUrl={getCropSourceUrl(cropPhoto?.sourceUrl || cropPhoto?.url || "")}
+                sourceName={cropPhoto?.name || "qot-photo.jpg"}
+                title={`Crop ${cropPhoto?.name || "photo"}`}
+                isSaving={cropSaving}
+                onCancel={() => {
+                    if (!cropSaving) setCropPhoto(null);
+                }}
+                onConfirm={confirmPhotoCrop}
             />
             <AdActionModal
                 open={clearDraftOpen}

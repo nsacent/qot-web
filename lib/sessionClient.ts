@@ -147,6 +147,21 @@ export async function getCurrentUser() {
     return sessionGet("/me");
 }
 
+export async function getOptionalCurrentUser() {
+    const response = await fetch("/api/auth/session", {
+        method: "GET",
+        credentials: "include",
+        cache: "no-store",
+    });
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+        throw new Error(friendlyErrorMessage(response, data));
+    }
+
+    return data?.authenticated ? data.user : null;
+}
+
 export async function updateCurrentUser(body: any) {
     return sessionPatch("/me", body);
 }

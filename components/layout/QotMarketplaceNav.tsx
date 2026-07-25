@@ -376,12 +376,14 @@ export default function QotMarketplaceNav({
     async function loadNavData() {
         setNavDataLoading(true);
 
-        const sessionResponse = await fetch("/api/auth/me", {
+        const sessionResponse = await fetch("/api/auth/session", {
             credentials: "include",
             cache: "no-store",
         }).catch(() => null);
-
-        const signedIn = Boolean(sessionResponse?.ok);
+        const sessionData = sessionResponse?.ok
+            ? await sessionResponse.json().catch(() => ({}))
+            : {};
+        const signedIn = sessionData?.authenticated === true;
         let favoritesData: any = null;
         let messagesData: any = null;
         let notificationsData: any = null;

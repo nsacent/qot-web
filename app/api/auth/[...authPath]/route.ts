@@ -5,6 +5,7 @@ import {
     clearAuthCookies,
     extractAccessToken,
     extractRefreshToken,
+    getAccessToken,
     getRefreshToken,
     refreshAccessToken,
     setAuthCookies,
@@ -283,6 +284,51 @@ async function handleAuthRequest(
         }
 
         return json({ detail: "Session refreshed." });
+    }
+
+    if (authKey === "session" && method === "GET") {
+        const [access, refresh] = await Promise.all([
+            getAccessToken(),
+            getRefreshToken(),
+        ]);
+
+        if (!access && !refresh) {
+            return json({ authenticated: false, user: null });
+        }
+
+        const result = await backendJsonWithSession("/auth/me/", {
+            method: "GET",
+        });
+
+        if (result.status === 401) {
+            return json({ authenticated: false, user: null });
+        }
+
+        if (!result.ok) {
+            return json(result.data, result.status);
+        }
+
+        return json({
+            authenticated: true,
+            user: stripTokens(result.data),
+        });
+    }
+
+    if (authKey === "me" && method === "GET") {
+        const [access, refresh] = await Promise.all([
+            getAccessToken(),
+            getRefreshToken(),
+        ]);
+
+        // Public UI elements use this endpoint only to discover whether a
+        // session exists. Avoid sending a guaranteed anonymous request to
+        // Django, where it is correctly logged as an Unauthorized response.
+        if (!access && !refresh) {
+            return json(
+                { detail: "Authentication credentials were not provided." },
+                401
+            );
+        }
     }
 
     if (authKey === "password-reset/request") {

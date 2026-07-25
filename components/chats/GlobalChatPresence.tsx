@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { createChatSocket } from "@/lib/chatSocket";
+import { getOptionalCurrentUser } from "@/lib/sessionClient";
 
 export default function GlobalChatPresence() {
     useEffect(() => {
@@ -9,12 +10,9 @@ export default function GlobalChatPresence() {
         let socket: ReturnType<typeof createChatSocket> | null = null;
 
         async function connectForSignedInUser() {
-            const response = await fetch("/api/auth/me", {
-                credentials: "include",
-                cache: "no-store",
-            }).catch(() => null);
+            const user = await getOptionalCurrentUser().catch(() => null);
 
-            if (disposed || !response?.ok) return;
+            if (disposed || !user) return;
 
             socket = createChatSocket({
                 path: "/ws/chats/presence/",

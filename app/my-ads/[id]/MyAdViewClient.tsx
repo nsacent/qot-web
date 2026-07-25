@@ -61,6 +61,17 @@ function getLocation(ad: any) {
     return city || region || ad?.location_name || "Uganda";
 }
 
+function getCategoryBreadcrumb(ad: any) {
+    const category = ad?.category_name || ad?.category?.name || "Category";
+    const parent =
+        ad?.category_parent_name ||
+        ad?.category?.parent_name ||
+        ad?.category?.parent?.name ||
+        "";
+
+    return parent && parent !== category ? `${parent} › ${category}` : category;
+}
+
 function getAttributeDetails(ad: any) {
     if (!Array.isArray(ad?.attributes)) return [];
 
@@ -427,7 +438,7 @@ function MyAdViewContent({ id }: { id: string }) {
                             <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-xs font-bold text-slate-500">
                                 <span className="inline-flex items-center gap-2">
                                     <FontAwesomeIcon icon={faTag} className="h-3.5 w-3.5 text-orange-500" />
-                                    {ad?.category_name || ad?.category?.name || "Category"}
+                                    {getCategoryBreadcrumb(ad)}
                                 </span>
                                 <span className="inline-flex items-center gap-2">
                                     <FontAwesomeIcon icon={faLocationDot} className="h-3.5 w-3.5 text-orange-500" />

@@ -20,6 +20,7 @@ import {
     faCamera,
     faChevronDown,
     faCircleCheck,
+    faCropSimple,
     faExpand,
     faFileLines,
     faLayerGroup,
@@ -35,6 +36,7 @@ import {
 import QotLoader from "@/components/common/QotLoader";
 import AdPreviewPanel from "@/components/listings/AdPreviewPanel";
 import PhotoViewerModal from "@/components/listings/PhotoViewerModal";
+import PhotoCropModal from "@/components/listings/PhotoCropModal";
 import InlineError from "@/components/forms/InlineError";
 import { getCurrentUser } from "@/lib/sessionClient";
 import { LocationPickerModal } from "@/components/listings/MarketplacePickerModals";
@@ -63,6 +65,7 @@ import {
     getAdCopyValidationError,
 } from "@/lib/listingValidation";
 import { normalizeListingText } from "@/lib/listingText";
+import { getCropSourceUrl } from "@/lib/photoCrop";
 
 type CategoryFilterField = {
     id: number | string;
@@ -76,7 +79,9 @@ type CategoryFilterField = {
 type ExistingImage = {
     id: string;
     url: string;
+    sourceUrl: string;
     isPrimary: boolean;
+    file?: File;
 };
 
 type NewImageItem = {
@@ -93,6 +98,7 @@ type EditablePhoto =
         kind: "new";
         name: string;
         url: string;
+        sourceUrl: string;
         file: File;
         progress: number;
         uploading: boolean;
@@ -314,6 +320,7 @@ function EditAdForm({ id }: { id: string }) {
     const [isNegotiable, setIsNegotiable] = useState(false);
 
     const [newImages, setNewImages] = useState<NewImageItem[]>([]);
+    const [replacementImages, setReplacementImages] = useState<Record<string, File>>({});
     const [deletedImageIds, setDeletedImageIds] = useState<string[]>([]);
     const [photoOrder, setPhotoOrder] = useState<string[]>([]);
     const [draggedPhotoKey, setDraggedPhotoKey] = useState<string | null>(null);
@@ -327,6 +334,8 @@ function EditAdForm({ id }: { id: string }) {
     const [pricingError, setPricingError] = useState("");
     const [actionError, setActionError] = useState("");
     const [viewerPhoto, setViewerPhoto] = useState<{ url: string; name: string } | null>(null);
+    const [cropPhoto, setCropPhoto] = useState<EditablePhoto | null>(null);
+    const [cropSaving, setCropSaving] = useState(false);
     const [locationModalOpen, setLocationModalOpen] = useState(false);
     const [locationSearch, setLocationSearch] = useState("");
     const pendingAttributeValues = useRef<Record<string, string>>({});
@@ -355,16 +364,32 @@ function EditAdForm({ id }: { id: string }) {
         });
     }
 
-    const existingImages = useMemo<ExistingImage[]>(() => {
+    const storedExistingImages = useMemo<ExistingImage[]>(() => {
         return getOrderedListingImages(ad)
             .map((image: any) => ({
                 id: String(image.id || ""),
                 url: String(image.url || ""),
+                sourceUrl: String(image.sourceUrl || image.url || ""),
                 isPrimary: image.isPrimary === true,
             }))
             .filter((image: ExistingImage) => image.url)
             .filter((image: ExistingImage) => !deletedImageIds.includes(image.id));
     }, [ad, deletedImageIds]);
+
+    const existingImages = useMemo<ExistingImage[]>(() => storedExistingImages.map((image) => {
+        const file = replacementImages[image.id];
+        if (!file) return image;
+
+        const url = URL.createObjectURL(file);
+        return { ...image, file, url, sourceUrl: url };
+    }), [replacementImages, storedExistingImages]);
+    useEffect(() => {
+        return () => {
+            existingImages.forEach((image) => {
+                if (image.file) URL.revokeObjectURL(image.url);
+            });
+        };
+    }, [existingImages]);
 
     const newImagePreviews = useMemo(
         () => newImages.map((item) => ({
@@ -396,6 +421,7 @@ function EditAdForm({ id }: { id: string }) {
             photosByKey.set(image.key, {
                 ...image,
                 kind: "new",
+                sourceUrl: image.url,
             });
         });
 
@@ -479,6 +505,7 @@ function EditAdForm({ id }: { id: string }) {
             pendingAttributeValues.current = restoredAttributes;
             setAd(listing);
             setNewImages([]);
+            setReplacementImages({});
             setDeletedImageIds([]);
             setPhotoOrder(initialPhotoOrder);
             setTitle(normalizeListingText(getValue(listing?.title)));
@@ -692,10 +719,64 @@ function EditAdForm({ id }: { id: string }) {
         setDeletedImageIds((current) =>
             current.includes(imageId) ? current : [...current, imageId]
         );
+        setReplacementImages((current) => {
+            const next = { ...current };
+            delete next[imageId];
+            return next;
+        });
         setPhotoOrder((current) =>
             current.filter((key) => key !== `existing:${imageId}`)
         );
         setMessage("Photo will be removed when you save the changes.");
+    }
+
+    async function confirmPhotoCrop(file: File) {
+        if (!cropPhoto) return;
+
+        setCropSaving(true);
+        setPhotoError("");
+
+        try {
+            if (cropPhoto.kind === "new") {
+                setNewImages((current) => current.map((item) => (
+                    item.key === cropPhoto.key ? { ...item, file } : item
+                )));
+            } else {
+                setReplacementImages((current) => ({
+                    ...current,
+                    [cropPhoto.id]: file,
+                }));
+            }
+            setCropPhoto(null);
+            setMessage("Crop applied. Save the ad to keep this photo change.");
+        } finally {
+            setCropSaving(false);
+        }
+    }
+
+    async function replaceCroppedImages() {
+        for (const [imageId, file] of Object.entries(replacementImages)) {
+            if (deletedImageIds.includes(imageId)) continue;
+
+            const formData = new FormData();
+            formData.append("image", file);
+            const response = await fetch(
+                `/api/proxy/listings/${id}/images/${imageId}/`,
+                {
+                    method: "PATCH",
+                    credentials: "include",
+                    body: formData,
+                },
+            );
+            const data = await response.json().catch(() => ({}));
+
+            if (!response.ok) {
+                throw new Error(getApiErrorMessage(
+                    data,
+                    `Failed to save the crop for ${file.name}.`,
+                ));
+            }
+        }
     }
 
     async function uploadNewImages() {
@@ -921,6 +1002,7 @@ function EditAdForm({ id }: { id: string }) {
             }
 
             try {
+                await replaceCroppedImages();
                 await deleteRemovedImages();
                 const { uploadedIds, failures } = await uploadNewImages();
                 await savePhotoOrder(uploadedIds);
@@ -1084,7 +1166,7 @@ function EditAdForm({ id }: { id: string }) {
                     {totalPhotos > 0 && (
                         <div className="mt-3 border-t border-orange-200/70 pt-3">
                             <p className="mb-2.5 text-[10px] font-bold leading-4 text-slate-500">
-                                Drag photos to reorder them. The first photo is your main cover.
+                                Drag photos to reorder them. Cropping is optional; QOT optimizes every photo automatically.
                             </p>
 
                             <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
@@ -1116,7 +1198,7 @@ function EditAdForm({ id }: { id: string }) {
                                         <img
                                             src={photo.url}
                                             alt={`Ad photo ${index + 1}`}
-                                            className="pointer-events-none h-full w-full object-cover"
+                                            className="pointer-events-none h-full w-full object-contain"
                                         />
 
                                         {index === 0 ? (
@@ -1135,22 +1217,31 @@ function EditAdForm({ id }: { id: string }) {
                                         )}
 
                                         {photo.kind === "new" && (
-                                            <span className="absolute left-10 top-1.5 rounded-full bg-emerald-500 px-2 py-0.5 text-[8px] font-black uppercase text-white">
+                                            <span className="absolute bottom-1.5 right-1.5 rounded-full bg-emerald-500 px-2 py-0.5 text-[8px] font-black uppercase text-white">
                                                 New
                                             </span>
                                         )}
 
-                                        {photo.kind === "existing" && (
-                                            <button
-                                                type="button"
-                                                onClick={() => setViewerPhoto({ url: photo.url, name: photo.name })}
-                                                aria-label={`View ${photo.name} full screen`}
-                                                title="View photo"
-                                                className="absolute left-1.5 top-1.5 flex h-7 w-7 items-center justify-center rounded-full bg-white/95 text-slate-700 shadow-sm transition hover:bg-orange-500 hover:text-white"
-                                            >
-                                                <FontAwesomeIcon icon={faExpand} className="h-3 w-3" />
-                                            </button>
-                                        )}
+                                        <button
+                                            type="button"
+                                            onClick={() => setCropPhoto(photo)}
+                                            disabled={saving}
+                                            aria-label={`Crop ${photo.name}`}
+                                            title="Crop photo"
+                                            className="absolute left-1.5 top-1.5 flex h-7 w-7 items-center justify-center rounded-full bg-white/95 text-orange-600 shadow-sm transition hover:bg-orange-500 hover:text-white disabled:opacity-50"
+                                        >
+                                            <FontAwesomeIcon icon={faCropSimple} className="h-3 w-3" />
+                                        </button>
+
+                                        <button
+                                            type="button"
+                                            onClick={() => setViewerPhoto({ url: photo.sourceUrl || photo.url, name: photo.name })}
+                                            aria-label={`View ${photo.name} full screen`}
+                                            title="View photo"
+                                            className="absolute left-9 top-1.5 flex h-7 w-7 items-center justify-center rounded-full bg-white/95 text-slate-700 shadow-sm transition hover:bg-orange-500 hover:text-white"
+                                        >
+                                            <FontAwesomeIcon icon={faExpand} className="h-3 w-3" />
+                                        </button>
 
                                         <button
                                             type="button"
@@ -1330,6 +1421,17 @@ function EditAdForm({ id }: { id: string }) {
                 imageUrl={viewerPhoto?.url || ""}
                 title={viewerPhoto?.name || "Ad photo"}
                 onClose={() => setViewerPhoto(null)}
+            />
+            <PhotoCropModal
+                open={Boolean(cropPhoto)}
+                sourceUrl={getCropSourceUrl(cropPhoto?.sourceUrl || cropPhoto?.url || "")}
+                sourceName={cropPhoto?.name || "qot-photo.jpg"}
+                title={`Crop ${cropPhoto?.name || "photo"}`}
+                isSaving={cropSaving}
+                onCancel={() => {
+                    if (!cropSaving) setCropPhoto(null);
+                }}
+                onConfirm={confirmPhotoCrop}
             />
         </form>
     );

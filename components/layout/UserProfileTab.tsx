@@ -17,7 +17,7 @@ import {
     faUserRegular,
 } from "@/lib/faIcons";
 import { isAdminOrModerator } from "@/lib/auth";
-import { getCurrentUser, logoutUser } from "@/lib/sessionClient";
+import { getOptionalCurrentUser, logoutUser } from "@/lib/sessionClient";
 import UserAvatar from "@/components/account/UserAvatar";
 
 type CurrentUser = {
@@ -119,8 +119,8 @@ export default function UserProfileTab() {
 
     async function loadUser() {
         try {
-            const data = await getCurrentUser();
-            setUser(data as CurrentUser);
+            const data = await getOptionalCurrentUser();
+            setUser(data as CurrentUser | null);
         } catch {
             setUser(null);
             setOpen(false);

@@ -38,7 +38,8 @@ export default function QotLoader({
         <div
             role="status"
             aria-live="polite"
-            className={`flex min-h-[calc(100dvh-7rem)] w-full items-center justify-center bg-[#fffaf7] px-4 md:min-h-[60vh] ${className}`}
+            aria-busy="true"
+            className={`fixed inset-0 z-[200] flex h-[100dvh] min-h-[100dvh] w-screen items-center justify-center overflow-hidden bg-[#fffaf7] px-4 ${className}`}
         >
             <div className="flex flex-col items-center gap-3">
                 <QotSpinner className="h-8 w-8" />

@@ -68,6 +68,7 @@ export function getOrderedListingImages(ad: any) {
                 return {
                     id,
                     url,
+                    sourceUrl: getImageUrl(item?.source_image_url || item?.source_image || url),
                     cardUrl: getImageUrl(item?.card_image_url || item?.card_image || url),
                     socialUrl: getImageUrl(
                         item?.social_image_url || item?.social_image || item?.card_image_url || url
@@ -85,6 +86,7 @@ export function getOrderedListingImages(ad: any) {
         images.unshift({
             id: String(primaryId || ""),
             url: primaryUrl,
+            sourceUrl: primaryUrl,
             cardUrl: primaryUrl,
             socialUrl: primaryUrl,
             index: -1,
