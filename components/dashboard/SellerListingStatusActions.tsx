@@ -2,6 +2,11 @@
 
 import { useState } from "react";
 import { apiPost } from "@/lib/apiClient";
+import ListingExpiryCountdown from "@/components/listings/ListingExpiryCountdown";
+import {
+    getListingExpiryValue,
+    listingCanBeRenewed,
+} from "@/lib/listingExpiry";
 
 type SellerListingStatusActionsProps = {
     listing: any;
@@ -37,9 +42,12 @@ export default function SellerListingStatusActions({
 
     const status = getStatus(listing);
     const listingId = listing?.id;
+    const expiryValue = getListingExpiryValue(listing);
+    const canRenew = listingCanBeRenewed(listing);
 
     async function runAction(action: string, label: string) {
         if (!listingId) return;
+        if (action === "renew" && !canRenew) return;
 
         const confirmed = window.confirm(`Are you sure you want to ${label}?`);
 
@@ -64,6 +72,12 @@ export default function SellerListingStatusActions({
 
     return (
         <div className="mt-3 grid gap-2">
+            {expiryValue && (
+                <ListingExpiryCountdown
+                    expiresAt={expiryValue}
+                    className="mb-1"
+                />
+            )}
             {status !== "sold" && (
                 <button
                     type="button"
@@ -118,10 +132,14 @@ export default function SellerListingStatusActions({
                 <button
                     type="button"
                     onClick={() => runAction("renew", "renew this advert")}
-                    disabled={loading === "renew"}
-                    className="rounded-xl border px-4 py-3 text-sm font-semibold hover:bg-slate-50 disabled:opacity-60"
+                    disabled={Boolean(loading) || !canRenew}
+                    className="rounded-xl border px-4 py-3 text-sm font-semibold hover:bg-slate-50 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400 disabled:opacity-100"
                 >
-                    {loading === "renew" ? "Renewing..." : "Renew Advert"}
+                    {loading === "renew"
+                        ? "Renewing..."
+                        : canRenew
+                            ? "Renew Advert"
+                            : "Available after expiry"}
                 </button>
             )}
         </div>

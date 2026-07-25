@@ -266,6 +266,9 @@ export default async function ListingDetailsPage({ params }: PageProps) {
     const categoryName = getCategoryName(listing);
     const statusLabel = cleanLabel(listing?.status, "Available");
     const conditionLabel = cleanLabel(listing?.condition);
+    const isNegotiable = Boolean(
+        listing?.is_negotiable ?? listing?.negotiable
+    );
     const postedValue =
         listing?.created_at || listing?.published_at || listing?.date_posted
     const postedDate = formatRelativeTime(postedValue);
@@ -381,9 +384,16 @@ export default async function ListingDetailsPage({ params }: PageProps) {
                                 {listing?.title || "Untitled ad"}
                             </h1>
 
-                            <p className="mt-4 text-3xl font-black text-orange-600 md:text-4xl">
-                                {formatPrice(listing?.price, listing?.currency || "UGX")}
-                            </p>
+                            <div className="mt-4 flex flex-wrap items-center gap-2.5">
+                                <p className="text-3xl font-black text-orange-600 md:text-4xl">
+                                    {formatPrice(listing?.price, listing?.currency || "UGX")}
+                                </p>
+                                {isNegotiable && (
+                                    <span className="rounded-full bg-orange-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-orange-700 ring-1 ring-orange-100">
+                                        Negotiable
+                                    </span>
+                                )}
+                            </div>
 
                             <div className="mt-6 grid gap-3 sm:grid-cols-3">
                                 <div className="rounded-3xl bg-slate-50 p-4">

@@ -17,7 +17,15 @@ const cookieOptions = {
     secure: isProduction,
     sameSite: "lax" as const,
     path: "/",
+    priority: "high" as const,
 };
+
+function persistentCookie(maxAge: number) {
+    return {
+        maxAge,
+        expires: new Date(Date.now() + maxAge * 1000),
+    };
+}
 
 export async function getAccessToken() {
     const cookieStore = await cookies();
@@ -41,10 +49,10 @@ export async function setAuthCookies(
 ) {
     const cookieStore = await cookies();
     const accessPersistence = keepSignedIn
-        ? { maxAge: ACCESS_COOKIE_MAX_AGE }
+        ? persistentCookie(ACCESS_COOKIE_MAX_AGE)
         : {};
     const refreshPersistence = keepSignedIn
-        ? { maxAge: KEEP_SIGNED_IN_MAX_AGE }
+        ? persistentCookie(KEEP_SIGNED_IN_MAX_AGE)
         : {};
 
     if (access) {
@@ -64,7 +72,7 @@ export async function setAuthCookies(
     if (keepSignedIn) {
         cookieStore.set(KEEP_SIGNED_IN_COOKIE, "1", {
             ...cookieOptions,
-            maxAge: KEEP_SIGNED_IN_MAX_AGE,
+            ...persistentCookie(KEEP_SIGNED_IN_MAX_AGE),
         });
     } else {
         cookieStore.set(KEEP_SIGNED_IN_COOKIE, "", {
@@ -226,6 +234,13 @@ export async function backendJsonWithSession(
     init: RequestInit = {}
 ) {
     let access = await getAccessToken();
+
+    // A remembered browser session can legitimately reopen after the short-lived
+    // access cookie has expired. Refresh before the first protected request so the
+    // user is not briefly treated as signed out.
+    if (!access) {
+        access = await refreshAccessToken();
+    }
 
     let result = await backendJson(path, init, access);
 

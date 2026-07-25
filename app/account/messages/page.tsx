@@ -2,8 +2,8 @@ import MessagesClient from "@/components/chats/MessagesClient";
 
 export default function AccountMessagesPage() {
     return (
-        <section className="rounded-[26px] bg-white p-3 shadow-sm ring-1 ring-black/5 sm:p-5">
-            <div className="mb-4 px-1 pt-1">
+        <section className="rounded-[22px] bg-white p-2 shadow-sm ring-1 ring-black/5 md:rounded-[26px] md:p-5">
+            <div className="mb-4 hidden px-1 pt-1 md:block">
                 <p className="text-[9px] font-black uppercase tracking-[0.16em] text-orange-600">
                     Account inbox
                 </p>

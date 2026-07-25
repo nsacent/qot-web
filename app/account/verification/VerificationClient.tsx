@@ -215,53 +215,19 @@ function VerificationForm({ embedded = false }: { embedded?: boolean }) {
                 </header>
             )}
 
-            <div className={`mx-auto grid max-w-[1180px] overflow-hidden rounded-[28px] bg-white shadow-[0_24px_70px_rgba(15,23,42,0.12)] ring-1 ring-black/5 ${embedded ? "xl:grid-cols-[0.82fr_1.18fr]" : "lg:mt-6 lg:grid-cols-[0.88fr_1.12fr]"}`}>
-                <section className={`relative overflow-hidden bg-slate-950 p-6 text-white sm:p-8 lg:p-10 ${embedded ? "hidden xl:block" : ""}`}>
-                    <div className="absolute -right-24 -top-24 h-64 w-64 rounded-full bg-orange-500/25 blur-3xl" />
-                    <div className="absolute -bottom-28 -left-24 h-72 w-72 rounded-full bg-orange-400/10 blur-3xl" />
-
-                    <div className="relative">
-                        <span className="flex h-14 w-14 items-center justify-center rounded-[20px] bg-orange-500 text-white shadow-[0_14px_30px_rgba(249,115,22,0.28)]">
-                            <FontAwesomeIcon icon={faShieldHalved} className="h-6 w-6" />
+            <div className={`mx-auto max-w-[760px] overflow-hidden rounded-[22px] bg-white shadow-[0_18px_55px_rgba(15,23,42,0.09)] ring-1 ring-black/5 md:rounded-[26px] ${embedded ? "" : "lg:mt-5"}`}>
+                <section className="p-3 md:p-7 lg:p-8">
+                    <div className="mb-4 flex items-center gap-3 rounded-[16px] bg-slate-50 p-3 ring-1 ring-slate-100 md:mb-5 md:rounded-[18px]">
+                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] bg-orange-500 text-white">
+                            <FontAwesomeIcon icon={faShieldHalved} className="h-4 w-4" />
                         </span>
-
-                        <p className="mt-6 text-[10px] font-black uppercase tracking-[0.18em] text-orange-300">
-                            Account protection
-                        </p>
-                        <h1 className="mt-2 max-w-md text-3xl font-black leading-[1.08] tracking-tight sm:text-4xl">
-                            Verification builds trust on QOT.
-                        </h1>
-                        <p className="mt-4 max-w-md text-sm font-semibold leading-6 text-slate-300">
-                            Confirm your contact details once to protect your account and help buyers know they are dealing with a real person.
-                        </p>
-                    </div>
-
-                    <div className="relative mt-8 hidden gap-3 lg:grid">
-                        {[
-                            "Unlock posting and seller tools",
-                            "Build confidence with buyers",
-                            "Protect account recovery",
-                        ].map((benefit) => (
-                            <div key={benefit} className="flex items-center gap-3 rounded-2xl bg-white/[0.07] px-4 py-3 ring-1 ring-white/10">
-                                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-orange-500/20 text-orange-300">
-                                    <FontAwesomeIcon icon={faCircleCheck} className="h-3.5 w-3.5" />
-                                </span>
-                                <span className="text-xs font-black text-slate-100">{benefit}</span>
-                            </div>
-                        ))}
-                    </div>
-
-                    <div className="relative mt-7 flex items-start gap-3 rounded-2xl bg-orange-500/10 p-4 ring-1 ring-orange-300/15 lg:mt-10">
-                        <FontAwesomeIcon icon={faShieldHalved} className="mt-0.5 h-4 w-4 shrink-0 text-orange-300" />
-                        <p className="text-xs font-semibold leading-5 text-slate-300">
-                            Your code is private, expires after 10 minutes, and should never be shared with anyone.
-                        </p>
-                    </div>
-                </section>
-
-                <section className="p-5 sm:p-8 lg:p-10">
-                    <div className="flex items-center justify-between gap-4">
                         <div>
+                            <p className="text-sm font-black text-slate-950">Secure account verification</p>
+                            <p className="mt-0.5 text-[11px] font-semibold text-slate-500">Codes expire after 10 minutes. Never share yours.</p>
+                        </div>
+                    </div>
+                    <div className="flex items-center justify-end gap-4 md:justify-between">
+                        <div className="hidden md:block">
                             <p className="text-[10px] font-black uppercase tracking-[0.16em] text-orange-600">
                                 Verify your account
                             </p>
@@ -276,7 +242,7 @@ function VerificationForm({ embedded = false }: { embedded?: boolean }) {
                         )}
                     </div>
 
-                    <div className="mt-6 grid grid-cols-2 gap-2 rounded-[20px] bg-slate-100 p-1.5">
+                    <div className="mt-3 grid grid-cols-2 gap-2 rounded-[18px] bg-slate-100 p-1 md:mt-6 md:rounded-[20px] md:p-1.5">
                         <button
                             type="button"
                             onClick={() => selectChannel("phone")}
@@ -309,7 +275,7 @@ function VerificationForm({ embedded = false }: { embedded?: boolean }) {
                     </div>
 
                     {isVerified ? (
-                        <div className="mt-7 rounded-[26px] bg-emerald-50 p-6 ring-1 ring-emerald-100 sm:p-8">
+                        <div className="mt-4 rounded-[20px] bg-emerald-50 p-4 ring-1 ring-emerald-100 md:mt-7 md:rounded-[26px] md:p-8">
                             <div className="flex h-16 w-16 items-center justify-center rounded-[22px] bg-emerald-500 text-white shadow-[0_12px_28px_rgba(16,185,129,0.22)]">
                                 <FontAwesomeIcon icon={faCircleCheck} className="h-8 w-8" />
                             </div>
@@ -332,7 +298,7 @@ function VerificationForm({ embedded = false }: { embedded?: boolean }) {
                             </div>
                         </div>
                     ) : (
-                        <div className="mt-7">
+                        <div className="mt-5 md:mt-7">
                             <h2 className="text-2xl font-black tracking-tight text-slate-950 sm:text-3xl">
                                 {hasSentCode
                                     ? "Enter your 6-digit code"

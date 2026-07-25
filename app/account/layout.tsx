@@ -62,13 +62,13 @@ export default async function AccountLayout({
 
     return (
         <main className="min-h-screen bg-[#fff7f2] text-slate-950 antialiased">
-            <div className="mx-auto max-w-[1500px] px-3 py-3 sm:px-6 sm:py-4">
+            <div className="mx-auto max-w-[1500px] px-3 py-2 md:px-6 md:py-4">
                 <QotMarketplaceNav
                     categories={getArray(categoriesData)}
                     cities={cities}
                 />
 
-                <div className="py-4 sm:py-6">
+                <div className="py-1 md:py-4">
                     <AccountShell>{children}</AccountShell>
                 </div>
             </div>

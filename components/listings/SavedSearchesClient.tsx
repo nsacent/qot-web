@@ -189,27 +189,27 @@ export default function SavedSearchesClient() {
     }
 
     return (
-        <section className="py-4 text-slate-950 sm:py-6">
-            <div className="rounded-[30px] bg-white p-5 shadow-[0_18px_60px_rgba(15,23,42,0.09)] ring-1 ring-black/5 sm:p-7">
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-                    <div>
-                        <span className="flex h-14 w-14 items-center justify-center rounded-[19px] bg-orange-50 text-orange-600 ring-1 ring-orange-100">
-                            <FontAwesomeIcon icon={faBookmark} className="h-5 w-5" />
+        <section className="pt-2 text-slate-950 md:pt-4">
+            <div className="rounded-[24px] bg-white p-3 shadow-[0_14px_42px_rgba(15,23,42,0.08)] ring-1 ring-black/5 sm:p-5">
+                <div className="flex items-center justify-end gap-3 border-b border-slate-100 pb-2 md:justify-between md:pb-4">
+                    <div className="hidden min-w-0 items-center gap-3 md:flex">
+                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] bg-orange-50 text-orange-600 ring-1 ring-orange-100">
+                            <FontAwesomeIcon icon={faBookmark} className="h-4 w-4" />
                         </span>
-                        <h2 className="mt-5 text-2xl font-black tracking-tight text-slate-950 sm:text-3xl">
-                            Saved Searches
-                        </h2>
-                        <p className="mt-2 max-w-xl text-sm font-semibold leading-6 text-slate-500">
-                            Reopen your favourite searches without selecting every filter again.
-                        </p>
+                        <div className="min-w-0">
+                            <h2 className="text-lg font-black tracking-tight text-slate-950 sm:text-xl">Saved Searches</h2>
+                            <p className="truncate text-[11px] font-semibold text-slate-500 sm:text-xs">
+                                {items.length > 0 ? `${items.length} saved ${items.length === 1 ? "search" : "searches"}` : "Quick access to saved filters"}
+                            </p>
+                        </div>
                     </div>
 
-                    <div className="flex flex-col gap-2 sm:flex-row">
+                    <div className="flex shrink-0 gap-2">
                         {items.length > 0 && (
                             <button
                                 type="button"
                                 onClick={() => setConfirmClearOpen(true)}
-                                className="inline-flex h-11 items-center justify-center gap-2 rounded-[15px] bg-red-50 px-4 text-xs font-black text-red-700 ring-1 ring-red-100 transition hover:bg-red-100"
+                                className="inline-flex h-10 items-center justify-center gap-2 rounded-[14px] bg-red-50 px-3 text-xs font-black text-red-700 ring-1 ring-red-100 transition hover:bg-red-100"
                             >
                                 <FontAwesomeIcon icon={faTrash} className="h-3.5 w-3.5" />
                                 Clear all
@@ -217,10 +217,10 @@ export default function SavedSearchesClient() {
                         )}
                         <a
                             href="/ads"
-                            className="inline-flex h-11 items-center justify-center gap-2 rounded-[15px] bg-slate-950 px-4 text-xs font-black text-white transition hover:bg-orange-500"
+                            className="inline-flex h-10 items-center justify-center gap-2 rounded-[14px] bg-slate-950 px-3 text-xs font-black text-white transition hover:bg-orange-500"
                         >
                             <FontAwesomeIcon icon={faMagnifyingGlass} className="h-3.5 w-3.5" />
-                            Find ads
+                            <span className="hidden sm:inline">Find ads</span>
                         </a>
                     </div>
                 </div>
@@ -236,11 +236,11 @@ export default function SavedSearchesClient() {
                         <QotLoader />
                     </div>
                 ) : items.length === 0 ? (
-                    <div className="mt-7 rounded-[26px] bg-slate-50 px-5 py-12 text-center ring-1 ring-slate-100 sm:px-8">
-                        <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-[22px] bg-white text-orange-500 shadow-sm ring-1 ring-slate-100">
-                            <FontAwesomeIcon icon={faBookmark} className="h-6 w-6" />
+                    <div className="mt-4 rounded-[22px] bg-slate-50 px-5 py-9 text-center ring-1 ring-slate-100 sm:px-8">
+                        <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-orange-500 shadow-sm ring-1 ring-slate-100">
+                            <FontAwesomeIcon icon={faBookmark} className="h-5 w-5" />
                         </span>
-                        <h3 className="mt-5 text-xl font-black text-slate-950">
+                        <h3 className="mt-4 text-lg font-black text-slate-950">
                             No saved searches yet
                         </h3>
                         <p className="mx-auto mt-2 max-w-md text-sm font-semibold leading-6 text-slate-500">
@@ -255,7 +255,7 @@ export default function SavedSearchesClient() {
                         </a>
                     </div>
                 ) : (
-                    <div className="mt-7 grid gap-3 sm:gap-4">
+                    <div className="mt-4 grid gap-3 sm:gap-4">
                         {items.map((item) => {
                             const params = getSearchParams(item);
                             const savedDate = formatDate(item.created_at);

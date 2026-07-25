@@ -198,8 +198,8 @@ export default function ListingAnalyticsClient({
     const image = getImage(listing);
 
     return (
-        <section className="py-6">
-            <div className="relative mb-7 overflow-hidden rounded-[34px] bg-gradient-to-br from-slate-950 via-slate-900 to-violet-950 p-6 text-white shadow-[0_24px_65px_rgba(15,23,42,0.20)] sm:p-8">
+        <section className="py-0 md:py-6">
+            <div className="relative mb-7 hidden overflow-hidden rounded-[34px] bg-gradient-to-br from-slate-950 via-slate-900 to-violet-950 p-8 text-white shadow-[0_24px_65px_rgba(15,23,42,0.20)] md:block">
                 <div className="absolute -right-16 -top-20 h-56 w-56 rounded-full bg-violet-500/20 blur-2xl" />
                 <div className="absolute -bottom-24 left-1/3 h-52 w-52 rounded-full bg-orange-400/10 blur-3xl" />
                 <div className="relative flex flex-col justify-between gap-6 md:flex-row md:items-end">

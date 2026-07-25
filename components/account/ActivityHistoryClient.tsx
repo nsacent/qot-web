@@ -365,10 +365,10 @@ export default function ActivityHistoryClient() {
     ];
 
     return (
-        <section className="space-y-4">
-            <div className="rounded-[26px] bg-white p-5 shadow-sm ring-1 ring-black/5 sm:p-7">
+        <section className="space-y-3 md:space-y-4">
+            <div className="rounded-[22px] bg-white p-3 shadow-sm ring-1 ring-black/5 md:rounded-[26px] md:p-7">
                 <div className="flex items-start justify-between gap-4">
-                    <div className="min-w-0">
+                    <div className="hidden min-w-0 md:block">
                         <p className="text-[9px] font-black uppercase tracking-[0.16em] text-orange-600">
                             Activity history
                         </p>
@@ -383,15 +383,15 @@ export default function ActivityHistoryClient() {
                         type="button"
                         onClick={loadActivity}
                         disabled={loading}
-                        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-slate-950 text-white transition hover:bg-orange-500 disabled:opacity-50 sm:w-auto sm:gap-2 sm:px-4"
+                        className="ml-auto flex h-9 w-9 shrink-0 items-center justify-center rounded-[13px] bg-slate-100 text-slate-600 transition hover:bg-orange-500 hover:text-white disabled:opacity-50 md:h-11 md:w-auto md:gap-2 md:rounded-2xl md:bg-slate-950 md:px-4 md:text-white"
                         aria-label="Refresh activity"
                     >
                         <FontAwesomeIcon icon={faRotate} className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-                        <span className="hidden text-xs font-black sm:inline">Refresh</span>
+                        <span className="hidden text-xs font-black md:inline">Refresh</span>
                     </button>
                 </div>
 
-                <div className="mt-5 grid grid-cols-4 divide-x divide-slate-100 rounded-[20px] bg-slate-50 px-1 py-3 ring-1 ring-slate-100">
+                <div className="mt-2 grid grid-cols-4 divide-x divide-slate-100 rounded-[17px] bg-slate-50 px-1 py-2.5 ring-1 ring-slate-100 md:mt-5 md:rounded-[20px] md:py-3">
                     {summaryItems.map((item) => (
                         <div key={item.label} className="min-w-0 px-1.5 text-center sm:px-3">
                             <FontAwesomeIcon icon={item.icon} className="mx-auto h-3.5 w-3.5 text-orange-500" />

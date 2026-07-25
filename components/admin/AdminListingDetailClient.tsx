@@ -35,6 +35,7 @@ import {
     AdminRefreshButton,
     AdminStatCard,
 } from "@/components/admin/AdminUi";
+import ListingExpiryCountdown from "@/components/listings/ListingExpiryCountdown";
 
 type ListingImage = {
     id: number;
@@ -575,6 +576,23 @@ export default function AdminListingDetailClient({
                             <TimelineRow icon={faCircleCheck} label="Sold" value={formatDate(listing.sold_at, true)} />
                             {listing.is_featured && (
                                 <TimelineRow icon={faBolt} label="Featured until" value={formatDate(listing.featured_until, true)} />
+                            )}
+                        </div>
+                        <div className="mt-5 flex flex-wrap gap-3 border-t border-slate-100 pt-5">
+                            {listing.expires_at && (
+                                <ListingExpiryCountdown
+                                    expiresAt={listing.expires_at}
+                                    label="Ad expiry:"
+                                    className="rounded-full bg-slate-100 px-3 py-2"
+                                />
+                            )}
+                            {listing.is_featured && listing.featured_until && (
+                                <ListingExpiryCountdown
+                                    expiresAt={listing.featured_until}
+                                    label="Featured:"
+                                    expiredLabel="Featured period ended"
+                                    className="rounded-full bg-violet-50 px-3 py-2 text-violet-700"
+                                />
                             )}
                         </div>
                     </section>

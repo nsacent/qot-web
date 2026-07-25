@@ -24,6 +24,12 @@ import {
     AdminPageHeader,
     AdminRefreshButton,
 } from "@/components/admin/AdminUi";
+import ListingExpiryCountdown from "@/components/listings/ListingExpiryCountdown";
+import {
+    getListingExpiryValue,
+    getListingFeaturedUntil,
+    listingIsCurrentlyFeatured,
+} from "@/lib/listingExpiry";
 
 const LISTINGS_ENDPOINT = "/admin-panel/listings/";
 const PENDING_LISTINGS_ENDPOINT = "/admin-panel/listings/pending/";
@@ -74,7 +80,7 @@ function getImage(listing: any) {
 }
 
 function isFeatured(listing: any) {
-    return Boolean(listing?.is_featured || listing?.featured || listing?.featured_until);
+    return listingIsCurrentlyFeatured(listing);
 }
 
 function statusClass(status: string) {
@@ -412,6 +418,8 @@ export default function AdminListingsClient() {
                         {listings.map((listing) => {
                             const image = getImage(listing);
                             const listingFeatured = isFeatured(listing);
+                            const listingExpiry = getListingExpiryValue(listing);
+                            const featuredUntil = getListingFeaturedUntil(listing);
                             const id = listing.id;
 
                             return (
@@ -472,6 +480,23 @@ export default function AdminListingsClient() {
                                                     <FontAwesomeIcon icon={faCalendar} className="h-3 w-3 text-slate-300" />
                                                     {formatDate(listing.created_at)}
                                                 </span>
+                                            </div>
+
+                                            <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1.5">
+                                                {listingExpiry && (
+                                                    <ListingExpiryCountdown
+                                                        expiresAt={listingExpiry}
+                                                        label="Ad:"
+                                                    />
+                                                )}
+                                                {listingFeatured && featuredUntil && (
+                                                    <ListingExpiryCountdown
+                                                        expiresAt={featuredUntil}
+                                                        label="Featured:"
+                                                        expiredLabel="Featured period ended"
+                                                        className="text-violet-700"
+                                                    />
+                                                )}
                                             </div>
 
                                             {listing.rejection_reason && (

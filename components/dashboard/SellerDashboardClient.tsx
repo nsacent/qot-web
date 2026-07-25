@@ -1,6 +1,22 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+    faBolt,
+    faChartLine,
+    faCircleCheck,
+    faClockRotateLeft,
+    faPlus,
+    faRectangleList,
+} from "@fortawesome/free-solid-svg-icons";
+import ListingExpiryCountdown from "@/components/listings/ListingExpiryCountdown";
+import {
+    getListingExpiryValue,
+    getListingFeaturedUntil,
+    listingCanBeRenewed,
+    listingIsCurrentlyFeatured,
+} from "@/lib/listingExpiry";
 
 async function dashboardApi<T = any>(
     path: string,
@@ -242,9 +258,18 @@ function ListingMiniCard({
     const enrichedListing = enrichListing(listing, allListings);
     const listingId = getListingId(enrichedListing);
     const image = getImage(enrichedListing);
+    const expiryValue = getListingExpiryValue(enrichedListing);
+    const featuredUntil = getListingFeaturedUntil(enrichedListing);
+    const isFeatured = listingIsCurrentlyFeatured(enrichedListing);
+    const canRenew = listingCanBeRenewed(enrichedListing);
+    const canRelist = ["expired", "unavailable", "sold"].includes(
+        String(getStatus(enrichedListing)).toLowerCase()
+    );
 
     async function runAction(action: "renew" | "relist") {
         if (!listingId) return;
+        if (action === "renew" && !canRenew) return;
+        if (action === "relist" && !canRelist) return;
 
         const confirmed = window.confirm(
             `Are you sure you want to ${action} this advert?`
@@ -265,8 +290,8 @@ function ListingMiniCard({
     }
 
     return (
-        <article className="grid gap-4 rounded-[24px] bg-slate-50 p-3 ring-1 ring-slate-100 transition hover:bg-white hover:shadow-[0_14px_35px_rgba(15,23,42,0.08)] md:grid-cols-[112px_1fr_auto] md:items-center">
-            <div className="flex h-28 items-center justify-center overflow-hidden rounded-[18px] bg-slate-200 text-slate-500">
+        <article className="grid grid-cols-[82px_minmax(0,1fr)] items-start gap-3 rounded-[22px] bg-slate-50 p-3 ring-1 ring-slate-100 transition hover:bg-white hover:shadow-[0_14px_35px_rgba(15,23,42,0.08)] md:grid-cols-[112px_1fr_auto] md:items-center md:gap-4 md:rounded-[24px]">
+            <div className="flex h-20 items-center justify-center overflow-hidden rounded-[16px] bg-slate-200 text-slate-500 md:h-28 md:rounded-[18px]">
                 {image ? (
                     <img
                         src={image}
@@ -278,25 +303,42 @@ function ListingMiniCard({
                 )}
             </div>
 
-            <div>
-                <h3 className="text-base font-black text-slate-950">
+            <div className="min-w-0">
+                <h3 className="line-clamp-2 text-sm font-black leading-5 text-slate-950 md:text-base">
                     {getTitle(enrichedListing)}
                 </h3>
 
-                <p className="mt-2 flex flex-wrap items-center gap-2 text-xs font-bold text-slate-500">
+                <p className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[10px] font-bold text-slate-500 md:mt-2 md:gap-2 md:text-xs">
                     <span className="rounded-full bg-white px-2.5 py-1 capitalize ring-1 ring-slate-200">
                         {getStatus(enrichedListing)}
                     </span>
                     <span className="text-orange-600">{getPrice(enrichedListing)}</span>
                 </p>
 
-                <p className="mt-3 text-xs font-semibold text-slate-500">
+                <p className="mt-2 text-[10px] font-semibold text-slate-500 md:mt-3 md:text-xs">
                     Views: {getViews(enrichedListing).toLocaleString()} · Saves:{" "}
                     {getSaves(enrichedListing).toLocaleString()}
                 </p>
+
+                {expiryValue && (
+                    <ListingExpiryCountdown
+                        expiresAt={expiryValue}
+                        label="Ad:"
+                        className="mt-1.5"
+                    />
+                )}
+
+                {isFeatured && featuredUntil && (
+                    <ListingExpiryCountdown
+                        expiresAt={featuredUntil}
+                        label="Featured:"
+                        expiredLabel="Featured period ended"
+                        className="mt-1 text-violet-700"
+                    />
+                )}
             </div>
 
-            <div className="grid min-w-[132px] gap-2">
+            <div className="col-span-2 grid grid-cols-2 gap-2 md:col-span-1 md:min-w-[132px] md:grid-cols-1">
                 {listingId && (
                     <>
                         <a
@@ -304,13 +346,6 @@ function ListingMiniCard({
                             className="rounded-xl bg-orange-500 px-4 py-2.5 text-center text-xs font-black text-white hover:bg-orange-600"
                         >
                             Analytics
-                        </a>
-
-                        <a
-                            href="/account/renewals"
-                            className="rounded-xl bg-white px-4 py-2.5 text-center text-xs font-black text-slate-700 ring-1 ring-slate-200 hover:bg-orange-50 hover:text-orange-600"
-                        >
-                            Renewal Center
                         </a>
 
                         <a
@@ -324,27 +359,90 @@ function ListingMiniCard({
 
                 {showRenew && listingId && (
                     <>
+                        <a
+                            href="/account/renewals"
+                            className="rounded-xl bg-white px-4 py-2.5 text-center text-xs font-black text-slate-700 ring-1 ring-slate-200 hover:bg-orange-50 hover:text-orange-600"
+                        >
+                            Renewal Center
+                        </a>
                         <button
                             type="button"
                             onClick={() => runAction("renew")}
-                            disabled={loading === "renew"}
-                            className="rounded-xl bg-white px-4 py-2.5 text-xs font-black text-slate-700 ring-1 ring-slate-200 hover:bg-orange-50 disabled:opacity-60"
+                            disabled={Boolean(loading) || !canRenew}
+                            className="rounded-xl bg-white px-4 py-2.5 text-xs font-black text-slate-700 ring-1 ring-slate-200 hover:bg-orange-50 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400 disabled:opacity-100"
                         >
-                            {loading === "renew" ? "Renewing..." : "Renew"}
+                            {loading === "renew"
+                                ? "Renewing..."
+                                : canRenew
+                                    ? "Renew"
+                                    : "Available after expiry"}
                         </button>
 
-                        <button
-                            type="button"
-                            onClick={() => runAction("relist")}
-                            disabled={loading === "relist"}
-                            className="rounded-xl bg-slate-950 px-4 py-2.5 text-xs font-black text-white hover:bg-slate-800 disabled:opacity-60"
-                        >
-                            {loading === "relist" ? "Relisting..." : "Relist"}
-                        </button>
+                        {canRelist && (
+                            <button
+                                type="button"
+                                onClick={() => runAction("relist")}
+                                disabled={Boolean(loading)}
+                                className="rounded-xl bg-slate-950 px-4 py-2.5 text-xs font-black text-white hover:bg-slate-800 disabled:opacity-60"
+                            >
+                                {loading === "relist" ? "Relisting..." : "Relist"}
+                            </button>
+                        )}
                     </>
                 )}
             </div>
         </article>
+    );
+}
+
+function MobilePerformanceTile({
+    label,
+    listing,
+    allListings,
+    tone,
+}: {
+    label: string;
+    listing: any;
+    allListings: any[];
+    tone: string;
+}) {
+    if (!listing) {
+        return (
+            <div className="min-h-32 rounded-[20px] bg-white p-4 ring-1 ring-slate-200">
+                <p className={`text-[9px] font-black uppercase tracking-wider ${tone}`}>{label}</p>
+                <p className="mt-4 text-xs font-bold leading-5 text-slate-400">No ad data yet</p>
+            </div>
+        );
+    }
+
+    const enrichedListing = enrichListing(listing, allListings);
+    const listingId = getListingId(enrichedListing);
+    const image = getImage(enrichedListing);
+
+    return (
+        <a
+            href={listingId ? `/account/my-ads/${listingId}` : "/account/my-ads"}
+            className="min-w-0 rounded-[20px] bg-white p-3.5 shadow-sm ring-1 ring-slate-200 transition active:scale-[0.98]"
+        >
+            <p className={`text-[9px] font-black uppercase tracking-wider ${tone}`}>{label}</p>
+            <div className="mt-3 flex items-center gap-2.5">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-[14px] bg-slate-100 text-[9px] font-black text-slate-300">
+                    {image ? (
+                        <img src={image} alt="" className="h-full w-full object-cover" />
+                    ) : (
+                        "QOT"
+                    )}
+                </div>
+                <div className="min-w-0">
+                    <p className="line-clamp-2 text-[11px] font-black leading-4 text-slate-900">
+                        {getTitle(enrichedListing)}
+                    </p>
+                    <p className="mt-1 text-[9px] font-bold text-slate-400">
+                        {getViews(enrichedListing).toLocaleString()} views
+                    </p>
+                </div>
+            </div>
+        </a>
     );
 }
 
@@ -402,20 +500,26 @@ export default function SellerDashboardClient() {
         summary?.recent_listings
     );
 
-    const featuredListings = getArray(
+    const dashboardFeaturedListings = getArray(
         dashboard?.active_featured_listings,
         dashboard?.featured_listings,
         dashboard?.data?.active_featured_listings,
         summary?.active_featured_listings
     );
+    const featuredListings = dashboardFeaturedListings.length > 0
+        ? dashboardFeaturedListings
+        : listings.filter((listing) => listingIsCurrentlyFeatured(listing));
 
-    const renewalListings = getArray(
+    const dashboardRenewalListings = getArray(
         dashboard?.listings_needing_renewal,
         dashboard?.needs_renewal,
         dashboard?.renewal_listings,
         dashboard?.data?.listings_needing_renewal,
         summary?.listings_needing_renewal
     );
+    const renewalListings = dashboardRenewalListings.length > 0
+        ? dashboardRenewalListings
+        : listings.filter((listing) => listingCanBeRenewed(listing));
 
     const bestListing =
         dashboard?.best_listing ||
@@ -439,12 +543,14 @@ export default function SellerDashboardClient() {
             ),
             helper: "All your adverts",
             tone: "from-orange-500 to-orange-600 text-white",
+            icon: faRectangleList,
         },
         {
             label: "Active Ads",
             value: getNumber(summary?.active_listings, summary?.active_count),
             helper: "Visible to buyers",
             tone: "from-emerald-50 to-green-100 text-emerald-800",
+            icon: faCircleCheck,
         },
         {
             label: "Featured",
@@ -455,6 +561,7 @@ export default function SellerDashboardClient() {
             ),
             helper: "Currently promoted",
             tone: "from-violet-50 to-purple-100 text-violet-800",
+            icon: faBolt,
         },
         {
             label: "Need Renewal",
@@ -465,12 +572,13 @@ export default function SellerDashboardClient() {
             ),
             helper: "Needs your attention",
             tone: "from-amber-50 to-orange-100 text-amber-800",
+            icon: faClockRotateLeft,
         },
     ];
 
     return (
-        <section className="py-6 text-slate-950">
-            <div className="relative mb-7 overflow-hidden rounded-[34px] bg-gradient-to-br from-slate-950 via-slate-900 to-orange-950 p-6 text-white shadow-[0_24px_65px_rgba(15,23,42,0.20)] sm:p-8">
+        <section className="py-0 text-slate-950 md:py-6">
+            <div className="relative mb-7 hidden overflow-hidden rounded-[34px] bg-gradient-to-br from-slate-950 via-slate-900 to-orange-950 p-8 text-white shadow-[0_24px_65px_rgba(15,23,42,0.20)] md:block">
                 <div className="absolute -right-16 -top-20 h-56 w-56 rounded-full bg-orange-500/20 blur-2xl" />
                 <div className="absolute -bottom-24 left-1/3 h-52 w-52 rounded-full bg-orange-400/10 blur-3xl" />
 
@@ -522,28 +630,66 @@ export default function SellerDashboardClient() {
                 </div>
             ) : (
                 <>
-                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                    <div className="grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-4">
                         {stats.map((stat) => (
                             <div
                                 key={stat.label}
-                                className={`rounded-[26px] bg-gradient-to-br p-6 shadow-[0_14px_40px_rgba(15,23,42,0.07)] ring-1 ring-black/5 ${stat.tone}`}
+                                className={`rounded-[20px] bg-gradient-to-br p-4 shadow-[0_14px_40px_rgba(15,23,42,0.07)] ring-1 ring-black/5 md:rounded-[26px] md:p-6 ${stat.tone}`}
                             >
-                                <p className="text-xs font-black uppercase tracking-wide opacity-75">
-                                    {stat.label}
-                                </p>
+                                <div className="flex items-center justify-between gap-2">
+                                    <p className="text-[9px] font-black uppercase tracking-wide opacity-75 md:text-xs">
+                                        {stat.label}
+                                    </p>
+                                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-white/45 md:h-9 md:w-9">
+                                        <FontAwesomeIcon icon={stat.icon} className="h-3 w-3 md:h-3.5 md:w-3.5" />
+                                    </span>
+                                </div>
 
-                                <p className="mt-3 text-4xl font-black">
+                                <p className="mt-2 text-2xl font-black md:mt-3 md:text-4xl">
                                     {Number(stat.value).toLocaleString()}
                                 </p>
-                                <p className="mt-2 text-xs font-bold opacity-70">{stat.helper}</p>
+                                <p className="mt-1 text-[9px] font-bold opacity-70 md:mt-2 md:text-xs">{stat.helper}</p>
                             </div>
                         ))}
                     </div>
 
-                    <div className="mt-8 grid gap-6 lg:grid-cols-2">
+                    <div className="mt-4 grid grid-cols-2 gap-2.5 md:hidden">
+                        <a href="/post-ad" className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-orange-500 px-3 text-xs font-black text-white shadow-lg shadow-orange-100">
+                            <FontAwesomeIcon icon={faPlus} className="h-3.5 w-3.5" />
+                            Post an ad
+                        </a>
+                        <a href="/account/my-ads" className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-white px-3 text-xs font-black text-slate-700 ring-1 ring-slate-200">
+                            <FontAwesomeIcon icon={faRectangleList} className="h-3.5 w-3.5 text-orange-500" />
+                            My ads
+                        </a>
+                        <a href="/account/analytics" className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-white px-3 text-xs font-black text-slate-700 ring-1 ring-slate-200">
+                            <FontAwesomeIcon icon={faChartLine} className="h-3.5 w-3.5 text-blue-500" />
+                            Analytics
+                        </a>
+                        <a href="/account/renewals" className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-white px-3 text-xs font-black text-slate-700 ring-1 ring-slate-200">
+                            <FontAwesomeIcon icon={faClockRotateLeft} className="h-3.5 w-3.5 text-violet-500" />
+                            Renewals
+                        </a>
+                    </div>
+
+                    <div className="mt-5 md:hidden">
+                        <div className="mb-3 flex items-end justify-between gap-3">
+                            <div>
+                                <p className="text-[9px] font-black uppercase tracking-[0.16em] text-orange-600">Performance</p>
+                                <h2 className="mt-1 text-lg font-black text-slate-950">Your ad highlights</h2>
+                            </div>
+                            <a href="/account/analytics" className="text-[10px] font-black text-orange-600">See all</a>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                            <MobilePerformanceTile label="Top performer" listing={bestListing} allListings={listings} tone="text-emerald-600" />
+                            <MobilePerformanceTile label="Needs attention" listing={weakestListing} allListings={listings} tone="text-amber-600" />
+                        </div>
+                    </div>
+
+                    <div className="mt-8 hidden gap-6 md:grid lg:grid-cols-2">
                         <div className="rounded-[30px] bg-white p-6 shadow-[0_18px_55px_rgba(15,23,42,0.08)] ring-1 ring-black/5">
                             <p className="text-sm font-semibold uppercase tracking-wide text-green-600">
-                                Best Ad
+                                Top performer
                             </p>
 
                             {bestListing ? (
@@ -560,7 +706,7 @@ export default function SellerDashboardClient() {
 
                         <div className="rounded-[30px] bg-white p-6 shadow-[0_18px_55px_rgba(15,23,42,0.08)] ring-1 ring-black/5">
                             <p className="text-sm font-semibold uppercase tracking-wide text-red-600">
-                                Weakest Ad
+                                Opportunity to improve
                             </p>
 
                             {weakestListing ? (
@@ -576,19 +722,19 @@ export default function SellerDashboardClient() {
                         </div>
                     </div>
 
-                    <div className="mt-8 rounded-[30px] bg-white p-6 shadow-[0_18px_55px_rgba(15,23,42,0.08)] ring-1 ring-black/5">
-                        <div className="mb-5">
-                            <p className="text-sm font-semibold uppercase tracking-wide text-orange-600">
+                    <div className="mt-5 rounded-[24px] bg-white p-4 shadow-[0_18px_55px_rgba(15,23,42,0.08)] ring-1 ring-black/5 md:mt-8 md:rounded-[30px] md:p-6">
+                        <div className="mb-4 md:mb-5">
+                            <p className="text-[10px] font-black uppercase tracking-wide text-orange-600 md:text-sm md:font-semibold">
                                 Ads Needing Renewal
                             </p>
 
-                            <h2 className="mt-2 text-2xl font-bold text-slate-900">
+                            <h2 className="mt-1 text-lg font-black text-slate-900 md:mt-2 md:text-2xl md:font-bold">
                                 Renew or relist adverts
                             </h2>
                         </div>
 
                         {renewalListings.length === 0 ? (
-                            <div className="rounded-2xl bg-slate-50 p-6 text-slate-600">
+                            <div className="rounded-2xl bg-slate-50 p-4 text-sm font-semibold text-slate-600 md:p-6">
                                 No ads need renewal right now.
                             </div>
                         ) : (
@@ -606,14 +752,14 @@ export default function SellerDashboardClient() {
                         )}
                     </div>
 
-                    <div className="mt-8 grid gap-6 lg:grid-cols-2">
-                        <div className="rounded-[30px] bg-white p-6 shadow-[0_18px_55px_rgba(15,23,42,0.08)] ring-1 ring-black/5">
-                            <div className="mb-5">
-                                <p className="text-sm font-semibold uppercase tracking-wide text-orange-600">
+                    <div className="mt-5 grid gap-5 md:mt-8 md:gap-6 lg:grid-cols-2">
+                        <div className="rounded-[24px] bg-white p-4 shadow-[0_18px_55px_rgba(15,23,42,0.08)] ring-1 ring-black/5 md:rounded-[30px] md:p-6">
+                            <div className="mb-4 md:mb-5">
+                                <p className="text-[10px] font-black uppercase tracking-wide text-orange-600 md:text-sm md:font-semibold">
                                     Recent Ads
                                 </p>
 
-                                <h2 className="mt-2 text-2xl font-bold text-slate-900">
+                                <h2 className="mt-1 text-lg font-black text-slate-900 md:mt-2 md:text-2xl md:font-bold">
                                     Latest seller adverts
                                 </h2>
                             </div>
@@ -635,13 +781,13 @@ export default function SellerDashboardClient() {
                             )}
                         </div>
 
-                        <div className="rounded-[30px] bg-white p-6 shadow-[0_18px_55px_rgba(15,23,42,0.08)] ring-1 ring-black/5">
-                            <div className="mb-5">
-                                <p className="text-sm font-semibold uppercase tracking-wide text-orange-600">
+                        <div className="rounded-[24px] bg-white p-4 shadow-[0_18px_55px_rgba(15,23,42,0.08)] ring-1 ring-black/5 md:rounded-[30px] md:p-6">
+                            <div className="mb-4 md:mb-5">
+                                <p className="text-[10px] font-black uppercase tracking-wide text-orange-600 md:text-sm md:font-semibold">
                                     Active Featured Ads
                                 </p>
 
-                                <h2 className="mt-2 text-2xl font-bold text-slate-900">
+                                <h2 className="mt-1 text-lg font-black text-slate-900 md:mt-2 md:text-2xl md:font-bold">
                                     Promoted adverts
                                 </h2>
                             </div>

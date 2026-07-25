@@ -1,6 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+    faChartLine,
+    faEnvelope,
+    faEye,
+    faHeart,
+    faRectangleList,
+} from "@fortawesome/free-solid-svg-icons";
 
 async function apiGet(path: string) {
     const response = await fetch(`/api/proxy${path}`, {
@@ -128,17 +136,13 @@ export default function SellerAnalyticsClient() {
 
             if (dashboardResult.status === "fulfilled") {
                 setDashboard(dashboardResult.value);
-                console.log("Seller analytics response:", dashboardResult.value);
             } else {
                 setDashboard(null);
-                console.warn("Seller analytics failed:", dashboardResult.reason);
             }
 
             if (listingsResult.status === "rejected") {
                 throw listingsResult.reason;
             }
-
-            console.log("Seller listings response:", listingsResult.value);
 
             setListings(getArray(listingsResult.value));
         } catch (error: any) {
@@ -175,15 +179,16 @@ export default function SellerAnalyticsClient() {
     );
 
     const stats = [
-        { label: "Total Ads", value: listings.length, helper: "All your adverts", tone: "from-orange-500 to-orange-600 text-white" },
-        { label: "Total Views", value: totalViews, helper: "Buyer visits", tone: "from-blue-50 to-cyan-100 text-blue-800" },
-        { label: "Total Saves", value: totalSaves, helper: "Buyer interest", tone: "from-rose-50 to-pink-100 text-rose-800" },
-        { label: "Messages", value: totalMessages, helper: "Buyer enquiries", tone: "from-violet-50 to-purple-100 text-violet-800" },
+        { label: "Total Ads", value: listings.length, helper: "All your adverts", tone: "from-orange-500 to-orange-600 text-white", icon: faRectangleList },
+        { label: "Total Views", value: totalViews, helper: "Buyer visits", tone: "from-blue-50 to-cyan-100 text-blue-800", icon: faEye },
+        { label: "Total Saves", value: totalSaves, helper: "Buyer interest", tone: "from-rose-50 to-pink-100 text-rose-800", icon: faHeart },
+        { label: "Messages", value: totalMessages, helper: "Buyer enquiries", tone: "from-violet-50 to-purple-100 text-violet-800", icon: faEnvelope },
     ];
+    const maxViews = Math.max(1, ...listings.map((listing) => getViews(listing)));
 
     return (
-        <section className="py-6">
-            <div className="relative mb-7 overflow-hidden rounded-[34px] bg-gradient-to-br from-slate-950 via-slate-900 to-violet-950 p-6 text-white shadow-[0_24px_65px_rgba(15,23,42,0.20)] sm:p-8">
+        <section className="py-0 md:py-6">
+            <div className="relative mb-7 hidden overflow-hidden rounded-[34px] bg-gradient-to-br from-slate-950 via-slate-900 to-violet-950 p-8 text-white shadow-[0_24px_65px_rgba(15,23,42,0.20)] md:block">
                 <div className="absolute -right-16 -top-20 h-56 w-56 rounded-full bg-violet-500/20 blur-2xl" />
                 <div className="relative flex flex-col justify-between gap-6 md:flex-row md:items-end">
                     <div>
@@ -206,31 +211,39 @@ export default function SellerAnalyticsClient() {
                 </div>
             ) : (
                 <>
-                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                    <div className="grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-4">
                         {stats.map((stat) => (
                             <div
                                 key={stat.label}
-                                className={`rounded-[26px] bg-gradient-to-br p-6 shadow-[0_14px_40px_rgba(15,23,42,0.07)] ring-1 ring-black/5 ${stat.tone}`}
+                                className={`rounded-[20px] bg-gradient-to-br p-4 shadow-[0_14px_40px_rgba(15,23,42,0.07)] ring-1 ring-black/5 md:rounded-[26px] md:p-6 ${stat.tone}`}
                             >
-                                <p className="text-xs font-black uppercase tracking-wide opacity-75">
-                                    {stat.label}
-                                </p>
-                                <p className="mt-3 text-4xl font-black">
+                                <div className="flex items-center justify-between gap-2">
+                                    <p className="text-[9px] font-black uppercase tracking-wide opacity-75 md:text-xs">
+                                        {stat.label}
+                                    </p>
+                                    <span className="flex h-7 w-7 items-center justify-center rounded-xl bg-white/45 md:h-9 md:w-9">
+                                        <FontAwesomeIcon icon={stat.icon} className="h-3 w-3 md:h-3.5 md:w-3.5" />
+                                    </span>
+                                </div>
+                                <p className="mt-2 text-2xl font-black md:mt-3 md:text-4xl">
                                     {Number(stat.value).toLocaleString()}
                                 </p>
-                                <p className="mt-2 text-xs font-bold opacity-70">{stat.helper}</p>
+                                <p className="mt-1 text-[9px] font-bold opacity-70 md:mt-2 md:text-xs">{stat.helper}</p>
                             </div>
                         ))}
                     </div>
 
-                    <div className="mt-8 rounded-[30px] bg-white p-6 shadow-[0_18px_55px_rgba(15,23,42,0.08)] ring-1 ring-black/5 sm:p-7">
-                        <div className="mb-5">
-                            <p className="text-sm font-semibold uppercase tracking-wide text-orange-600">
+                    <div className="mt-5 rounded-[24px] bg-white p-4 shadow-[0_18px_55px_rgba(15,23,42,0.08)] ring-1 ring-black/5 md:mt-8 md:rounded-[30px] md:p-7">
+                        <div className="mb-4 flex items-end justify-between gap-3 md:mb-5">
+                            <div>
+                            <p className="text-[10px] font-black uppercase tracking-wide text-orange-600 md:text-sm md:font-semibold">
                                 Ad Performance
                             </p>
-                            <h2 className="mt-2 text-2xl font-bold text-slate-900">
+                            <h2 className="mt-1 text-lg font-black text-slate-900 md:mt-2 md:text-2xl md:font-bold">
                                 Performance by advert
                             </h2>
+                            </div>
+                            <a href="/account/my-ads" className="text-[10px] font-black text-orange-600 md:text-xs">My ads</a>
                         </div>
 
                         {listings.length === 0 ? (
@@ -238,17 +251,19 @@ export default function SellerAnalyticsClient() {
                                 No seller ads found.
                             </div>
                         ) : (
-                            <div className="grid gap-5">
-                                {listings.map((listing) => {
+                            <div className="grid gap-3 md:gap-5">
+                                {listings.map((listing, index) => {
                                     const listingId = getListingId(listing);
                                     const image = getImage(listing);
+                                    const views = getViews(listing);
+                                    const viewShare = Math.max(4, Math.round((views / maxViews) * 100));
 
                                     return (
                                         <article
                                             key={listingId || getTitle(listing)}
-                                            className="grid gap-4 rounded-[24px] bg-slate-50 p-3 ring-1 ring-slate-100 transition hover:bg-white hover:shadow-[0_14px_35px_rgba(15,23,42,0.08)] md:grid-cols-[128px_1fr_auto] md:items-center"
+                                            className="grid grid-cols-[82px_minmax(0,1fr)] items-start gap-3 rounded-[22px] bg-slate-50 p-3 ring-1 ring-slate-100 transition hover:bg-white hover:shadow-[0_14px_35px_rgba(15,23,42,0.08)] md:grid-cols-[112px_1fr_auto] md:items-center md:gap-4 md:rounded-[24px]"
                                         >
-                                            <div className="flex h-28 items-center justify-center overflow-hidden rounded-[18px] bg-slate-200 text-slate-500">
+                                            <div className="relative flex h-20 items-center justify-center overflow-hidden rounded-[16px] bg-slate-200 text-slate-500 md:h-28 md:rounded-[18px]">
                                                 {image ? (
                                                     <img
                                                         src={image}
@@ -256,31 +271,36 @@ export default function SellerAnalyticsClient() {
                                                         className="h-full w-full object-cover"
                                                     />
                                                 ) : (
-                                                    <span className="text-sm">No image</span>
+                                                    <span className="text-[10px] font-bold">No image</span>
                                                 )}
+                                                <span className="absolute left-1.5 top-1.5 rounded-lg bg-slate-950/75 px-2 py-1 text-[9px] font-black text-white backdrop-blur">#{index + 1}</span>
                                             </div>
 
-                                            <div>
-                                                <h3 className="text-lg font-bold text-slate-900">
+                                            <div className="min-w-0">
+                                                <h3 className="line-clamp-2 text-sm font-black leading-5 text-slate-900 md:text-lg md:font-bold">
                                                     {getTitle(listing)}
                                                 </h3>
 
-                                                <p className="mt-1 text-sm text-slate-500">
+                                                <p className="mt-1 truncate text-[10px] font-bold capitalize text-slate-500 md:text-sm md:font-normal">
                                                     {listing?.status || "active"} · {getPrice(listing)}
                                                 </p>
 
-                                                <p className="mt-3 text-sm text-slate-600">
-                                                    Views: {getViews(listing).toLocaleString()} · Saves:{" "}
-                                                    {getSaves(listing).toLocaleString()} · Messages:{" "}
-                                                    {getMessages(listing).toLocaleString()}
-                                                </p>
+                                                <div className="mt-2 grid grid-cols-3 gap-1.5 md:mt-3 md:gap-2">
+                                                    <Metric label="Views" value={views} />
+                                                    <Metric label="Saves" value={getSaves(listing)} />
+                                                    <Metric label="Chats" value={getMessages(listing)} />
+                                                </div>
+                                                <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-200" title={`${viewShare}% of your top ad's views`}>
+                                                    <div className="h-full rounded-full bg-gradient-to-r from-orange-400 to-orange-600" style={{ width: `${viewShare}%` }} />
+                                                </div>
                                             </div>
 
                                             {listingId && (
                                                 <a
                                                     href={`/account/analytics/${listingId}`}
-                                                    className="rounded-xl bg-orange-500 px-5 py-3 text-center text-sm font-black text-white hover:bg-orange-600"
+                                                    className="col-span-2 inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-orange-500 px-5 py-3 text-center text-xs font-black text-white hover:bg-orange-600 md:col-span-1 md:text-sm"
                                                 >
+                                                    <FontAwesomeIcon icon={faChartLine} className="h-3.5 w-3.5" />
                                                     Details
                                                 </a>
                                             )}
@@ -293,5 +313,14 @@ export default function SellerAnalyticsClient() {
                 </>
             )}
         </section>
+    );
+}
+
+function Metric({ label, value }: { label: string; value: number }) {
+    return (
+        <span className="rounded-lg bg-white px-1.5 py-1.5 text-center ring-1 ring-slate-200">
+            <span className="block text-[10px] font-black text-slate-900 md:text-xs">{value.toLocaleString()}</span>
+            <span className="mt-0.5 block text-[7px] font-black uppercase tracking-wide text-slate-400 md:text-[8px]">{label}</span>
+        </span>
     );
 }

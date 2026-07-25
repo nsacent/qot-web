@@ -132,7 +132,7 @@ function ResetPasswordForm() {
     if (checkingSession) return <QotLoader />;
 
     return (
-        <main className="min-h-screen bg-[#fff7f2] px-4 py-4 text-slate-950 sm:px-6 sm:py-6">
+        <main className="min-h-screen bg-[#fff7f2] px-3 py-2 text-slate-950 md:px-6 md:py-6">
             <div className="mx-auto max-w-[1180px]">
                 <header className="hidden items-center justify-between rounded-[24px] bg-white px-4 py-3 shadow-[0_12px_35px_rgba(15,23,42,0.07)] ring-1 ring-black/5 md:flex md:px-5">
                     <a href="/" aria-label="QOT Uganda home" className="inline-flex items-center">
@@ -148,53 +148,16 @@ function ResetPasswordForm() {
                     </a>
                 </header>
 
-                <section className="mt-5 grid overflow-hidden rounded-[36px] bg-white shadow-[0_28px_90px_rgba(15,23,42,0.14)] ring-1 ring-black/5 lg:grid-cols-[0.9fr_1.1fr]">
-                    <div className="relative overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-orange-950 p-7 text-white sm:p-10 lg:min-h-[620px]">
-                        <div className="absolute -right-24 -top-28 h-72 w-72 rounded-full bg-orange-500/25 blur-3xl" />
-                        <div className="absolute -bottom-32 -left-20 h-72 w-72 rounded-full bg-orange-400/10 blur-3xl" />
-
-                        <div className="relative flex h-full flex-col justify-between gap-10">
-                            <div>
-                                <span className="flex h-14 w-14 items-center justify-center rounded-[20px] bg-orange-500 text-white shadow-lg shadow-orange-950/30">
-                                    <FontAwesomeIcon icon={resetLinkMode ? faLock : faEnvelope} className="h-5 w-5" />
-                                </span>
-                                <p className="mt-8 text-[10px] font-black uppercase tracking-[0.2em] text-orange-300">
-                                    Account security
-                                </p>
-                                <h1 className="mt-4 text-3xl font-black leading-tight sm:text-4xl">
-                                    {resetLinkMode
-                                        ? "Create a password only you know."
-                                        : "Reset your password securely."}
-                                </h1>
-                                <p className="mt-4 max-w-sm text-sm font-semibold leading-6 text-slate-300">
-                                    {resetLinkMode
-                                        ? "Choose a strong new password to regain secure access to your QOT account."
-                                        : "We will send a single-use reset link to the verified email already connected to your profile."}
-                                </p>
-                            </div>
-
-                            <div className="rounded-[26px] bg-white/8 p-5 ring-1 ring-white/10 backdrop-blur">
-                                <div className="flex items-center gap-3">
-                                    <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-green-400/15 text-green-300">
-                                        <FontAwesomeIcon icon={faShieldHalved} className="h-4 w-4" />
-                                    </span>
-                                    <div>
-                                        <p className="text-sm font-black">Protected account recovery</p>
-                                        <p className="mt-1 text-xs font-semibold leading-5 text-slate-400">
-                                            Reset links expire and can only be used with the matching secure token.
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="flex items-center p-6 sm:p-10 lg:p-12">
+                <section className="mx-auto mt-0 max-w-2xl overflow-hidden rounded-[22px] bg-white shadow-[0_22px_65px_rgba(15,23,42,0.11)] ring-1 ring-black/5 md:mt-5 md:rounded-[28px]">
+                    <div className="p-4 md:p-8 lg:p-9">
                         <div className="w-full">
-                            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-orange-600">
+                            <span className="mb-5 flex h-11 w-11 items-center justify-center rounded-[15px] bg-orange-50 text-orange-600 ring-1 ring-orange-100">
+                                <FontAwesomeIcon icon={resetLinkMode ? faLock : faEnvelope} className="h-4 w-4" />
+                            </span>
+                            <p className="hidden text-[10px] font-black uppercase tracking-[0.18em] text-orange-600 md:block">
                                 {resetLinkMode ? "Choose a new password" : "Request reset link"}
                             </p>
-                            <h2 className="mt-3 text-3xl font-black tracking-tight text-slate-950">
+                            <h2 className="hidden text-3xl font-black tracking-tight text-slate-950 md:mt-3 md:block">
                                 {resetLinkMode ? "Reset Password" : "Secure your account"}
                             </h2>
                             <p className="mt-2 text-sm font-semibold leading-6 text-slate-500">
@@ -202,6 +165,11 @@ function ResetPasswordForm() {
                                     ? "Enter your new password twice to confirm it."
                                     : "Your account email is fixed and cannot be changed here."}
                             </p>
+
+                            <div className="mt-5 flex items-start gap-3 rounded-[16px] bg-slate-50 p-3 text-xs font-semibold leading-5 text-slate-500 ring-1 ring-slate-100">
+                                <FontAwesomeIcon icon={faShieldHalved} className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-500" />
+                                Reset links are private, time-limited, and can only be used once.
+                            </div>
 
                             {error && (
                                 <div role="alert" className="mt-6 rounded-2xl bg-red-50 px-4 py-3.5 text-sm font-bold leading-6 text-red-700 ring-1 ring-red-100">

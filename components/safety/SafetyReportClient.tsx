@@ -69,8 +69,8 @@ export default function SafetyReportClient() {
     }
 
     return (
-        <section className="py-3 sm:py-6">
-            <header className="relative overflow-hidden rounded-[34px] bg-gradient-to-br from-slate-950 via-slate-900 to-red-950 px-5 py-7 text-white shadow-[0_24px_70px_rgba(15,23,42,0.18)] sm:px-8 sm:py-9">
+        <section className="py-0 md:py-6">
+            <header className="relative hidden overflow-hidden rounded-[34px] bg-gradient-to-br from-slate-950 via-slate-900 to-red-950 px-8 py-9 text-white shadow-[0_24px_70px_rgba(15,23,42,0.18)] md:block">
                 <div className="absolute -right-16 -top-24 h-64 w-64 rounded-full bg-red-500/20 blur-3xl" />
                 <div className="absolute -bottom-32 left-1/3 h-64 w-64 rounded-full bg-orange-500/10 blur-3xl" />
 
@@ -92,7 +92,7 @@ export default function SafetyReportClient() {
                 </div>
             </header>
 
-            <div className="mt-6 grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
+            <div className="mt-0 grid items-start gap-4 md:mt-6 md:gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
                 <form
                     onSubmit={submitReport}
                     className="rounded-[34px] bg-white p-5 shadow-[0_18px_60px_rgba(15,23,42,0.09)] ring-1 ring-black/5 sm:p-7"

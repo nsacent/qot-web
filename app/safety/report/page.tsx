@@ -18,7 +18,7 @@ function SafetyReportFallback() {
 export default function SafetyReportPage() {
     return (
         <main className="min-h-screen bg-[#fff7f2] text-slate-950 antialiased">
-            <div className="mx-auto max-w-[1500px] px-4 py-4 sm:px-6">
+            <div className="mx-auto max-w-[1500px] px-3 py-2 md:px-6 md:py-4">
                 <Navbar />
 
                 <Suspense fallback={<SafetyReportFallback />}>

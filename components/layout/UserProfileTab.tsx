@@ -172,7 +172,7 @@ export default function UserProfileTab() {
 
     if (checking) {
         return (
-            <div className="h-11 w-11 animate-pulse rounded-2xl bg-slate-100" />
+            <div className="h-9 w-9 animate-pulse rounded-[13px] bg-slate-100" />
         );
     }
 
@@ -181,14 +181,14 @@ export default function UserProfileTab() {
             <div className="hidden items-center gap-2 sm:flex">
                 <Link
                     href="/login"
-                    className="rounded-2xl bg-slate-50 px-4 py-2.5 text-sm font-black text-slate-800 transition hover:bg-orange-50 hover:text-orange-600"
+                    className="rounded-[13px] bg-slate-50 px-3 py-2 text-xs font-black text-slate-800 transition hover:bg-orange-50 hover:text-orange-600"
                 >
                     Login
                 </Link>
 
                 <Link
                     href="/register"
-                    className="rounded-2xl bg-orange-500 px-4 py-2.5 text-sm font-black text-white shadow-sm shadow-orange-200 transition hover:bg-orange-600"
+                    className="rounded-[13px] bg-orange-500 px-3 py-2 text-xs font-black text-white shadow-sm shadow-orange-200 transition hover:bg-orange-600"
                 >
                     Register
                 </Link>
@@ -208,7 +208,7 @@ export default function UserProfileTab() {
                 aria-expanded={open}
                 aria-haspopup="menu"
                 aria-label="Open account menu"
-                className={`group flex h-11 items-center gap-2 rounded-[16px] border px-1.5 pr-2 transition md:pl-1.5 md:pr-3 ${
+                className={`group flex h-9 items-center gap-1.5 rounded-[13px] border px-1 pr-2 transition ${
                     open
                         ? "border-orange-200 bg-orange-50 text-orange-700 shadow-sm"
                         : "border-slate-200 bg-white text-slate-800 hover:border-orange-200 hover:bg-orange-50"
@@ -217,14 +217,14 @@ export default function UserProfileTab() {
                 <UserAvatar
                     user={user}
                     name={displayName}
-                    className="h-8 w-8 rounded-[11px] bg-gradient-to-br from-orange-400 to-orange-600 text-[11px] text-white shadow-sm shadow-orange-200"
+                    className="h-7 w-7 rounded-[10px] bg-gradient-to-br from-orange-400 to-orange-600 text-[10px] text-white"
                 />
 
                 <span className="hidden max-w-28 text-left xl:block">
-                    <span className="block truncate text-[11px] font-black leading-4">
+                    <span className="block truncate text-[10px] font-black leading-tight">
                         {displayName}
                     </span>
-                    <span className="block truncate text-[9px] font-bold text-slate-400">
+                    <span className="block truncate text-[8px] font-bold text-slate-400">
                         {getRoleLabel(user)}
                     </span>
                 </span>

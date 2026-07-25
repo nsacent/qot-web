@@ -78,30 +78,47 @@ export default async function SellersPage({ searchParams }: SellersPageProps) {
 
     return (
         <main className="min-h-screen bg-[#fff7f2] text-slate-950 antialiased">
-            <div className="mx-auto max-w-[1500px] px-4 py-4 sm:px-6">
+            <div className="mx-auto max-w-[1500px] px-3 py-2 md:px-6 md:py-4">
                 <QotMarketplaceNav />
 
-                <section className="relative mt-4 overflow-hidden rounded-[30px] bg-slate-950 px-6 py-8 text-white shadow-[0_22px_65px_rgba(15,23,42,0.20)] sm:px-9 sm:py-10">
+                <form action="/sellers" method="get" className="rounded-[15px] bg-white p-1 text-slate-950 shadow-sm ring-1 ring-black/5 md:hidden">
+                    <label className="flex h-11 items-center gap-2.5 rounded-[13px] bg-slate-50 px-3 ring-1 ring-slate-100 focus-within:ring-2 focus-within:ring-orange-300">
+                        <FontAwesomeIcon icon={faMagnifyingGlass} className="h-4 w-4 text-slate-400" />
+                        <span className="sr-only">Search sellers</span>
+                        <input
+                            type="search"
+                            name="search"
+                            defaultValue={search}
+                            placeholder="Search sellers"
+                            className="min-w-0 flex-1 bg-transparent text-sm font-bold outline-none placeholder:text-slate-400"
+                        />
+                        <button type="submit" className="rounded-[11px] bg-orange-500 px-3 py-2 text-[11px] font-black text-white">
+                            Search
+                        </button>
+                    </label>
+                </form>
+
+                <section className="relative mt-4 hidden overflow-hidden rounded-[30px] bg-slate-950 px-9 py-10 text-white shadow-[0_18px_50px_rgba(15,23,42,0.18)] md:block">
                     <div className="absolute -right-24 -top-28 h-72 w-72 rounded-full bg-orange-500/25 blur-3xl" />
                     <div className="absolute -bottom-32 left-1/3 h-64 w-64 rounded-full bg-amber-400/10 blur-3xl" />
 
-                    <div className="relative grid items-end gap-7 lg:grid-cols-[1fr_0.72fr]">
+                    <div className="relative grid items-end gap-4 sm:gap-7 lg:grid-cols-[1fr_0.72fr]">
                         <div>
                             <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.18em] text-orange-200 ring-1 ring-white/15">
                                 <FontAwesomeIcon icon={faStore} className="h-3 w-3" />
                                 Seller directory
                             </span>
-                            <h1 className="mt-4 text-3xl font-black tracking-[-0.04em] sm:text-5xl">
+                            <h1 className="mt-3 text-2xl font-black tracking-[-0.04em] sm:mt-4 sm:text-5xl">
                                 Meet trusted sellers
                                 <span className="block text-orange-400">across QOT Uganda.</span>
                             </h1>
-                            <p className="mt-3 max-w-2xl text-sm font-semibold leading-6 text-slate-300 sm:text-base">
+                            <p className="mt-3 hidden max-w-2xl text-sm font-semibold leading-6 text-slate-300 sm:block sm:text-base">
                                 Browse verified sellers rated 3.5 or higher, ranked by the views on their active ads.
                             </p>
                         </div>
 
-                        <form action="/sellers" method="get" className="rounded-[22px] bg-white p-2 text-slate-950 shadow-xl">
-                            <label className="flex h-13 items-center gap-3 rounded-[17px] bg-slate-50 px-4 ring-1 ring-slate-200 focus-within:ring-2 focus-within:ring-orange-300">
+                        <form action="/sellers" method="get" className="rounded-[17px] bg-white p-1.5 text-slate-950 shadow-xl sm:rounded-[22px] sm:p-2">
+                            <label className="flex h-11 items-center gap-2.5 rounded-[14px] bg-slate-50 px-3 ring-1 ring-slate-200 focus-within:ring-2 focus-within:ring-orange-300 sm:h-13 sm:rounded-[17px] sm:px-4">
                                 <FontAwesomeIcon icon={faMagnifyingGlass} className="h-4 w-4 text-slate-400" />
                                 <span className="sr-only">Search sellers</span>
                                 <input
@@ -119,11 +136,11 @@ export default async function SellersPage({ searchParams }: SellersPageProps) {
                     </div>
                 </section>
 
-                <section className="py-7">
-                    <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
+                <section className="py-4 md:py-7">
+                    <div className="mb-3 flex flex-wrap items-end justify-between gap-3 md:mb-5">
                         <div>
-                            <p className="text-[10px] font-black uppercase tracking-[0.16em] text-orange-600">Verified and highly rated</p>
-                            <h2 className="mt-1 text-2xl font-black tracking-tight text-slate-950">
+                            <p className="hidden text-[10px] font-black uppercase tracking-[0.16em] text-orange-600 md:block">Verified and highly rated</p>
+                            <h2 className="text-base font-black tracking-tight text-slate-950 md:mt-1 md:text-2xl">
                                 {search ? `Results for “${search}”` : "Sellers with live ads"}
                             </h2>
                         </div>

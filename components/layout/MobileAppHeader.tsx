@@ -115,21 +115,21 @@ export default function MobileAppHeader() {
 
     return (
         <header className="sticky top-0 z-[70] border-b border-slate-200/70 bg-white/90 pt-[env(safe-area-inset-top)] shadow-[0_8px_24px_rgba(15,23,42,0.07)] backdrop-blur-xl md:hidden">
-            <div className="relative mx-auto flex h-[62px] max-w-screen-md items-center gap-3 px-3">
+            <div className="relative mx-auto flex h-[54px] max-w-screen-md items-center gap-2.5 px-2.5">
                 <button
                     type="button"
                     onClick={handleBack}
                     aria-label={`Back from ${title}`}
-                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] bg-slate-100 text-slate-800 shadow-sm ring-1 ring-slate-200/80 transition active:scale-95 active:bg-slate-200"
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[12px] bg-slate-100 text-slate-800 ring-1 ring-slate-200/80 transition active:scale-95 active:bg-slate-200"
                 >
-                    <FontAwesomeIcon icon={faArrowLeft} className="h-4 w-4" />
+                    <FontAwesomeIcon icon={faArrowLeft} className="h-3.5 w-3.5" />
                 </button>
 
                 <div className="min-w-0 flex-1">
-                    <p className="text-[9px] font-black uppercase leading-none tracking-[0.2em] text-orange-600">
+                    <p className="text-[8px] font-black uppercase leading-none tracking-[0.18em] text-orange-600">
                         QOT Uganda
                     </p>
-                    <h1 className="mt-1 truncate text-[17px] font-black leading-tight tracking-[-0.02em] text-slate-950">
+                    <h1 className="mt-0.5 truncate text-[15px] font-black leading-tight tracking-[-0.02em] text-slate-950">
                         {title}
                     </h1>
                 </div>
@@ -139,15 +139,15 @@ export default function MobileAppHeader() {
                         type="button"
                         onClick={() => window.dispatchEvent(new Event("qot_open_admin_menu"))}
                         aria-label="Open admin navigation"
-                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] bg-slate-950 text-white shadow-sm transition active:scale-95 active:bg-orange-600"
+                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[12px] bg-slate-950 text-white transition active:scale-95 active:bg-orange-600"
                     >
-                        <FontAwesomeIcon icon={faBars} className="h-4 w-4" />
+                        <FontAwesomeIcon icon={faBars} className="h-3.5 w-3.5" />
                     </button>
                 )}
 
                 <span
                     aria-hidden="true"
-                    className="pointer-events-none absolute bottom-0 left-3 h-0.5 w-10 rounded-full bg-orange-500"
+                    className="pointer-events-none absolute bottom-0 left-2.5 h-0.5 w-9 rounded-full bg-orange-500"
                 />
             </div>
         </header>

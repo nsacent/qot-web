@@ -175,8 +175,8 @@ export default function NotificationsClient() {
     }
 
     return (
-        <section className="py-6">
-            <div className="relative overflow-hidden rounded-[30px] bg-gradient-to-br from-slate-950 via-slate-900 to-orange-950 px-6 py-7 text-white shadow-[0_22px_60px_rgba(15,23,42,0.18)] sm:px-8">
+        <section className="py-0 md:py-6">
+            <div className="relative hidden overflow-hidden rounded-[30px] bg-gradient-to-br from-slate-950 via-slate-900 to-orange-950 px-8 py-7 text-white shadow-[0_22px_60px_rgba(15,23,42,0.18)] md:block">
                 <div className="absolute -right-20 -top-24 h-60 w-60 rounded-full bg-orange-500/20 blur-3xl" />
                 <div className="relative flex flex-col justify-between gap-6 md:flex-row md:items-end">
                     <div>
@@ -203,7 +203,7 @@ export default function NotificationsClient() {
                 </div>
             </div>
 
-            <div className="mt-6 rounded-[28px] bg-white p-4 shadow-[0_16px_50px_rgba(15,23,42,0.08)] ring-1 ring-black/5 sm:p-6">
+            <div className="mt-0 rounded-[22px] bg-white p-3 shadow-[0_16px_50px_rgba(15,23,42,0.08)] ring-1 ring-black/5 md:mt-6 md:rounded-[28px] md:p-6">
                 <div className="flex flex-col justify-between gap-4 border-b border-slate-100 pb-5 sm:flex-row sm:items-center">
                     <div className="flex rounded-[14px] bg-slate-100 p-1">
                         {(["all", "unread"] as const).map((option) => (

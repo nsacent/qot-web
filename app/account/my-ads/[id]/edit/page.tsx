@@ -10,8 +10,8 @@ export default async function AccountEditMyAdPage({
     const { id } = await params;
 
     return (
-        <section className="py-2 sm:py-3">
-            <div className="mb-4 px-1 sm:flex sm:items-end sm:justify-between sm:gap-4">
+        <section className="py-0 md:py-3">
+            <div className="mb-4 hidden px-1 md:flex md:items-end md:justify-between md:gap-4">
                 <div>
                     <p className="text-xs font-black uppercase tracking-[0.18em] text-orange-600">
                         Manage your advert

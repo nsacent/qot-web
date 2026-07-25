@@ -6,7 +6,6 @@ import {
     faCircleCheck,
     faEnvelope,
     faLock,
-    faShieldHalved,
 } from "@/lib/faIcons";
 import { useAccountShell } from "@/components/account/AccountShell";
 import { requestPasswordReset } from "@/lib/sessionClient";
@@ -41,32 +40,17 @@ export default function AccountPasswordClient() {
     }
 
     return (
-        <section className="grid overflow-hidden rounded-[28px] bg-white shadow-[0_18px_55px_rgba(15,23,42,0.08)] ring-1 ring-black/5 xl:grid-cols-[0.75fr_1.25fr]">
-            <div className="hidden bg-slate-950 p-8 text-white xl:block">
-                <span className="flex h-14 w-14 items-center justify-center rounded-[20px] bg-orange-500">
-                    <FontAwesomeIcon icon={faShieldHalved} className="h-6 w-6" />
-                </span>
-                <p className="mt-8 text-[10px] font-black uppercase tracking-[0.18em] text-orange-300">
-                    Account security
-                </p>
-                <h1 className="mt-3 text-3xl font-black leading-tight">
-                    Keep your QOT account protected.
-                </h1>
-                <p className="mt-4 text-sm font-semibold leading-6 text-slate-300">
-                    Password changes use a private, single-use link sent to your registered email.
-                </p>
-            </div>
-
-            <div className="p-5 sm:p-8 lg:p-10">
+        <section className="mx-auto max-w-3xl overflow-hidden rounded-[22px] bg-white p-3 shadow-[0_18px_55px_rgba(15,23,42,0.08)] ring-1 ring-black/5 md:rounded-[26px] md:p-7 lg:p-8">
+            <div>
                 <div className="flex items-start gap-3">
-                    <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[18px] bg-orange-50 text-orange-600">
-                        <FontAwesomeIcon icon={faLock} className="h-5 w-5" />
+                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[15px] bg-orange-50 text-orange-600">
+                        <FontAwesomeIcon icon={faLock} className="h-4 w-4" />
                     </span>
                     <div>
-                        <p className="text-[9px] font-black uppercase tracking-[0.16em] text-orange-600">
+                        <p className="hidden text-[9px] font-black uppercase tracking-[0.16em] text-orange-600 md:block">
                             Password & security
                         </p>
-                        <h1 className="mt-1 text-2xl font-black text-slate-950 sm:text-3xl">
+                        <h1 className="text-xl font-black text-slate-950 md:mt-1 md:text-3xl">
                             Reset your password
                         </h1>
                         <p className="mt-1 text-xs font-semibold leading-5 text-slate-500 sm:text-sm">

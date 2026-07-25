@@ -19,7 +19,12 @@ import { getCurrentUser } from "@/lib/sessionClient";
 import ListingImageCarousel from "@/components/listings/ListingImageCarousel";
 import ListingShareActions from "@/components/listings/ListingShareActions";
 import AdActionModal from "@/components/listings/AdActionModal";
+import ListingExpiryCountdown from "@/components/listings/ListingExpiryCountdown";
 import { formatDateTime, formatRelativeTime } from "@/lib/dateTime";
+import {
+    getListingExpiryValue,
+    listingCanBeRenewed,
+} from "@/lib/listingExpiry";
 
 function formatPrice(value: any) {
     if (value === null || value === undefined || value === "") {
@@ -226,7 +231,7 @@ function MyAdViewContent({ id }: { id: string }) {
                 {
                     action: "renew",
                     label: "Renew Ad",
-                    motive: "Use this to extend the life of the ad.",
+                    motive: "Available as soon as the current ad duration expires.",
                     className: "bg-orange-50 text-orange-700 hover:bg-orange-100",
                 },
             ];
@@ -281,6 +286,8 @@ function MyAdViewContent({ id }: { id: string }) {
     }
 
     async function handleListingAction(action: string) {
+        if (action === "renew" && !listingCanBeRenewed(ad)) return;
+
         setActionLoading(action);
 
         try {
@@ -367,6 +374,9 @@ function MyAdViewContent({ id }: { id: string }) {
     const updatedValue = ad?.updated_at || ad?.modified_at || ad?.created_at;
     const viewCount = ad?.views_count ?? ad?.view_count ?? ad?.views ?? 0;
     const savedCount = ad?.favorites_count ?? ad?.favourites_count ?? ad?.saved_count ?? 0;
+    const isNegotiable = Boolean(ad?.is_negotiable ?? ad?.negotiable);
+    const expiryValue = getListingExpiryValue(ad);
+    const canRenew = listingCanBeRenewed(ad);
     const isRejected = ["rejected", "declined"].includes(status);
     const rejectionReason = String(
         ad?.rejection_reason ||
@@ -403,9 +413,16 @@ function MyAdViewContent({ id }: { id: string }) {
                             <h1 className="mt-4 max-w-4xl text-2xl font-black leading-tight tracking-tight text-slate-950 sm:text-4xl">
                                 {ad?.title || "Untitled Ad"}
                             </h1>
-                            <p className="mt-3 text-2xl font-black text-orange-600 sm:text-3xl">
-                                {formatPrice(ad?.price || ad?.amount || ad?.selling_price)}
-                            </p>
+                            <div className="mt-3 flex flex-wrap items-center gap-2.5">
+                                <p className="text-2xl font-black text-orange-600 sm:text-3xl">
+                                    {formatPrice(ad?.price || ad?.amount || ad?.selling_price)}
+                                </p>
+                                {isNegotiable && (
+                                    <span className="rounded-full bg-orange-100 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-orange-700 ring-1 ring-orange-200">
+                                        Negotiable
+                                    </span>
+                                )}
+                            </div>
 
                             <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-xs font-bold text-slate-500">
                                 <span className="inline-flex items-center gap-2">
@@ -567,6 +584,15 @@ function MyAdViewContent({ id }: { id: string }) {
                                 : statusInfo.description}
                         </p>
 
+                        {expiryValue && (
+                            <div className="mt-3 rounded-[16px] bg-slate-50 px-3.5 py-3 ring-1 ring-slate-100">
+                                <p className="mb-1 text-[9px] font-black uppercase tracking-[0.14em] text-slate-400">
+                                    Time until expiry
+                                </p>
+                                <ListingExpiryCountdown expiresAt={expiryValue} />
+                            </div>
+                        )}
+
                         <div className="mt-5 grid gap-2">
                             <a href={`/account/my-ads/${id}/edit`} className="inline-flex h-12 items-center justify-center gap-2 rounded-[16px] bg-orange-500 px-5 text-sm font-black text-white hover:bg-orange-600">
                                 <FontAwesomeIcon icon={faPenToSquare} className="h-4 w-4" />
@@ -587,10 +613,16 @@ function MyAdViewContent({ id }: { id: string }) {
                                             key={item.action}
                                             type="button"
                                             onClick={() => handleListingAction(item.action)}
-                                            disabled={Boolean(actionLoading)}
-                                            className={`rounded-2xl px-4 py-3 text-left text-sm font-black transition disabled:cursor-not-allowed disabled:opacity-60 ${item.className}`}
+                                            disabled={Boolean(actionLoading) || (item.action === "renew" && !canRenew)}
+                                            className={`rounded-2xl px-4 py-3 text-left text-sm font-black transition disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400 disabled:opacity-100 ${item.className}`}
                                         >
-                                            <span className="block">{actionLoading === item.action ? "Please wait..." : item.label}</span>
+                                            <span className="block">
+                                                {actionLoading === item.action
+                                                    ? "Please wait..."
+                                                    : item.action === "renew" && !canRenew
+                                                        ? "Renew available after expiry"
+                                                        : item.label}
+                                            </span>
                                             <span className="mt-1 block text-[11px] font-semibold opacity-70">{item.motive}</span>
                                         </button>
                                     ))}

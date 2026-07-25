@@ -65,30 +65,30 @@ export default function LegalPageShell({
 }: LegalPageShellProps) {
     return (
         <main className="min-h-screen bg-[#f8fafc] text-slate-950">
-            <div className="mx-auto max-w-[1500px] px-4 pt-4 sm:px-6">
+            <div className="mx-auto max-w-[1500px] px-3 pt-2 md:px-6 md:pt-4">
                 <QotMarketplaceNav />
             </div>
 
             <section className="border-b border-slate-200/80 bg-white">
-                <div className="mx-auto max-w-[1180px] px-4 py-12 sm:px-6 sm:py-16 lg:px-8 lg:py-20">
+                <div className="mx-auto max-w-[1180px] px-3 py-4 md:px-6 md:py-16 lg:px-8 lg:py-20">
                     <div className="max-w-3xl">
-                        <span className="inline-flex rounded-full bg-orange-50 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.18em] text-orange-600 ring-1 ring-orange-100">
+                        <span className="hidden rounded-full bg-orange-50 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.18em] text-orange-600 ring-1 ring-orange-100 md:inline-flex">
                             {eyebrow}
                         </span>
-                        <h1 className="mt-5 text-4xl font-black tracking-[-0.045em] text-slate-950 sm:text-5xl">
+                        <h1 className="mt-5 hidden text-4xl font-black tracking-[-0.045em] text-slate-950 md:block md:text-5xl">
                             {title}
                         </h1>
-                        <p className="mt-5 max-w-2xl text-base font-semibold leading-8 text-slate-600 sm:text-lg">
+                        <p className="max-w-2xl text-sm font-semibold leading-6 text-slate-600 md:mt-5 md:text-lg md:leading-8">
                             {summary}
                         </p>
-                        <p className="mt-6 text-xs font-black uppercase tracking-[0.14em] text-slate-400">
+                        <p className="mt-3 text-[10px] font-black uppercase tracking-[0.14em] text-slate-400 md:mt-6 md:text-xs">
                             Effective and last updated: {updated}
                         </p>
                     </div>
                 </div>
             </section>
 
-            <div className="mx-auto grid max-w-[1180px] gap-8 px-4 py-10 sm:px-6 lg:grid-cols-[280px_minmax(0,1fr)] lg:px-8 lg:py-14">
+            <div className="mx-auto grid max-w-[1180px] gap-4 px-3 py-4 md:gap-8 md:px-6 md:py-10 lg:grid-cols-[280px_minmax(0,1fr)] lg:px-8 lg:py-14">
                 <aside className="lg:sticky lg:top-6 lg:self-start">
                     <div className="rounded-[26px] bg-white p-5 shadow-sm ring-1 ring-slate-200/80">
                         <p className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">

@@ -116,29 +116,27 @@ function SavedAdsContent() {
     }
 
     return (
-        <section className="py-6 text-slate-950">
-            <div className="rounded-[34px] bg-white p-5 shadow-[0_18px_60px_rgba(15,23,42,0.10)] ring-1 ring-black/5 sm:p-7">
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-                    <div>
-                        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-orange-100 text-orange-600">
-                            <FontAwesomeIcon icon={faHeart} className="h-6 w-6" />
+        <section className="pt-2 text-slate-950 md:pt-4">
+            <div className="rounded-[24px] bg-white p-3 shadow-[0_14px_42px_rgba(15,23,42,0.08)] ring-1 ring-black/5 sm:p-5">
+                <div className="flex items-center justify-end gap-3 border-b border-slate-100 pb-2 md:justify-between md:pb-4">
+                    <div className="hidden min-w-0 items-center gap-3 md:flex">
+                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] bg-orange-50 text-orange-600 ring-1 ring-orange-100">
+                            <FontAwesomeIcon icon={faHeart} className="h-4 w-4" />
+                        </span>
+                        <div className="min-w-0">
+                            <h1 className="text-lg font-black text-slate-950 sm:text-xl">Saved Ads</h1>
+                            <p className="truncate text-[11px] font-semibold text-slate-500 sm:text-xs">
+                                {ads.length > 0 ? `${ads.length} saved ${ads.length === 1 ? "ad" : "ads"}` : "Your favourite ads"}
+                            </p>
                         </div>
-
-                        <h1 className="mt-5 text-3xl font-black text-slate-950">
-                            Saved Ads
-                        </h1>
-
-                        <p className="mt-2 text-sm font-semibold text-slate-500">
-                            Ads you saved will appear here for quick access.
-                        </p>
                     </div>
 
                     <a
                         href="/ads"
-                        className="inline-flex items-center justify-center gap-2 rounded-2xl bg-orange-500 px-5 py-3 text-sm font-black text-white hover:bg-orange-600"
+                        className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-[14px] bg-orange-500 px-3 text-xs font-black text-white hover:bg-orange-600 sm:px-4"
                     >
-                        <FontAwesomeIcon icon={faMagnifyingGlass} className="h-4 w-4" />
-                        Browse Ads
+                        <FontAwesomeIcon icon={faMagnifyingGlass} className="h-3.5 w-3.5" />
+                        <span className="hidden sm:inline">Browse Ads</span>
                     </a>
                 </div>
 
@@ -153,7 +151,7 @@ function SavedAdsContent() {
                         <QotLoader />
                     </div>
                 ) : ads.length > 0 ? (
-                    <div className="mt-7 grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+                    <div className="mt-4 grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
                         {ads.map((ad) => (
                             <HomeAdCard
                                 key={String(getAdId(ad))}
@@ -163,12 +161,12 @@ function SavedAdsContent() {
                         ))}
                     </div>
                 ) : (
-                    <div className="mt-7 rounded-[28px] bg-slate-50 px-6 py-14 text-center">
-                        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-white text-orange-500 shadow-sm">
-                            <FontAwesomeIcon icon={faHeart} className="h-7 w-7" />
+                    <div className="mt-4 rounded-[22px] bg-slate-50 px-5 py-9 text-center ring-1 ring-slate-100">
+                        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-orange-500 shadow-sm">
+                            <FontAwesomeIcon icon={faHeart} className="h-5 w-5" />
                         </div>
 
-                        <h2 className="mt-5 text-xl font-black text-slate-950">
+                        <h2 className="mt-4 text-lg font-black text-slate-950">
                             No saved ads yet
                         </h2>
 
@@ -178,7 +176,7 @@ function SavedAdsContent() {
 
                         <a
                             href="/ads"
-                            className="mt-6 inline-flex rounded-2xl bg-orange-500 px-5 py-3 text-sm font-black text-white hover:bg-orange-600"
+                            className="mt-5 inline-flex rounded-[14px] bg-orange-500 px-4 py-2.5 text-xs font-black text-white hover:bg-orange-600"
                         >
                             Explore Ads
                         </a>

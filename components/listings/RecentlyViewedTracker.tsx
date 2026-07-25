@@ -24,6 +24,7 @@ function getItem(listing: any) {
     return {
         id: listing?.id,
         title: listing?.title || "Untitled ad",
+        description: listing?.description || "",
         price: listing?.price || "",
         image: getImage(listing),
         category: listing?.category?.name || listing?.category_name || "",
@@ -32,6 +33,14 @@ function getItem(listing: any) {
             listing?.city_name ||
             listing?.location ||
             "Uganda",
+        region: listing?.city?.region?.name || listing?.region_name || "",
+        condition: listing?.condition || "",
+        is_negotiable: Boolean(listing?.is_negotiable),
+        is_featured: Boolean(listing?.is_featured),
+        featured_until: listing?.featured_until || null,
+        views_count: Number(listing?.views_count || listing?.views || 0),
+        image_count: Number(listing?.image_count || listing?.images?.length || 0),
+        created_at: listing?.created_at || null,
         viewed_at: new Date().toISOString(),
     };
 }
@@ -41,7 +50,6 @@ export default function RecentlyViewedTracker({
 }: RecentlyViewedTrackerProps) {
     useEffect(() => {
         if (!listing?.id) {
-            console.log("Recently viewed skipped. Missing listing ID:", listing);
             return;
         }
 
@@ -57,10 +65,8 @@ export default function RecentlyViewedTracker({
             const updated = [item, ...withoutCurrent].slice(0, MAX_ITEMS);
 
             localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-
-            console.log("Recently viewed saved:", item);
-        } catch (error) {
-            console.error("Recently viewed error:", error);
+        } catch {
+            // Browsing history is optional and must never interrupt the ad page.
         }
     }, [listing?.id]);
 

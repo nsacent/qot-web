@@ -228,7 +228,7 @@ function CountBadge({ count }: { count: number }) {
     if (!count || count < 1) return null;
 
     return (
-        <span className="absolute -right-1.5 -top-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-orange-500 px-1 text-[10px] font-black text-white ring-2 ring-white">
+        <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-orange-500 px-1 text-[8px] font-black text-white ring-2 ring-white">
             {count > 99 ? "99+" : count}
         </span>
     );
@@ -261,14 +261,14 @@ function NavDropdown({
                 type="button"
                 onClick={onToggle}
                 aria-expanded={open}
-                className={`group inline-flex h-11 items-center gap-2 rounded-[15px] px-3 text-sm font-black transition ${
+                className={`group inline-flex h-9 items-center gap-1.5 rounded-[13px] px-2 text-xs font-black transition ${
                     open
                         ? "bg-orange-50 text-orange-600 ring-1 ring-orange-100"
                         : "text-slate-700 hover:bg-slate-50 hover:text-orange-600"
                 }`}
             >
-                <span className="relative inline-flex h-8 w-8 items-center justify-center rounded-[11px] bg-slate-100 text-slate-700 transition group-hover:bg-orange-100 group-hover:text-orange-600">
-                    <FontAwesomeIcon icon={icon} className="h-4 w-4" />
+                <span className="relative inline-flex h-7 w-7 items-center justify-center rounded-[10px] bg-slate-100 text-slate-700 transition group-hover:bg-orange-100 group-hover:text-orange-600">
+                    <FontAwesomeIcon icon={icon} className="h-3.5 w-3.5" />
                     <CountBadge count={count} />
                 </span>
                 <span className={compact ? "sr-only" : "hidden xl:inline"}>{label}</span>
@@ -587,17 +587,17 @@ export default function QotMarketplaceNav({
 
     return (
         <>
-            <header className={`${pathname === "/" ? "" : "hidden md:block"} sticky top-3 z-40 mb-4 rounded-[24px] border border-white/80 bg-white/95 px-3 py-2.5 shadow-[0_14px_40px_rgba(15,23,42,0.09)] backdrop-blur-xl md:px-4`}>
+            <header className={`${pathname === "/" ? "" : "hidden md:block"} sticky top-2 z-40 mb-3 rounded-[20px] border border-white/80 bg-white/95 px-2.5 py-1.5 shadow-[0_10px_32px_rgba(15,23,42,0.08)] backdrop-blur-xl md:px-3`}>
                 <div className="flex items-center gap-2 lg:gap-3">
                     <a href="/" aria-label="QOT Uganda home" className="flex shrink-0 items-center">
-                        <QotLogo markOnly className="h-10 w-10 text-orange-500 sm:hidden md:h-11 md:w-11" />
-                        <QotLogo className="hidden h-9 w-auto text-orange-500 sm:block xl:h-10" />
+                        <QotLogo markOnly className="h-9 w-9 text-orange-500 sm:hidden" />
+                        <QotLogo className="hidden h-8 w-auto text-orange-500 sm:block xl:h-9" />
                     </a>
 
                     <button
                         type="button"
                         onClick={() => setLocationModalOpen(true)}
-                        className={`hidden h-12 max-w-[175px] shrink-0 items-center gap-2.5 rounded-[18px] px-4 text-sm font-black shadow-sm ring-1 transition lg:inline-flex ${selectedCity || selectedRegion
+                        className={`hidden h-10 max-w-[165px] shrink-0 items-center gap-2 rounded-[15px] px-3 text-xs font-black ring-1 transition lg:inline-flex ${selectedCity || selectedRegion
                             ? "bg-orange-50 text-orange-700 ring-orange-100"
                             : "bg-slate-50 text-slate-800 ring-slate-200/70 hover:bg-white hover:ring-orange-200"
                         }`}
@@ -610,12 +610,12 @@ export default function QotMarketplaceNav({
                     <form
                         ref={searchBoxRef}
                         onSubmit={submitSearch}
-                        className="relative flex h-12 min-w-0 flex-1 items-center overflow-visible rounded-[18px] bg-white shadow-sm ring-1 ring-slate-200 transition focus-within:ring-2 focus-within:ring-orange-200"
+                        className="relative flex h-10 min-w-0 flex-1 items-center overflow-visible rounded-[15px] bg-white shadow-sm ring-1 ring-slate-200 transition focus-within:ring-2 focus-within:ring-orange-200"
                     >
                         <div className="flex min-w-0 flex-1 items-center px-3.5 sm:px-4">
                             <FontAwesomeIcon
                                 icon={faMagnifyingGlass}
-                                className="mr-3 h-4 w-4 shrink-0 text-slate-400"
+                                className="mr-2.5 h-3.5 w-3.5 shrink-0 text-slate-400"
                             />
 
                             <input
@@ -628,14 +628,14 @@ export default function QotMarketplaceNav({
                                 }}
                                 onFocus={() => setShowSuggestions(true)}
                                 placeholder="What are you looking for?"
-                                className="min-w-0 flex-1 bg-transparent text-sm font-semibold text-slate-900 outline-none placeholder:text-slate-400"
+                                className="min-w-0 flex-1 bg-transparent text-xs font-semibold text-slate-900 outline-none placeholder:text-slate-400 sm:text-sm"
                             />
                         </div>
 
                         <button
                             type="button"
                             onClick={() => setCategoryModalOpen(true)}
-                            className={`hidden h-8 max-w-[190px] shrink-0 items-center gap-3 border-l border-slate-200 px-4 text-sm font-black transition lg:inline-flex ${selectedCategory ? "text-orange-700" : "text-slate-700 hover:text-orange-600"}`}
+                            className={`hidden h-7 max-w-[180px] shrink-0 items-center gap-2.5 border-l border-slate-200 px-3 text-xs font-black transition lg:inline-flex ${selectedCategory ? "text-orange-700" : "text-slate-700 hover:text-orange-600"}`}
                         >
                             <span className="truncate">{categoryLabel}</span>
                             <FontAwesomeIcon icon={faChevronDown} className="h-3 w-3 shrink-0 text-slate-400" />
@@ -644,7 +644,7 @@ export default function QotMarketplaceNav({
                         <button
                             type="submit"
                             aria-label="Search ads"
-                            className="ml-1 flex h-12 w-12 shrink-0 items-center justify-center rounded-r-[18px] bg-gradient-to-br from-orange-500 to-orange-600 text-white shadow-[0_8px_20px_rgba(249,115,22,0.24)] transition hover:from-orange-600 hover:to-orange-600 sm:w-14"
+                            className="ml-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-r-[15px] bg-gradient-to-br from-orange-500 to-orange-600 text-white shadow-[0_6px_16px_rgba(249,115,22,0.22)] transition hover:from-orange-600 hover:to-orange-600 sm:w-12"
                         >
                             <FontAwesomeIcon icon={faMagnifyingGlass} className="h-4 w-4" />
                         </button>
@@ -1011,16 +1011,16 @@ export default function QotMarketplaceNav({
 
                     <a
                         href={isSignedIn ? "/account/notifications" : "/login?next=/account/notifications"}
-                        className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] bg-slate-100/70 text-slate-700 transition hover:bg-orange-50 hover:text-orange-600 md:hidden"
+                        className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-[12px] bg-slate-100/70 text-slate-700 transition hover:bg-orange-50 hover:text-orange-600 md:hidden"
                         aria-label="Notifications"
                     >
-                        <FontAwesomeIcon icon={faBell} className="h-5 w-5" />
+                        <FontAwesomeIcon icon={faBell} className="h-4 w-4" />
                         <CountBadge count={counts.notifications} />
                     </a>
 
                     <a
                         href="/post-ad"
-                        className="hidden h-11 shrink-0 items-center rounded-[15px] bg-gradient-to-r from-orange-500 to-orange-600 px-4 text-sm font-black text-white shadow-[0_10px_22px_rgba(249,115,22,0.22)] transition hover:-translate-y-0.5 hover:shadow-[0_14px_28px_rgba(249,115,22,0.28)] md:inline-flex"
+                        className="hidden h-9 shrink-0 items-center rounded-[13px] bg-gradient-to-r from-orange-500 to-orange-600 px-3 text-xs font-black text-white shadow-[0_8px_18px_rgba(249,115,22,0.20)] transition hover:-translate-y-0.5 md:inline-flex"
                     >
                         <span className="inline-flex items-center gap-2">
                             <FontAwesomeIcon icon={faPlus} className="h-3.5 w-3.5" />

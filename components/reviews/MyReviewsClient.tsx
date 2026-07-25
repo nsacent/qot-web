@@ -112,8 +112,8 @@ export default function MyReviewsClient() {
     }, []);
 
     return (
-        <section className="py-3 sm:py-6">
-            <header className="relative overflow-hidden rounded-[34px] bg-gradient-to-br from-slate-950 via-slate-900 to-orange-950 px-5 py-7 text-white shadow-[0_24px_70px_rgba(15,23,42,0.18)] sm:px-8 sm:py-9">
+        <section className="py-0 md:py-6">
+            <header className="relative hidden overflow-hidden rounded-[34px] bg-gradient-to-br from-slate-950 via-slate-900 to-orange-950 px-8 py-9 text-white shadow-[0_24px_70px_rgba(15,23,42,0.18)] md:block">
                 <div className="absolute -right-16 -top-24 h-64 w-64 rounded-full bg-orange-500/20 blur-3xl" />
                 <div className="relative flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
                     <div className="max-w-2xl">
@@ -142,17 +142,17 @@ export default function MyReviewsClient() {
                 </div>
             </header>
 
-            <div className="mt-6 rounded-[34px] bg-white p-5 shadow-[0_18px_60px_rgba(15,23,42,0.09)] ring-1 ring-black/5 sm:p-7">
-                <div className="flex flex-col gap-4 border-b border-slate-100 pb-5 sm:flex-row sm:items-center sm:justify-between">
+            <div className="mt-0 rounded-[22px] bg-white p-3 shadow-[0_18px_60px_rgba(15,23,42,0.09)] ring-1 ring-black/5 md:mt-6 md:rounded-[34px] md:p-7">
+                <div className="flex items-center justify-between gap-3 border-b border-slate-100 pb-3 md:gap-4 md:pb-5">
                     <div>
-                        <h2 className="text-xl font-black text-slate-950">My Reviews</h2>
-                        <p className="mt-1 text-xs font-bold text-slate-500">
+                        <h2 className="hidden text-xl font-black text-slate-950 md:block">My Reviews</h2>
+                        <p className="text-xs font-bold text-slate-500 md:mt-1">
                             Feedback you submitted for QOT sellers
                         </p>
                     </div>
                     <a
                         href="/ads"
-                        className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-orange-50 px-4 text-xs font-black text-orange-600 transition hover:bg-orange-100"
+                        className="inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-[13px] bg-orange-50 px-3 text-[11px] font-black text-orange-600 transition hover:bg-orange-100 md:h-11 md:rounded-2xl md:px-4 md:text-xs"
                     >
                         <FontAwesomeIcon icon={faMagnifyingGlass} className="h-3.5 w-3.5" />
                         Browse Ads

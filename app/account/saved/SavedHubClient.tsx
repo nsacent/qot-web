@@ -46,11 +46,11 @@ function SavedHubContent() {
     }
 
     return (
-        <section className="py-2 sm:py-4">
+        <section className="py-0 sm:py-2">
             <div
                 role="tablist"
                 aria-label="Saved items"
-                className="grid grid-cols-2 gap-2 rounded-[24px] bg-white p-2 shadow-[0_12px_34px_rgba(15,23,42,0.08)] ring-1 ring-black/5"
+                className="grid grid-cols-2 gap-1.5 rounded-[20px] bg-white p-1.5 shadow-[0_10px_28px_rgba(15,23,42,0.07)] ring-1 ring-black/5"
             >
                 {tabs.map((tab) => {
                     const active = activeTab === tab.value;
@@ -63,13 +63,13 @@ function SavedHubContent() {
                             aria-selected={active}
                             aria-controls={`saved-${tab.value}-panel`}
                             onClick={() => selectTab(tab.value)}
-                            className={`flex min-w-0 items-center gap-2.5 rounded-[18px] px-3 py-3 text-left transition sm:px-4 ${
+                            className={`flex min-w-0 items-center gap-2 rounded-[15px] px-2.5 py-2.5 text-left transition sm:px-4 ${
                                 active
                                     ? "bg-orange-500 text-white shadow-[0_10px_24px_rgba(249,115,22,0.22)]"
                                     : "bg-slate-50 text-slate-600 hover:bg-orange-50 hover:text-orange-700"
                             }`}
                         >
-                            <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-[13px] ${
+                            <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-[11px] ${
                                 active ? "bg-white/18 text-white" : "bg-white text-slate-500 shadow-sm"
                             }`}>
                                 <FontAwesomeIcon icon={tab.icon} className="h-3.5 w-3.5" />

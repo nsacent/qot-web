@@ -234,8 +234,29 @@ export default function CategoriesExplorerClient({
         }, []);
     }, [categories, query]);
     return (
-        <div className="pb-8 pt-1 sm:pt-4">
-            <section className="relative overflow-hidden rounded-[24px] bg-slate-950 px-4 py-3 text-white shadow-[0_18px_48px_rgba(15,23,42,0.18)] sm:rounded-[30px] sm:px-8 sm:py-8 lg:px-10 lg:py-9">
+        <div className="pb-6 pt-0 md:pb-8 md:pt-4">
+            <label className="flex h-11 items-center gap-3 rounded-[15px] bg-white px-3 shadow-sm ring-1 ring-black/5 transition focus-within:ring-2 focus-within:ring-orange-300 md:hidden">
+                <FontAwesomeIcon icon={faMagnifyingGlass} className="h-4 w-4 text-slate-400" />
+                <span className="sr-only">Search categories</span>
+                <input
+                    type="search"
+                    value={query}
+                    onChange={(event) => setQuery(event.target.value)}
+                    placeholder="Search phones, cars, property..."
+                    className="min-w-0 flex-1 bg-transparent text-sm font-bold text-slate-900 outline-none placeholder:font-semibold placeholder:text-slate-400"
+                />
+                {query && (
+                    <button
+                        type="button"
+                        onClick={() => setQuery("")}
+                        className="rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-black text-slate-600"
+                    >
+                        Clear
+                    </button>
+                )}
+            </label>
+
+            <section className="relative hidden overflow-hidden rounded-[30px] bg-slate-950 px-8 py-8 text-white shadow-[0_18px_48px_rgba(15,23,42,0.18)] md:block lg:px-10 lg:py-9">
                 <div className="absolute -right-24 -top-28 h-64 w-64 rounded-full bg-orange-500/25 blur-3xl" />
                 <div className="absolute -bottom-36 left-1/3 h-64 w-64 rounded-full bg-amber-400/10 blur-3xl" />
                 <div className="absolute left-1/2 top-0 h-px w-1/2 bg-gradient-to-r from-transparent via-orange-300/50 to-transparent" />
@@ -325,9 +346,9 @@ export default function CategoriesExplorerClient({
                 </div>
             </section>
 
-            <section id="category-grid" className="scroll-mt-6 py-5 sm:py-9">
-                <div className="mb-4 flex items-end justify-between gap-3 sm:mb-5 sm:flex-row">
-                    <div>
+            <section id="category-grid" className="scroll-mt-6 py-3 md:py-9">
+                <div className="mb-3 flex items-end justify-between gap-3 md:mb-5">
+                    <div className="hidden md:block">
                         <p className="text-xs font-black uppercase tracking-[0.18em] text-orange-600">Browse the marketplace</p>
                         <h2 className="mt-1.5 text-2xl font-black tracking-tight text-slate-950 sm:text-3xl">Explore every category</h2>
                         <p className="mt-2 hidden max-w-2xl text-sm font-semibold leading-6 text-slate-500 sm:block">
@@ -335,7 +356,7 @@ export default function CategoriesExplorerClient({
                         </p>
                     </div>
 
-                    <span className="inline-flex w-fit shrink-0 rounded-full bg-white px-3 py-2 text-[10px] font-black text-slate-600 shadow-sm ring-1 ring-black/5 sm:px-4 sm:text-xs">
+                    <span className="inline-flex w-fit shrink-0 rounded-full bg-white px-3 py-2 text-[10px] font-black text-slate-600 shadow-sm ring-1 ring-black/5 md:ml-auto md:px-4 md:text-xs">
                         {query ? `${visibleCategories.length} matches` : `${categories.length} departments`}
                     </span>
                 </div>

@@ -1,6 +1,20 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+    faCircleCheck,
+    faClock,
+    faClockRotateLeft,
+    faRectangleList,
+    faRotate,
+} from "@fortawesome/free-solid-svg-icons";
+import ListingExpiryCountdown from "@/components/listings/ListingExpiryCountdown";
+import ListingCardImage from "@/components/listings/ListingCardImage";
+import {
+    getListingExpiryValue,
+    listingCanBeRenewed,
+} from "@/lib/listingExpiry";
 
 async function renewalApi(path: string, method: "GET" | "POST" = "GET") {
     const response = await fetch(`/api/proxy${path}`, { method, credentials: "include", cache: "no-store", headers: method === "POST" ? { "Content-Type": "application/json" } : undefined, body: method === "POST" ? JSON.stringify({}) : undefined });
@@ -9,7 +23,7 @@ async function renewalApi(path: string, method: "GET" | "POST" = "GET") {
     return data;
 }
 const apiGet = (path: string) => renewalApi(path);
-const apiPost = (path: string, _data?: any) => renewalApi(path, "POST");
+const apiPost = (path: string) => renewalApi(path, "POST");
 
 function getArray(data: any): any[] {
     if (Array.isArray(data)) return data;
@@ -52,13 +66,7 @@ function daysUntil(value: any) {
 }
 
 function getExpiryDate(listing: any) {
-    return (
-        listing?.expires_at ||
-        listing?.expiry_date ||
-        listing?.expires_on ||
-        listing?.valid_until ||
-        ""
-    );
+    return getListingExpiryValue(listing);
 }
 
 function getStatus(listing: any) {
@@ -169,17 +177,27 @@ export default function SellerRenewalsClient() {
                 getRenewalStatus(listing).label === "Active"
         );
     }, [listings]);
+    const expiringSoonCount = renewalListings.filter(
+        ({ renewal }) => renewal.label === "Expiring Soon"
+    ).length;
+    const renewalReadyCount = renewalListings.length - expiringSoonCount;
+    const renewalStats = [
+        { label: "Total ads", value: listings.length, helper: "All your ads", icon: faRectangleList, tone: "from-orange-500 to-orange-600 text-white" },
+        { label: "Active", value: activeListings.length, helper: "Currently visible", icon: faCircleCheck, tone: "from-emerald-50 to-green-100 text-emerald-800" },
+        { label: "Expiring soon", value: expiringSoonCount, helper: "Within 7 days", icon: faClock, tone: "from-amber-50 to-orange-100 text-amber-800" },
+        { label: "Action ready", value: renewalReadyCount, helper: "Renew or relist", icon: faClockRotateLeft, tone: "from-violet-50 to-purple-100 text-violet-800" },
+    ];
 
     async function renewListing(listing: any) {
         const id = getListingId(listing);
-        if (!id) return;
+        if (!id || !listingCanBeRenewed(listing)) return;
 
         setActionLoadingId(id);
         setError("");
         setSuccess("");
 
         try {
-            await apiPost(`/listings/${id}/renew/`, {});
+            await apiPost(`/listings/${id}/renew/`);
             setSuccess("Advert renewed successfully.");
             await loadListings();
         } catch (error: any) {
@@ -198,7 +216,7 @@ export default function SellerRenewalsClient() {
         setSuccess("");
 
         try {
-            await apiPost(`/listings/${id}/relist/`, {});
+            await apiPost(`/listings/${id}/relist/`);
             setSuccess("Advert relisted successfully.");
             await loadListings();
         } catch (error: any) {
@@ -210,7 +228,7 @@ export default function SellerRenewalsClient() {
 
     if (!mounted) {
         return (
-            <section className="py-6">
+            <section className="py-0 md:py-6">
                 <div className="rounded-[30px] bg-white p-10 text-center shadow-[0_18px_55px_rgba(15,23,42,0.08)] ring-1 ring-black/5">
                     <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-orange-100 border-t-orange-500" />
                     <p className="mt-4 text-sm font-black text-slate-600">Loading renewal center...</p>
@@ -220,47 +238,36 @@ export default function SellerRenewalsClient() {
     }
 
     return (
-        <section className="py-6">
-            <div className="relative mb-7 overflow-hidden rounded-[34px] bg-gradient-to-br from-slate-950 via-slate-900 to-amber-950 p-6 text-white shadow-[0_24px_65px_rgba(15,23,42,0.20)] sm:p-8">
+        <section className="py-0 md:py-6">
+            <div className="relative mb-7 hidden overflow-hidden rounded-[34px] bg-gradient-to-br from-slate-950 via-slate-900 to-amber-950 p-8 text-white shadow-[0_24px_65px_rgba(15,23,42,0.20)] md:block">
                 <div className="absolute -right-16 -top-20 h-56 w-56 rounded-full bg-amber-500/20 blur-2xl" />
                 <div className="relative flex flex-col justify-between gap-6 md:flex-row md:items-end">
                     <div>
                         <span className="inline-flex rounded-full bg-amber-500/15 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-amber-200 ring-1 ring-amber-300/20">Renewal Center</span>
                         <h1 className="mt-5 text-3xl font-black tracking-tight sm:text-4xl">Keep your adverts working</h1>
-                        <p className="mt-3 max-w-2xl text-sm font-semibold leading-6 text-slate-300 sm:text-base">Renew expiring adverts and bring older ads back to buyers without starting over.</p>
+                        <p className="mt-3 max-w-2xl text-sm font-semibold leading-6 text-slate-300 sm:text-base">See how long each ad has left. Renewal becomes available only after its expiry time has passed.</p>
                     </div>
 
                     <a href="/account/my-ads" className="rounded-[16px] bg-white/10 px-5 py-3 text-center text-sm font-black text-white ring-1 ring-white/15 hover:bg-white/15">View My Ads</a>
                 </div>
             </div>
 
-            <div className="grid gap-6 md:grid-cols-3">
-                <div className="rounded-[26px] bg-gradient-to-br from-orange-500 to-orange-600 p-6 text-white shadow-[0_14px_40px_rgba(249,115,22,0.18)]">
-                    <p className="text-xs font-black uppercase tracking-wide text-orange-100">Total Adverts</p>
-                    <p className="mt-3 text-4xl font-black">
-                        {listings.length}
-                    </p>
-                    <p className="mt-2 text-xs font-bold text-orange-100">All your ads</p>
-                </div>
-
-                <div className="rounded-[26px] bg-gradient-to-br from-amber-50 to-orange-100 p-6 text-amber-800 shadow-[0_14px_40px_rgba(15,23,42,0.07)] ring-1 ring-black/5">
-                    <p className="text-xs font-black uppercase tracking-wide opacity-75">Need Action</p>
-                    <p className="mt-3 text-4xl font-black">
-                        {renewalListings.length}
-                    </p>
-                    <p className="mt-2 text-xs font-bold opacity-70">Expired or expiring soon</p>
-                </div>
-
-                <div className="rounded-[26px] bg-gradient-to-br from-emerald-50 to-green-100 p-6 text-emerald-800 shadow-[0_14px_40px_rgba(15,23,42,0.07)] ring-1 ring-black/5">
-                    <p className="text-xs font-black uppercase tracking-wide opacity-75">Active</p>
-                    <p className="mt-3 text-4xl font-black">
-                        {activeListings.length}
-                    </p>
-                    <p className="mt-2 text-xs font-bold opacity-70">Currently visible</p>
-                </div>
+            <div className="grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-4">
+                {renewalStats.map((stat) => (
+                    <div key={stat.label} className={`rounded-[20px] bg-gradient-to-br p-4 shadow-[0_14px_40px_rgba(15,23,42,0.07)] ring-1 ring-black/5 md:rounded-[26px] md:p-6 ${stat.tone}`}>
+                        <div className="flex items-center justify-between gap-2">
+                            <p className="text-[9px] font-black uppercase tracking-wide opacity-75 md:text-xs">{stat.label}</p>
+                            <span className="flex h-7 w-7 items-center justify-center rounded-xl bg-white/45 md:h-9 md:w-9">
+                                <FontAwesomeIcon icon={stat.icon} className="h-3 w-3 md:h-3.5 md:w-3.5" />
+                            </span>
+                        </div>
+                        <p className="mt-2 text-2xl font-black md:mt-3 md:text-4xl">{stat.value.toLocaleString()}</p>
+                        <p className="mt-1 text-[9px] font-bold opacity-70 md:mt-2 md:text-xs">{stat.helper}</p>
+                    </div>
+                ))}
             </div>
 
-            <div className="mt-8 rounded-[30px] bg-white p-6 shadow-[0_18px_55px_rgba(15,23,42,0.08)] ring-1 ring-black/5 md:p-8">
+            <div className="mt-5 rounded-[24px] bg-white p-4 shadow-[0_18px_55px_rgba(15,23,42,0.08)] ring-1 ring-black/5 md:mt-8 md:rounded-[30px] md:p-8">
                 {error && (
                     <div className="mb-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
                         {error}
@@ -273,22 +280,24 @@ export default function SellerRenewalsClient() {
                     </div>
                 )}
 
-                <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                <div className="mb-4 flex items-start justify-between gap-3 md:mb-6 md:items-center">
                     <div>
-                        <h2 className="text-xl font-bold text-slate-900">
-                            Adverts Needing Renewal
+                        <h2 className="text-lg font-black text-slate-900 md:text-xl md:font-bold">
+                            Ad Expiry & Renewal
                         </h2>
-                        <p className="mt-1 text-sm text-slate-600">
-                            Renew these adverts to keep them visible to buyers.
+                        <p className="mt-1 text-xs font-semibold leading-5 text-slate-600 md:text-sm md:font-normal">
+                            Expiring ads show their remaining time. Renew them once that time reaches zero.
                         </p>
                     </div>
 
                     <button
                         type="button"
                         onClick={loadListings}
-                        className="rounded-[14px] bg-slate-50 px-5 py-3 text-sm font-black text-slate-700 ring-1 ring-slate-200 hover:bg-orange-50 hover:text-orange-600"
+                        aria-label="Refresh renewal data"
+                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] bg-slate-50 text-slate-700 ring-1 ring-slate-200 hover:bg-orange-50 hover:text-orange-600 md:h-auto md:w-auto md:gap-2 md:px-5 md:py-3 md:text-sm md:font-black"
                     >
-                        Refresh
+                        <FontAwesomeIcon icon={faRotate} className="h-3.5 w-3.5" />
+                        <span className="hidden md:inline">Refresh</span>
                     </button>
                 </div>
 
@@ -312,13 +321,14 @@ export default function SellerRenewalsClient() {
                         </a>
                     </div>
                 ) : (
-                    <div className="space-y-4">
+                    <div className="space-y-3 md:space-y-4">
                         {renewalListings.map(({ listing, renewal }) => {
                             const id = getListingId(listing);
                             const expiryDate = getExpiryDate(listing);
                             const busy = actionLoadingId === id;
                             const listingStatus = getStatus(listing);
-                            const canRenew = ["active", "expired"].includes(listingStatus);
+                            const canRenew = listingCanBeRenewed(listing);
+                            const showRenew = ["active", "expired"].includes(listingStatus);
                             const canRelist = ["expired", "unavailable", "sold"].includes(
                                 listingStatus
                             );
@@ -326,47 +336,61 @@ export default function SellerRenewalsClient() {
                             return (
                                 <div
                                     key={id}
-                                    className="rounded-[24px] bg-slate-50 p-5 ring-1 ring-slate-100 transition hover:bg-white hover:shadow-[0_14px_35px_rgba(15,23,42,0.08)]"
+                                    className="rounded-[22px] bg-slate-50 p-3 ring-1 ring-slate-100 transition hover:bg-white hover:shadow-[0_14px_35px_rgba(15,23,42,0.08)] md:rounded-[24px] md:p-5"
                                 >
-                                    <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                                        <div>
+                                    <div className="grid grid-cols-[82px_minmax(0,1fr)] items-start gap-3 lg:grid-cols-[104px_minmax(0,1fr)_320px] lg:gap-5">
+                                        <a href={`/account/my-ads/${id}`} className="h-20 overflow-hidden rounded-[16px] bg-slate-100 lg:h-28 lg:rounded-[18px]">
+                                            <ListingCardImage listing={listing} title={listing?.title || "Ad image"} fill />
+                                        </a>
+
+                                        <div className="min-w-0">
                                             <div className="flex flex-wrap items-center gap-2">
                                                 <span
-                                                    className={`rounded-full border px-3 py-1 text-xs font-bold ${statusClass(
+                                                    className={`rounded-full border px-2 py-1 text-[9px] font-black uppercase tracking-wide md:px-3 md:text-xs md:font-bold md:normal-case ${statusClass(
                                                         renewal.tone
                                                     )}`}
                                                 >
                                                     {renewal.label}
                                                 </span>
 
-                                                <span className="text-xs text-slate-500">
+                                                <span className="hidden text-xs font-semibold text-slate-500 sm:inline">
                                                     Expires: {formatDate(expiryDate)}
                                                 </span>
                                             </div>
 
-                                            <h3 className="mt-3 text-lg font-bold text-slate-900">
+                                            <ListingExpiryCountdown
+                                                expiresAt={expiryDate}
+                                                label="Ad:"
+                                                className="mt-1.5"
+                                            />
+
+                                            <h3 className="mt-2 line-clamp-2 text-sm font-black leading-5 text-slate-900 md:mt-3 md:text-lg md:font-bold">
                                                 {listing?.title || "Untitled advert"}
                                             </h3>
 
-                                            <p className="mt-1 text-sm leading-6 text-slate-600">
+                                            <p className="mt-1 hidden text-sm leading-6 text-slate-600 sm:block">
                                                 {renewal.description}
                                             </p>
 
-                                            <p className="mt-2 text-sm font-semibold text-slate-900">
+                                            <p className="mt-1 text-xs font-black text-orange-600 md:mt-2 md:text-sm md:text-slate-900">
                                                 UGX{" "}
                                                 {Number(listing?.price || 0).toLocaleString()}
                                             </p>
                                         </div>
 
-                                        <div className="grid gap-2 sm:grid-cols-2 lg:min-w-80">
-                                            {canRenew && (
+                                        <div className="col-span-2 grid grid-cols-2 gap-2 lg:col-span-1 lg:min-w-80">
+                                            {showRenew && (
                                                 <button
                                                     type="button"
-                                                    disabled={busy}
+                                                    disabled={busy || !canRenew}
                                                     onClick={() => renewListing(listing)}
-                                                    className="rounded-xl bg-orange-500 px-4 py-3 text-sm font-black text-white hover:bg-orange-600 disabled:opacity-60"
+                                                    className="rounded-xl bg-orange-500 px-4 py-3 text-sm font-black text-white hover:bg-orange-600 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500 disabled:opacity-100"
                                                 >
-                                                    {busy ? "Processing..." : "Renew Advert"}
+                                                    {busy
+                                                        ? "Processing..."
+                                                        : canRenew
+                                                            ? "Renew Advert"
+                                                            : "Available after expiry"}
                                                 </button>
                                             )}
 

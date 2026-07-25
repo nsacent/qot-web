@@ -16,6 +16,12 @@ import QotLoader from "@/components/common/QotLoader";
 import { getCurrentUser } from "@/lib/sessionClient";
 import ListingCardImage from "@/components/listings/ListingCardImage";
 import AdActionModal from "@/components/listings/AdActionModal";
+import ListingExpiryCountdown from "@/components/listings/ListingExpiryCountdown";
+import {
+    getListingExpiryValue,
+    getListingFeaturedUntil,
+    listingIsCurrentlyFeatured,
+} from "@/lib/listingExpiry";
 
 function getArray(data: any) {
     if (Array.isArray(data)) return data;
@@ -126,6 +132,7 @@ function normalizeStatus(ad: any) {
 const statusTabs = [
     { value: "all", label: "All ads" },
     { value: "active", label: "Active" },
+    { value: "featured", label: "Featured" },
     { value: "pending", label: "Pending approval" },
     { value: "draft", label: "Drafts" },
     { value: "rejected", label: "Rejected" },
@@ -259,6 +266,9 @@ function SellerAdCard({ ad, onChanged }: { ad: any; onChanged: () => void }) {
     const [actionLoading, setActionLoading] = useState(false);
     const [actionError, setActionError] = useState("");
     const actions = getCardActions(status, isDraft);
+    const expiryValue = getListingExpiryValue(ad);
+    const featuredUntil = getListingFeaturedUntil(ad);
+    const isFeatured = listingIsCurrentlyFeatured(ad);
 
     async function confirmAction() {
         if (!pendingAction) return;
@@ -320,6 +330,11 @@ function SellerAdCard({ ad, onChanged }: { ad: any; onChanged: () => void }) {
                     <span className={`absolute left-2.5 top-2.5 rounded-full px-2.5 py-1 text-[9px] font-black uppercase tracking-wide ring-1 ${statusTone[status] || statusTone.unavailable}`}>
                         {statusLabel}
                     </span>
+                    {isFeatured && (
+                        <span className="absolute right-2.5 top-2.5 rounded-full bg-amber-400 px-2.5 py-1 text-[9px] font-black uppercase tracking-wide text-slate-950 ring-1 ring-amber-300">
+                            Featured
+                        </span>
+                    )}
                 </div>
 
                 <div className="p-4">
@@ -334,6 +349,23 @@ function SellerAdCard({ ad, onChanged }: { ad: any; onChanged: () => void }) {
                     <p className="mt-1 truncate text-xs font-bold text-slate-500">
                         {getLocation(ad)}
                     </p>
+
+                    {!isDraft && expiryValue && (
+                        <ListingExpiryCountdown
+                            expiresAt={expiryValue}
+                            label="Ad:"
+                            className="mt-2"
+                        />
+                    )}
+
+                    {!isDraft && isFeatured && featuredUntil && (
+                        <ListingExpiryCountdown
+                            expiresAt={featuredUntil}
+                            label="Featured:"
+                            expiredLabel="Featured period ended"
+                            className="mt-1 text-amber-700"
+                        />
+                    )}
                 </div>
             </Link>
 
@@ -476,6 +508,8 @@ function MyListingsContent() {
             tab.value,
             tab.value === "all"
                 ? ads.length
+                : tab.value === "featured"
+                    ? ads.filter((ad) => listingIsCurrentlyFeatured(ad)).length
                 : ads.filter((ad) => normalizeStatus(ad) === tab.value).length,
         ])
     );
@@ -485,12 +519,14 @@ function MyListingsContent() {
     ));
     const filteredAds = selectedStatus === "all"
         ? sortedAds
+        : selectedStatus === "featured"
+            ? sortedAds.filter((ad) => listingIsCurrentlyFeatured(ad))
         : sortedAds.filter((ad) => normalizeStatus(ad) === selectedStatus);
 
     return (
-        <section className="py-6 text-slate-950">
-            <div className="rounded-[34px] bg-white p-5 shadow-[0_18px_60px_rgba(15,23,42,0.10)] ring-1 ring-black/5 sm:p-7">
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <section className="py-0 text-slate-950 md:py-6">
+            <div className="rounded-[24px] bg-white p-3 shadow-[0_18px_60px_rgba(15,23,42,0.10)] ring-1 ring-black/5 md:rounded-[34px] md:p-7">
+                <div className="hidden flex-col gap-4 md:flex md:flex-row md:items-end md:justify-between">
                     <div>
                         <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-orange-100 text-orange-600">
                             <FontAwesomeIcon icon={faStore} className="h-6 w-6" />
@@ -515,7 +551,7 @@ function MyListingsContent() {
                 </div>
 
                 {!loading && ads.length > 0 && (
-                    <div className="-mx-5 mt-7 overflow-x-auto px-5 pb-2 [scrollbar-width:none] sm:-mx-7 sm:px-7 [&::-webkit-scrollbar]:hidden">
+                    <div className="-mx-3 mt-0 overflow-x-auto px-3 pb-1 [scrollbar-width:none] md:-mx-7 md:mt-7 md:px-7 md:pb-2 [&::-webkit-scrollbar]:hidden">
                         <div className="flex min-w-max gap-2">
                             {statusTabs.map((tab) => {
                                 const isSelected = selectedStatus === tab.value;

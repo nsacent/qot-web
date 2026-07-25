@@ -62,9 +62,9 @@ export default function ListingsResultsToolbar({ resultCount, categories = [], c
     });
 
     return (
-        <div className="mb-5 rounded-[26px] bg-white p-4 shadow-[0_14px_40px_rgba(15,23,42,0.07)] ring-1 ring-black/5 sm:p-5">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div><p className="text-[10px] font-black uppercase tracking-[0.16em] text-orange-600">Marketplace results</p><h1 className="mt-1 text-xl font-black tracking-tight text-slate-950 sm:text-2xl">{resultCount.toLocaleString()} ad{resultCount === 1 ? "" : "s"} found</h1></div>
+        <div className="mb-3 rounded-[20px] bg-white p-3 shadow-[0_14px_40px_rgba(15,23,42,0.07)] ring-1 ring-black/5 md:mb-5 md:rounded-[26px] md:p-5">
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between md:gap-4">
+                <div><p className="hidden text-[10px] font-black uppercase tracking-[0.16em] text-orange-600 md:block">Marketplace results</p><h1 className="text-base font-black tracking-tight text-slate-950 md:mt-1 md:text-2xl">{resultCount.toLocaleString()} ad{resultCount === 1 ? "" : "s"} found</h1></div>
                 <div className="flex flex-wrap items-center gap-2">
                     <label className="relative block min-w-52"><span className="sr-only">Sort ads</span>
                         <select value={sort} onChange={(event) => update((params) => event.target.value === "recommended" ? params.delete("sort") : params.set("sort", event.target.value))} className="h-11 w-full appearance-none rounded-2xl bg-slate-50 px-4 pr-10 text-sm font-black text-slate-800 outline-none ring-1 ring-slate-200 focus:ring-2 focus:ring-orange-300">
