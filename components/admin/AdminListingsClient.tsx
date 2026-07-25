@@ -106,6 +106,7 @@ export default function AdminListingsClient() {
     const [actionLoading, setActionLoading] = useState("");
     const [error, setError] = useState("");
     const [actionError, setActionError] = useState("");
+    const [success, setSuccess] = useState("");
     const [modal, setModal] = useState<ListingModal>(null);
     const [modalValues, setModalValues] = useState<Record<string, string>>({});
     const [modalError, setModalError] = useState("");
@@ -153,6 +154,7 @@ export default function AdminListingsClient() {
     async function runAction(key: string, callback: () => Promise<any>) {
         setActionLoading(key);
         setActionError("");
+        setSuccess("");
 
         try {
             await callback();
@@ -204,12 +206,15 @@ export default function AdminListingsClient() {
         const key = `${modal.type}-${modal.id}`;
         setActionLoading(key);
         setModalError("");
+        setActionError("");
+        setSuccess("");
 
         try {
             if (modal.type === "reject") {
                 await apiPost(`/admin-panel/listings/${modal.id}/reject/`, {
                     rejection_reason: modalValues.reason.trim(),
                 });
+                setSuccess(`“${modal.title}” was rejected. The seller can now see the reason.`);
             } else if (modal.type === "feature") {
                 await apiPost(`/admin-panel/listings/${modal.id}/feature/`, {
                     days,
@@ -393,6 +398,12 @@ export default function AdminListingsClient() {
             {actionError && (
                 <div className="mb-5 rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm font-bold text-red-700">
                     {actionError}
+                </div>
+            )}
+
+            {success && (
+                <div role="status" className="mb-5 rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm font-bold text-emerald-700">
+                    {success}
                 </div>
             )}
 

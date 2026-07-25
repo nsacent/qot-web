@@ -408,8 +408,12 @@ export default function ListingFilters({
                     </Field>
 
                     <Field label="Condition" icon={faTag}>
-                        <div className="grid grid-cols-2 gap-2">
-                            {[{ value: "new", label: "Brand new" }, { value: "used", label: "Used" }].map((item) => {
+                        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                            {[
+                                { value: "new", label: "Brand new" },
+                                { value: "used", label: "Used" },
+                                { value: "refurbished", label: "Refurbished" },
+                            ].map((item) => {
                                 const selected = split(condition).includes(item.value);
                                 const count = facets.condition_counts?.[item.value];
                                 return (

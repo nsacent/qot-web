@@ -32,6 +32,8 @@ function LoginForm() {
     const [checkingSession, setCheckingSession] = useState(true);
 
     useEffect(() => {
+        setKeepSignedIn(localStorage.getItem("qot_keep_signed_in_preference") === "1");
+
         async function checkSession() {
             try {
                 await getCurrentUser();
@@ -189,7 +191,14 @@ function LoginForm() {
                             <input
                                 type="checkbox"
                                 checked={keepSignedIn}
-                                onChange={(event) => setKeepSignedIn(event.target.checked)}
+                                onChange={(event) => {
+                                    const checked = event.target.checked;
+                                    setKeepSignedIn(checked);
+                                    localStorage.setItem(
+                                        "qot_keep_signed_in_preference",
+                                        checked ? "1" : "0"
+                                    );
+                                }}
                                 className="mt-0.5 h-4 w-4 shrink-0 accent-orange-500"
                             />
 

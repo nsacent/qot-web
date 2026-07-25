@@ -4,13 +4,10 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
     faBell,
-    faBullhorn,
     faCircleCheck,
-    faClock,
-    faEnvelope,
-    faShieldHalved,
 } from "@/lib/faIcons";
 import { formatDateTime, formatRelativeTime } from "@/lib/dateTime";
+import { getNotificationVisual } from "@/lib/notificationVisuals";
 
 function getArray(data: any): any[] {
     if (Array.isArray(data)) return data;
@@ -32,30 +29,11 @@ function getMessage(notification: any) {
     return notification?.message || notification?.body || "You have a new update.";
 }
 
-function getType(notification: any) {
-    return notification?.notification_type || notification?.type || "system";
-}
-
 function getLink(notification: any) {
     if (notification?.chat_thread) return `/account/messages/${notification.chat_thread}`;
     if (notification?.listing) return `/ads/${notification.listing}`;
 
     return notification?.link || notification?.url || "";
-}
-
-function getVisual(notification: any) {
-    switch (getType(notification)) {
-        case "message":
-            return { icon: faEnvelope, tone: "bg-blue-50 text-blue-600 ring-blue-100", label: "Message" };
-        case "listing_approved":
-            return { icon: faCircleCheck, tone: "bg-emerald-50 text-emerald-600 ring-emerald-100", label: "Approved" };
-        case "listing_rejected":
-            return { icon: faShieldHalved, tone: "bg-rose-50 text-rose-600 ring-rose-100", label: "Needs attention" };
-        case "listing_expired":
-            return { icon: faClock, tone: "bg-amber-50 text-amber-700 ring-amber-100", label: "Expired" };
-        default:
-            return { icon: faBullhorn, tone: "bg-violet-50 text-violet-600 ring-violet-100", label: "QOT update" };
-    }
 }
 
 async function notificationRequest(path: string, init: RequestInit = {}) {
@@ -262,7 +240,7 @@ export default function NotificationsClient() {
                     <div className="mt-5 space-y-3">
                         {visibleNotifications.map((notification) => {
                             const unread = isUnread(notification);
-                            const visual = getVisual(notification);
+                            const visual = getNotificationVisual(notification);
                             const link = getLink(notification);
                             const busy = actionLoading === String(notification.id);
 

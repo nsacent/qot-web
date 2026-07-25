@@ -15,6 +15,7 @@ import {
     faUser,
 } from "@/lib/faIcons";
 import UserAvatar from "@/components/account/UserAvatar";
+import { QotInlineLoader } from "@/components/common/QotLoader";
 
 const defaultPreferences = {
     verification: true,
@@ -195,8 +196,7 @@ export default function NotificationPreferencesClient() {
         return (
             <section className="py-0 md:py-6">
                 <div className="rounded-[30px] bg-white p-10 text-center shadow-[0_18px_55px_rgba(15,23,42,0.08)] ring-1 ring-black/5">
-                    <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-orange-100 border-t-orange-500" />
-                    <p className="mt-4 text-sm font-black text-slate-600">Loading account settings...</p>
+                    <QotInlineLoader text="Loading account settings…" />
                 </div>
             </section>
         );

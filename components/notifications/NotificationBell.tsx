@@ -1,6 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faBell } from "@/lib/faIcons";
+import { getNotificationVisual } from "@/lib/notificationVisuals";
 
 const NOTIFICATIONS_ENDPOINT = "/notifications/";
 
@@ -133,7 +136,7 @@ export default function NotificationBell() {
                 }}
                 className="relative rounded-xl border px-4 py-2 text-sm font-semibold hover:bg-slate-50"
             >
-                🔔
+                <FontAwesomeIcon icon={faBell} className="h-4 w-4" />
                 {unreadCount > 0 && (
                     <span className="absolute -right-2 -top-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-xs font-bold text-white">
                         {unreadCount}
@@ -163,32 +166,40 @@ export default function NotificationBell() {
                         </div>
                     ) : (
                         <div className="max-h-96 overflow-y-auto">
-                            {notifications.map((notification) => (
-                                <button
-                                    key={notification.id}
-                                    type="button"
-                                    onClick={() => openNotification(notification)}
-                                    className="block w-full border-b px-4 py-3 text-left hover:bg-slate-50"
-                                >
-                                    <div className="flex items-start gap-3">
-                                        {isUnread(notification) && (
-                                            <span className="mt-2 h-2 w-2 rounded-full bg-orange-500" />
-                                        )}
+                            {notifications.map((notification) => {
+                                const visual = getNotificationVisual(notification);
 
-                                        <div className="min-w-0 flex-1">
-                                            <p className="line-clamp-1 text-sm font-bold text-slate-900">
-                                                {getTitle(notification)}
-                                            </p>
+                                return (
+                                    <button
+                                        key={notification.id}
+                                        type="button"
+                                        onClick={() => openNotification(notification)}
+                                        className="block w-full border-b px-4 py-3 text-left hover:bg-slate-50"
+                                    >
+                                        <div className="flex items-start gap-3">
+                                            <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ring-1 ${visual.tone}`}>
+                                                <FontAwesomeIcon icon={visual.icon} className="h-3.5 w-3.5" />
+                                            </span>
 
-                                            {getMessage(notification) && (
-                                                <p className="mt-1 line-clamp-2 text-xs text-slate-600">
-                                                    {getMessage(notification)}
+                                            <div className="min-w-0 flex-1">
+                                                <p className="line-clamp-1 text-sm font-bold text-slate-900">
+                                                    {getTitle(notification)}
                                                 </p>
+
+                                                {getMessage(notification) && (
+                                                    <p className="mt-1 line-clamp-2 text-xs text-slate-600">
+                                                        {getMessage(notification)}
+                                                    </p>
+                                                )}
+                                            </div>
+
+                                            {isUnread(notification) && (
+                                                <span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-orange-500" />
                                             )}
                                         </div>
-                                    </div>
-                                </button>
-                            ))}
+                                    </button>
+                                );
+                            })}
                         </div>
                     )}
                 </div>

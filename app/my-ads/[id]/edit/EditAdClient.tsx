@@ -38,6 +38,7 @@ import PhotoViewerModal from "@/components/listings/PhotoViewerModal";
 import InlineError from "@/components/forms/InlineError";
 import { getCurrentUser } from "@/lib/sessionClient";
 import { LocationPickerModal } from "@/components/listings/MarketplacePickerModals";
+import CurrentLocationButton from "@/components/listings/CurrentLocationButton";
 import { fetchAllProxyPages } from "@/lib/marketplaceCatalog";
 import { getOrderedListingImages } from "@/lib/listingImages";
 import {
@@ -46,7 +47,10 @@ import {
     getCategoryFilterOptionValue,
     normalizeCategoryFilterValue,
 } from "@/lib/categoryFilterValues";
-import { findLowResolutionPhoto } from "@/lib/photoValidation";
+import {
+    getPhotoFingerprint,
+    getPhotoValidationError,
+} from "@/lib/photoValidation";
 import {
     getCategoryPhotoRequirements,
     getPhotoRequirementText,
@@ -58,6 +62,7 @@ import {
     AD_TITLE_MIN_LENGTH,
     getAdCopyValidationError,
 } from "@/lib/listingValidation";
+import { normalizeListingText } from "@/lib/listingText";
 
 type CategoryFilterField = {
     id: number | string;
@@ -280,11 +285,6 @@ function formatPrice(value: string) {
     return `UGX ${amount.toLocaleString("en-UG")}`;
 }
 
-async function getFileFingerprint(file: File) {
-    const digest = await crypto.subtle.digest("SHA-256", await file.arrayBuffer());
-    return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
-}
-
 const inputClass =
     "w-full rounded-[16px] border-0 bg-white px-4 py-3 text-sm font-bold text-slate-800 outline-none ring-1 ring-slate-200 placeholder:text-slate-400 focus:ring-2 focus:ring-orange-200";
 
@@ -481,12 +481,12 @@ function EditAdForm({ id }: { id: string }) {
             setNewImages([]);
             setDeletedImageIds([]);
             setPhotoOrder(initialPhotoOrder);
-            setTitle(getValue(listing?.title));
+            setTitle(normalizeListingText(getValue(listing?.title)));
             setPrice(getValue(listing?.price));
             setCondition(getValue(listing?.condition) || "used");
             setCategory(getValue(listing?.category?.id || listing?.category_id || listing?.category));
             setCity(getValue(listing?.city?.id || listing?.city_id || listing?.city));
-            setDescription(getValue(listing?.description));
+            setDescription(normalizeListingText(getValue(listing?.description)));
             setIsNegotiable(Boolean(listing?.is_negotiable || listing?.negotiable));
             setCategoryFilterValues(restoredAttributes);
         } catch (requestError: any) {
@@ -616,67 +616,56 @@ function EditAdForm({ id }: { id: string }) {
         event.target.value = "";
         if (!files.length) return;
 
-        const invalidType = files.find(
-            (file) => !["image/jpeg", "image/png", "image/webp"].includes(file.type)
-        );
-        if (invalidType) {
-            setError("");
-            setPhotoError("Photos must be JPG, JPEG, PNG, or WEBP files.");
-            return;
-        }
-
-        const oversized = files.find((file) => file.size > 8 * 1024 * 1024);
-        if (oversized) {
-            setError("");
-            setPhotoError(`${oversized.name} is larger than the 8MB limit.`);
-            return;
-        }
-
-        if (totalPhotos + files.length > photoRequirements.maximum) {
-            setError("");
-            setPhotoError(
-                `${selectedCategory ? getOptionLabel(selectedCategory) : "This category"} allows a maximum of ${photoRequirements.maximum} photos.`
-            );
-            return;
-        }
+        const acceptedFiles: File[] = [];
+        const rejectedFiles: string[] = [];
+        const availableSlots = Math.max(0, photoRequirements.maximum - totalPhotos);
+        let seenHashes = new Set<string>();
 
         try {
-            const lowResolutionPhoto = await findLowResolutionPhoto(files);
-            if (lowResolutionPhoto) {
-                setError("");
-                setPhotoError(`${lowResolutionPhoto.name} is too small. Use a photo of at least 600 × 450 pixels.`);
-                return;
-            }
+            seenHashes = new Set(
+                await Promise.all(newImages.map((item) => getPhotoFingerprint(item.file)))
+            );
         } catch {
-            setError("");
-            setPhotoError("One of the selected files could not be read as a photo.");
-            return;
+            // The API still performs the authoritative duplicate check.
         }
 
-        try {
-            const currentHashes = new Set(
-                await Promise.all(newImages.map((item) => getFileFingerprint(item.file)))
-            );
-            const incomingHashes = await Promise.all(files.map(getFileFingerprint));
-            const seenHashes = new Set(currentHashes);
-            const duplicateIndex = incomingHashes.findIndex((hash) => {
-                if (seenHashes.has(hash)) return true;
-                seenHashes.add(hash);
-                return false;
-            });
-
-            if (duplicateIndex >= 0) {
-                setError("");
-                setPhotoError(`${files[duplicateIndex].name} is already selected. Choose a different photo.`);
-                return;
+        for (const file of files) {
+            const validationError = await getPhotoValidationError(file);
+            if (validationError) {
+                rejectedFiles.push(validationError);
+                continue;
             }
-        } catch {
-            // The API performs the authoritative duplicate check during upload.
+
+            try {
+                const fingerprint = await getPhotoFingerprint(file);
+                if (seenHashes.has(fingerprint)) {
+                    rejectedFiles.push(`${file.name} is already selected. Choose a different photo.`);
+                    continue;
+                }
+                seenHashes.add(fingerprint);
+            } catch {
+                // The API still performs the authoritative duplicate check.
+            }
+
+            if (acceptedFiles.length >= availableSlots) {
+                rejectedFiles.push(
+                    `${file.name} was skipped because ${selectedCategory ? getOptionLabel(selectedCategory) : "this category"} allows a maximum of ${photoRequirements.maximum} photos.`
+                );
+                continue;
+            }
+
+            acceptedFiles.push(file);
+        }
+
+        if (!acceptedFiles.length) {
+            setError("");
+            setPhotoError(rejectedFiles.join(" ") || "No valid photos were selected.");
+            return;
         }
 
         setError("");
-        setPhotoError("");
-        const additions = files.map((file, index) => ({
+        setPhotoError(rejectedFiles.join(" "));
+        const additions = acceptedFiles.map((file, index) => ({
             key: `new:${Date.now()}-${index}-${Math.random().toString(36).slice(2)}`,
             file,
             progress: 0,
@@ -684,7 +673,11 @@ function EditAdForm({ id }: { id: string }) {
         }));
         setNewImages((current) => [...current, ...additions]);
         setPhotoOrder((current) => [...current, ...additions.map((item) => item.key)]);
-        setMessage("Photos are ready and will be optimized when you save the ad.");
+        setMessage(
+            rejectedFiles.length
+                ? `${acceptedFiles.length} valid photo${acceptedFiles.length === 1 ? "" : "s"} added. ${rejectedFiles.length} skipped.`
+                : "Photos are ready and will be optimized when you save the ad."
+        );
     }
 
     function removeNewImage(photoKey: string) {
@@ -707,29 +700,42 @@ function EditAdForm({ id }: { id: string }) {
 
     async function uploadNewImages() {
         const uploadedIds = new Map<string, string>();
+        const failures: string[] = [];
 
         for (const item of newImages) {
-            const formData = new FormData();
-            formData.append("image", item.file);
-            setNewImages((current) => current.map((photo) => (
-                photo.key === item.key ? { ...photo, uploading: true, progress: 0 } : photo
-            )));
-            const data = await uploadFormWithProgress(
-                `/listings/${id}/images/`,
-                formData,
-                (progress) => setNewImages((current) => current.map((photo) => (
-                    photo.key === item.key ? { ...photo, uploading: true, progress } : photo
-                ))),
-            );
+            try {
+                const formData = new FormData();
+                formData.append("image", item.file);
+                setNewImages((current) => current.map((photo) => (
+                    photo.key === item.key ? { ...photo, uploading: true, progress: 0 } : photo
+                )));
+                const data = await uploadFormWithProgress(
+                    `/listings/${id}/images/`,
+                    formData,
+                    (progress) => setNewImages((current) => current.map((photo) => (
+                        photo.key === item.key ? { ...photo, uploading: true, progress } : photo
+                    ))),
+                );
 
-            if (!data?.id) {
-                throw new Error(`Failed to confirm the upload for ${item.file.name}.`);
+                if (!data?.id) {
+                    throw new Error(`Failed to confirm the upload for ${item.file.name}.`);
+                }
+
+                uploadedIds.set(item.key, String(data.id));
+            } catch (uploadError: unknown) {
+                const message = uploadError instanceof Error
+                    ? uploadError.message
+                    : "Photo upload failed.";
+
+                if (message === "__AUTH__") throw uploadError;
+                failures.push(`${item.file.name}: ${message}`);
+                setNewImages((current) => current.map((photo) => (
+                    photo.key === item.key ? { ...photo, uploading: false, progress: 0 } : photo
+                )));
             }
-
-            uploadedIds.set(item.key, String(data.id));
         }
 
-        return uploadedIds;
+        return { uploadedIds, failures };
     }
 
     async function deleteRemovedImages() {
@@ -916,8 +922,18 @@ function EditAdForm({ id }: { id: string }) {
 
             try {
                 await deleteRemovedImages();
-                const uploadedIds = await uploadNewImages();
+                const { uploadedIds, failures } = await uploadNewImages();
                 await savePhotoOrder(uploadedIds);
+
+                if (failures.length) {
+                    await loadAd(false);
+                    setPhotoError(
+                        `${uploadedIds.size} photo${uploadedIds.size === 1 ? "" : "s"} uploaded successfully. ${failures.length} skipped: ${failures.join(" ")}`
+                    );
+                    setShowPreview(false);
+                    revealSection(photoSectionRef);
+                    return;
+                }
             } catch (photoRequestError: unknown) {
                 setActionError("");
                 setPhotoError(
@@ -1169,14 +1185,14 @@ function EditAdForm({ id }: { id: string }) {
 
                 <Field label="Ad title" icon={faBullhorn}>
                     <input value={title} onChange={(event) => {
-                        setTitle(event.target.value);
+                        setTitle(normalizeListingText(event.target.value));
                         setDetailsError("");
                     }} placeholder="Example: HP EliteBook Core i5" minLength={AD_TITLE_MIN_LENGTH} maxLength={AD_TITLE_MAX_LENGTH} className={inputClass} required />
                     <p className="mt-1.5 text-[10px] font-bold text-slate-400">Minimum {AD_TITLE_MIN_LENGTH} characters · {title.length}/{AD_TITLE_MAX_LENGTH}</p>
                 </Field>
                 <Field label="Description" icon={faFileLines}>
                     <textarea value={description} onChange={(event) => {
-                        setDescription(event.target.value);
+                        setDescription(normalizeListingText(event.target.value));
                         setDetailsError("");
                     }} placeholder="Describe the item, condition and useful features..." rows={4} minLength={AD_DESCRIPTION_MIN_LENGTH} className={inputClass} required />
                     <p className="mt-1.5 text-[10px] font-bold text-slate-400">Minimum {AD_DESCRIPTION_MIN_LENGTH} characters</p>
@@ -1207,6 +1223,7 @@ function EditAdForm({ id }: { id: string }) {
                             }} className={selectClass}>
                                 <option value="new">New</option>
                                 <option value="used">Used</option>
+                                <option value="refurbished">Refurbished</option>
                             </select>
                         </SelectWrap>
                     </Field>
@@ -1236,6 +1253,14 @@ function EditAdForm({ id }: { id: string }) {
                             </span>
                             <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-orange-50 text-orange-600"><FontAwesomeIcon icon={faLocationDot} className="h-4 w-4" /></span>
                         </button>
+                        <CurrentLocationButton
+                            cities={cities}
+                            onSelect={selectCityValue}
+                            onNoMatch={(suggestion) => {
+                                setLocationSearch(suggestion);
+                                setLocationModalOpen(true);
+                            }}
+                        />
                     </Field>
                 </div>
             </FormCard>

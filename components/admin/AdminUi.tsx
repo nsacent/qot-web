@@ -4,6 +4,7 @@ import {
     faCircleExclamation,
     faInbox,
 } from "@fortawesome/free-solid-svg-icons";
+import { QotInlineLoader } from "@/components/common/QotLoader";
 
 export function AdminPageHeader({
     eyebrow,
@@ -60,14 +61,7 @@ export function AdminRefreshButton({
 export function AdminLoadingState({ label }: { label: string }) {
     return (
         <div className="rounded-[26px] bg-white p-7 shadow-sm ring-1 ring-slate-200/70">
-            <div className="flex items-center gap-4">
-                <span className="h-11 w-11 animate-pulse rounded-2xl bg-orange-100" />
-                <div className="flex-1">
-                    <div className="h-3 w-28 animate-pulse rounded-full bg-slate-200" />
-                    <div className="mt-3 h-2.5 w-52 max-w-full animate-pulse rounded-full bg-slate-100" />
-                </div>
-            </div>
-            <p className="sr-only">{label}</p>
+            <QotInlineLoader text={label} className="min-h-20" />
         </div>
     );
 }

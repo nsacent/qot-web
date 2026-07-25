@@ -1,35 +1,49 @@
-export default function QotLoader({
-    text,
-    showText = false,
-}: {
+type LoaderProps = {
     text?: string;
     showText?: boolean;
-}) {
+    className?: string;
+};
+
+export function QotSpinner({ className = "h-7 w-7" }: { className?: string }) {
     return (
-        <div className="flex min-h-screen items-center justify-center bg-[#fff7f2] px-4">
-            <div className="flex flex-col items-center">
-                <div className="relative flex h-32 w-32 items-center justify-center">
-                    <div className="absolute h-32 w-32 animate-ping rounded-full bg-orange-200 opacity-40" />
+        <span
+            aria-hidden="true"
+            className={`inline-block animate-spin rounded-full border-[3px] border-orange-100 border-t-orange-500 motion-reduce:animate-none ${className}`}
+        />
+    );
+}
 
-                    <div className="absolute h-28 w-28 rounded-full border-4 border-orange-100" />
+export function QotInlineLoader({
+    text = "Loading…",
+    className = "",
+}: LoaderProps) {
+    return (
+        <div
+            role="status"
+            aria-live="polite"
+            className={`flex items-center justify-center gap-3 text-sm font-bold text-slate-500 ${className}`}
+        >
+            <QotSpinner />
+            {text && <span>{text}</span>}
+        </div>
+    );
+}
 
-                    <div className="absolute h-28 w-28 animate-spin rounded-full border-4 border-transparent border-r-orange-500 border-t-orange-500" />
-
-                    <div className="absolute h-20 w-20 animate-pulse rounded-[28px] bg-orange-100" />
-
-                    <div className="relative flex h-16 w-16 items-center justify-center rounded-3xl bg-orange-500 text-3xl font-black text-white shadow-[0_18px_40px_rgba(249,115,22,0.35)]">
-                        Q
-                    </div>
-                </div>
-
-                <div className="mt-5 flex gap-2">
-                    <span className="h-2.5 w-2.5 animate-bounce rounded-full bg-orange-500 [animation-delay:-0.3s]" />
-                    <span className="h-2.5 w-2.5 animate-bounce rounded-full bg-orange-500 [animation-delay:-0.15s]" />
-                    <span className="h-2.5 w-2.5 animate-bounce rounded-full bg-orange-500" />
-                </div>
-
+export default function QotLoader({
+    text = "Loading…",
+    showText = false,
+    className = "",
+}: LoaderProps) {
+    return (
+        <div
+            role="status"
+            aria-live="polite"
+            className={`flex min-h-[calc(100dvh-7rem)] w-full items-center justify-center bg-[#fffaf7] px-4 md:min-h-[60vh] ${className}`}
+        >
+            <div className="flex flex-col items-center gap-3">
+                <QotSpinner className="h-8 w-8" />
                 {showText && text && (
-                    <p className="mt-4 text-sm font-black text-slate-500">{text}</p>
+                    <p className="text-sm font-bold text-slate-500">{text}</p>
                 )}
             </div>
         </div>

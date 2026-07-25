@@ -85,10 +85,6 @@ export default function ListingCard({ listing }: ListingCardProps) {
             </div>
 
             <div className="p-5">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-orange-600">
-                    {listing.category?.name || listing.category_name || "Ad"}
-                </p>
-
                 <a href={`/ads/${listing.id}`}>
                     <h3 className="line-clamp-2 text-lg font-semibold text-slate-900 hover:text-orange-600">
                         {listing.title || "Untitled ad"}

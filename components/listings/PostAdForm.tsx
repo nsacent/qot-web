@@ -39,7 +39,9 @@ import {
 import AdPreviewPanel from "@/components/listings/AdPreviewPanel";
 import AdActionModal from "@/components/listings/AdActionModal";
 import PhotoViewerModal from "@/components/listings/PhotoViewerModal";
+import CurrentLocationButton from "@/components/listings/CurrentLocationButton";
 import InlineError from "@/components/forms/InlineError";
+import { QotInlineLoader } from "@/components/common/QotLoader";
 import { fetchAllProxyPages } from "@/lib/marketplaceCatalog";
 import {
     getCategoryFilterDisplayValue,
@@ -47,7 +49,10 @@ import {
     getCategoryFilterOptionValue,
     normalizeCategoryFilterValue,
 } from "@/lib/categoryFilterValues";
-import { findLowResolutionPhoto } from "@/lib/photoValidation";
+import {
+    getPhotoFingerprint,
+    getPhotoValidationError,
+} from "@/lib/photoValidation";
 import {
     getCategoryPhotoRequirements,
     getPhotoRequirementText,
@@ -59,6 +64,7 @@ import {
     AD_TITLE_MIN_LENGTH,
     getAdCopyValidationError,
 } from "@/lib/listingValidation";
+import { normalizeListingText } from "@/lib/listingText";
 
 type CategoryFilterField = {
     id: number | string;
@@ -409,8 +415,8 @@ export default function PostAdForm() {
                 const currentUser = userData?.user || userData?.data || userData;
 
                 if (draft) {
-                    setTitle(String(draftData.title || ""));
-                    setDescription(String(draftData.description || ""));
+                    setTitle(normalizeListingText(String(draftData.title || "")));
+                    setDescription(normalizeListingText(String(draftData.description || "")));
                     setPrice(String(draftData.price || ""));
                     setCategory(String(draftData.category || ""));
                     setCity(String(draftData.city || ""));
@@ -743,49 +749,49 @@ export default function PostAdForm() {
             return;
         }
 
-        const invalidType = selectedFiles.find(
-            (file) => !["image/jpeg", "image/png", "image/webp"].includes(file.type)
-        );
+        const acceptedFiles: File[] = [];
+        const rejectedFiles: string[] = [];
+        const seenHashes = new Set<string>();
+        const availableSlots = Math.max(0, photoRequirements.maximum - photos.length);
 
-        if (invalidType) {
-            setError("");
-            setPhotoError("Photos must be JPG, JPEG, PNG, or WEBP files.");
-            return;
-        }
-
-        const oversized = selectedFiles.find((file) => file.size > 8 * 1024 * 1024);
-
-        if (oversized) {
-            setError("");
-            setPhotoError(`${oversized.name} is larger than the 8MB limit.`);
-            return;
-        }
-
-        if (photos.length + selectedFiles.length > photoRequirements.maximum) {
-            setError("");
-            setPhotoError(
-                `${getSelectedCategoryName()} allows a maximum of ${photoRequirements.maximum} photos.`
-            );
-            return;
-        }
-
-        try {
-            const lowResolutionPhoto = await findLowResolutionPhoto(selectedFiles);
-            if (lowResolutionPhoto) {
-                setError("");
-                setPhotoError(`${lowResolutionPhoto.name} is too small. Use a photo of at least 600 × 450 pixels.`);
-                return;
+        for (const file of selectedFiles) {
+            const validationError = await getPhotoValidationError(file);
+            if (validationError) {
+                rejectedFiles.push(validationError);
+                continue;
             }
-        } catch {
+
+            try {
+                const fingerprint = await getPhotoFingerprint(file);
+                if (seenHashes.has(fingerprint)) {
+                    rejectedFiles.push(`${file.name} is already selected in this batch.`);
+                    continue;
+                }
+                seenHashes.add(fingerprint);
+            } catch {
+                // The API still performs the authoritative duplicate check.
+            }
+
+            if (acceptedFiles.length >= availableSlots) {
+                rejectedFiles.push(
+                    `${file.name} was skipped because ${getSelectedCategoryName()} allows a maximum of ${photoRequirements.maximum} photos.`
+                );
+                continue;
+            }
+
+            acceptedFiles.push(file);
+        }
+
+        if (!acceptedFiles.length) {
             setError("");
-            setPhotoError("One of the selected files could not be read as a photo.");
+            setPhotoError(rejectedFiles.join(" ") || "No valid photos were selected.");
             return;
         }
 
         setError("");
-        setPhotoError("");
+        setPhotoError(rejectedFiles.join(" "));
         setPhotosUploading(true);
-        const pendingPhotos = selectedFiles.map((file, index) => ({
+        const pendingPhotos = acceptedFiles.map((file, index) => ({
             key: `${Date.now()}-${index}-${file.name}`,
             file,
             url: URL.createObjectURL(file),
@@ -793,37 +799,48 @@ export default function PostAdForm() {
         }));
         setUploadingPhotos(pendingPhotos);
 
+        let uploadedCount = 0;
+
         try {
             for (const [index, pendingPhoto] of pendingPhotos.entries()) {
                 const { file } = pendingPhoto;
-                setUploadProgress(`Optimizing photo ${index + 1} of ${selectedFiles.length}...`);
-                const formData = new FormData();
-                formData.append("image", file);
-                const data = await uploadFormWithProgress(
-                    "/listings/images/stage/",
-                    formData,
-                    (progress) => setUploadingPhotos((current) => current.map((item) => (
-                        item.key === pendingPhoto.key ? { ...item, progress } : item
-                    ))),
-                );
+                setUploadProgress(`Optimizing photo ${index + 1} of ${acceptedFiles.length}...`);
 
-                setPhotos((current) => [...current, {
-                    id: Number(data.id),
-                    name: file.name,
-                    url: data.card_image_url || data.image_url || "",
-                }]);
-                setUploadingPhotos((current) => current.filter((item) => item.key !== pendingPhoto.key));
-                URL.revokeObjectURL(pendingPhoto.url);
-            }
-            setUploadProgress("Photos optimized automatically. Continue filling in the advert details.");
-        } catch (err: any) {
-            if (err.message === "__AUTH__") {
-                window.location.href = "/login?next=/post-ad";
-                return;
+                try {
+                    const formData = new FormData();
+                    formData.append("image", file);
+                    const data = await uploadFormWithProgress(
+                        "/listings/images/stage/",
+                        formData,
+                        (progress) => setUploadingPhotos((current) => current.map((item) => (
+                            item.key === pendingPhoto.key ? { ...item, progress } : item
+                        ))),
+                    );
+
+                    setPhotos((current) => [...current, {
+                        id: Number(data.id),
+                        name: file.name,
+                        url: data.card_image_url || data.image_url || "",
+                    }]);
+                    uploadedCount += 1;
+                } catch (err: any) {
+                    if (err.message === "__AUTH__") {
+                        window.location.href = "/login?next=/post-ad";
+                        return;
+                    }
+                    rejectedFiles.push(`${file.name}: ${err.message || "upload failed"}`);
+                } finally {
+                    setUploadingPhotos((current) => current.filter((item) => item.key !== pendingPhoto.key));
+                    URL.revokeObjectURL(pendingPhoto.url);
+                }
             }
             setError("");
-            setPhotoError(err.message || "Failed to upload and optimize the photo.");
-            setUploadProgress("Photo upload failed. Please try again.");
+            setPhotoError(rejectedFiles.join(" "));
+            setUploadProgress(
+                uploadedCount > 0
+                    ? `${uploadedCount} photo${uploadedCount === 1 ? "" : "s"} optimized. ${rejectedFiles.length ? `${rejectedFiles.length} skipped.` : "Continue filling in the advert details."}`
+                    : "No photos were uploaded. Check the photo errors and try again."
+            );
         } finally {
             pendingPhotos.forEach((photo) => URL.revokeObjectURL(photo.url));
             setUploadingPhotos([]);
@@ -983,8 +1000,8 @@ export default function PostAdForm() {
 
     if (pageLoading) {
         return (
-            <div className="rounded-[28px] bg-white p-8 text-slate-600 shadow-sm ring-1 ring-black/5">
-                Loading post advert form...
+            <div className="rounded-[28px] bg-white p-8 shadow-sm ring-1 ring-black/5">
+                <QotInlineLoader text="Loading post ad form…" className="min-h-32" />
             </div>
         );
     }
@@ -1255,7 +1272,7 @@ export default function PostAdForm() {
                     <input
                         value={title}
                         onChange={(event) => {
-                            setTitle(event.target.value);
+                            setTitle(normalizeListingText(event.target.value));
                             setDetailsError("");
                         }}
                         placeholder="Example: HP EliteBook Core i5"
@@ -1273,7 +1290,7 @@ export default function PostAdForm() {
                     <textarea
                         value={description}
                         onChange={(event) => {
-                            setDescription(event.target.value);
+                            setDescription(normalizeListingText(event.target.value));
                             setDetailsError("");
                         }}
                         placeholder="Describe the item, condition, features, and location..."
@@ -1342,6 +1359,7 @@ export default function PostAdForm() {
                             >
                                 <option value="new">New</option>
                                 <option value="used">Used</option>
+                                <option value="refurbished">Refurbished</option>
                             </select>
                         </SelectWrap>
                     </Field>
@@ -1395,6 +1413,14 @@ export default function PostAdForm() {
                                 <FontAwesomeIcon icon={faLocationDot} className="h-4 w-4" />
                             </span>
                         </button>
+                        <CurrentLocationButton
+                            cities={cities}
+                            onSelect={selectCityValue}
+                            onNoMatch={(suggestion) => {
+                                setLocationSearch(suggestion);
+                                setLocationModalOpen(true);
+                            }}
+                        />
                     </Field>
                 </div>
 

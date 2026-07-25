@@ -11,6 +11,7 @@ import {
 } from "@/components/listings/MarketplacePickerModals";
 import { fetchAllProxyPages } from "@/lib/marketplaceCatalog";
 import { getPrimaryListingImage } from "@/lib/listingImages";
+import { getNotificationVisual } from "@/lib/notificationVisuals";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
     faBell,
@@ -970,6 +971,7 @@ export default function QotMarketplaceNav({
                             ) : notificationItems.length > 0 ? (
                                 notificationItems.slice(0, 5).map((notification) => {
                                     const unread = isNotificationUnread(notification);
+                                    const visual = getNotificationVisual(notification);
 
                                     return (
                                         <button
@@ -978,8 +980,8 @@ export default function QotMarketplaceNav({
                                             onClick={() => openNotification(notification)}
                                             className={`flex w-full gap-3 rounded-[18px] p-3 text-left transition hover:bg-orange-50 ${unread ? "bg-orange-50/60" : ""}`}
                                         >
-                                            <span className={`relative flex h-10 w-10 shrink-0 items-center justify-center rounded-[13px] ${unread ? "bg-orange-500 text-white" : "bg-slate-100 text-slate-500"}`}>
-                                                <FontAwesomeIcon icon={faBell} className="h-4 w-4" />
+                                            <span className={`relative flex h-10 w-10 shrink-0 items-center justify-center rounded-[13px] ring-1 ${unread ? visual.tone : "bg-slate-100 text-slate-500 ring-slate-200"}`}>
+                                                <FontAwesomeIcon icon={visual.icon} className="h-4 w-4" />
                                                 {unread && (
                                                     <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full bg-white ring-2 ring-orange-500" />
                                                 )}

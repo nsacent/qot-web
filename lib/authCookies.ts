@@ -42,6 +42,21 @@ export async function getKeepSignedIn() {
     return cookieStore.get(KEEP_SIGNED_IN_COOKIE)?.value === "1";
 }
 
+function refreshTokenRequestsPersistence(refresh: string) {
+    try {
+        const payload = refresh.split(".")[1];
+        if (!payload) return false;
+
+        const decoded = JSON.parse(
+            Buffer.from(payload, "base64url").toString("utf8")
+        );
+
+        return decoded?.keep_signed_in === true;
+    } catch {
+        return false;
+    }
+}
+
 export async function setAuthCookies(
     access?: string,
     refresh?: string,
@@ -208,11 +223,16 @@ export async function refreshAccessToken() {
 
     if (!refresh) return "";
 
-    const keepSignedIn = await getKeepSignedIn();
+    // The signed JWT claim is a recovery path if an older deployment lost the
+    // small preference cookie while the persistent refresh cookie survived.
+    const keepSignedIn =
+        (await getKeepSignedIn()) || refreshTokenRequestsPersistence(refresh);
     const result = await refreshOnce(refresh);
 
     if (!result.ok) {
-        await clearAuthCookies();
+        // Do not clear cookies here. Several protected requests can reach this
+        // point together when a tab reopens. One request may have already rotated
+        // the refresh token successfully, and a late failure must not erase it.
         return "";
     }
 
@@ -220,7 +240,6 @@ export async function refreshAccessToken() {
     const newRefresh = extractRefreshToken(result.data) || refresh;
 
     if (!access) {
-        await clearAuthCookies();
         return "";
     }
 

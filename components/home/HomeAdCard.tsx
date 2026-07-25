@@ -33,31 +33,6 @@ function getAdTitle(ad: any) {
     return ad?.title || ad?.name || "Untitled ad";
 }
 
-function getAdCategories(ad: any) {
-    const name =
-        ad?.category?.name ||
-        ad?.subcategory?.name ||
-        ad?.subcategory_name ||
-        ad?.category_name ||
-        "Marketplace";
-
-    const parent =
-        ad?.category?.parent?.name ||
-        ad?.category?.parent_name ||
-        ad?.subcategory?.parent?.name ||
-        ad?.category_parent_name ||
-        ad?.parent_category_name ||
-        "";
-
-    return {
-        name,
-        parent:
-            parent && parent.toLowerCase() !== name.toLowerCase()
-                ? parent
-                : "",
-    };
-}
-
 function isVerifiedSeller(ad: any) {
     return Boolean(
         ad?.seller?.is_verified ||
@@ -161,7 +136,6 @@ export default function HomeAdCard({
 }: HomeAdCardProps) {
     const id = getAdId(ad);
     const title = getAdTitle(ad);
-    const category = getAdCategories(ad);
     const href = id ? `/ads/${id}` : "/ads";
 
     const date =
@@ -206,32 +180,9 @@ export default function HomeAdCard({
 
             <div className={`flex min-w-0 flex-1 flex-col ${isList ? "px-3 py-2.5 md:px-3 md:pb-3 md:pt-2.5" : "px-3 pb-3 pt-2.5"}`}>
                 <div className="flex min-w-0 items-center justify-between gap-2">
-                    <nav
-                        aria-label="Ad category"
-                        className="flex min-w-0 items-center gap-1 truncate text-[9px] font-extrabold uppercase tracking-[0.1em] text-orange-600 sm:text-[10px]"
-                    >
-                        {category.parent && (
-                            <>
-                                <a
-                                    href={`/ads?category=${encodeURIComponent(category.parent)}`}
-                                    className={`relative z-20 truncate hover:text-orange-700 hover:underline ${isList ? "hidden md:inline" : ""}`}
-                                >
-                                    {category.parent}
-                                </a>
-                                <span aria-hidden="true" className={`shrink-0 text-orange-400 ${isList ? "hidden md:inline" : ""}`}>
-                                    ›
-                                </span>
-                            </>
-                        )}
-
-                        <a
-                            href={`/ads?category=${encodeURIComponent(category.name)}`}
-                            className="relative z-20 truncate hover:text-orange-700 hover:underline"
-                        >
-                            {category.name}
-                        </a>
-                    </nav>
-
+                    <h3 className="min-w-0 flex-1 truncate text-xs font-extrabold leading-[17px] text-slate-950 transition group-hover:text-orange-600 sm:text-[13px]">
+                        {title}
+                    </h3>
                     {isVerifiedSeller(ad) && (
                         <span className={`shrink-0 items-center gap-1 text-[8px] font-extrabold uppercase tracking-wider text-emerald-600 ${isList ? "hidden md:inline-flex" : "inline-flex"}`}>
                             <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
@@ -239,10 +190,6 @@ export default function HomeAdCard({
                         </span>
                     )}
                 </div>
-
-                <h3 className="mt-1 truncate text-xs font-extrabold leading-[17px] text-slate-950 transition group-hover:text-orange-600 sm:text-[13px]">
-                    {title}
-                </h3>
 
                 <div className="mt-0.5 flex min-w-0 flex-wrap items-center gap-1.5">
                     <p className="text-sm font-black tracking-[-0.02em] text-orange-600 sm:text-[15px]">

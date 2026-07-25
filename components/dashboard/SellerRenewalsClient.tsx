@@ -11,6 +11,7 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import ListingExpiryCountdown from "@/components/listings/ListingExpiryCountdown";
 import ListingCardImage from "@/components/listings/ListingCardImage";
+import { QotInlineLoader } from "@/components/common/QotLoader";
 import {
     getListingExpiryValue,
     listingCanBeRenewed,
@@ -230,8 +231,7 @@ export default function SellerRenewalsClient() {
         return (
             <section className="py-0 md:py-6">
                 <div className="rounded-[30px] bg-white p-10 text-center shadow-[0_18px_55px_rgba(15,23,42,0.08)] ring-1 ring-black/5">
-                    <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-orange-100 border-t-orange-500" />
-                    <p className="mt-4 text-sm font-black text-slate-600">Loading renewal center...</p>
+                    <QotInlineLoader text="Loading renewal center…" />
                 </div>
             </section>
         );
@@ -303,8 +303,7 @@ export default function SellerRenewalsClient() {
 
                 {loading ? (
                     <div className="rounded-[24px] bg-slate-50 p-10 text-center">
-                        <div className="mx-auto h-9 w-9 animate-spin rounded-full border-4 border-orange-100 border-t-orange-500" />
-                        <p className="mt-4 text-sm font-black text-slate-500">Loading your adverts...</p>
+                        <QotInlineLoader text="Loading your ads…" />
                     </div>
                 ) : renewalListings.length === 0 ? (
                     <div className="rounded-[24px] border-2 border-dashed border-green-200 bg-green-50/60 p-10 text-center">

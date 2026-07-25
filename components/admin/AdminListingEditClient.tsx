@@ -736,6 +736,7 @@ export default function AdminListingEditClient({
                                 >
                                     <option value="new">New</option>
                                     <option value="used">Used</option>
+                                    <option value="refurbished">Refurbished</option>
                                 </select>
                             </label>
 

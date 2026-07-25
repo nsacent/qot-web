@@ -11,6 +11,7 @@ import {
     faRectangleList,
 } from "@fortawesome/free-solid-svg-icons";
 import ListingExpiryCountdown from "@/components/listings/ListingExpiryCountdown";
+import { QotInlineLoader } from "@/components/common/QotLoader";
 import {
     getListingExpiryValue,
     getListingFeaturedUntil,
@@ -617,8 +618,7 @@ export default function SellerDashboardClient() {
 
             {loading ? (
                 <div className="rounded-[30px] bg-white p-10 text-center shadow-[0_18px_55px_rgba(15,23,42,0.08)] ring-1 ring-black/5">
-                    <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-orange-100 border-t-orange-500" />
-                    <p className="mt-4 text-sm font-black text-slate-600">Loading your dashboard...</p>
+                    <QotInlineLoader text="Loading your dashboard…" />
                 </div>
             ) : error ? (
                 <div className="rounded-[28px] border border-red-200 bg-red-50 p-7 text-red-700 shadow-sm">
