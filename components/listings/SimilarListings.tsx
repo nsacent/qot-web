@@ -122,12 +122,12 @@ export default async function SimilarListings({ listing }: SimilarListingsProps)
     return (
         <section
             id="similar-ads"
-            className="mt-8 scroll-mt-24 rounded-[34px] bg-white p-5 shadow-[0_18px_55px_rgba(15,23,42,0.08)] ring-1 ring-black/5 sm:p-7"
+            className="-mx-4 mt-3 scroll-mt-24 bg-white p-4 sm:mx-0 sm:mt-8 sm:rounded-[34px] sm:p-7 sm:shadow-[0_18px_55px_rgba(15,23,42,0.08)] sm:ring-1 sm:ring-black/5"
         >
             <div className="flex items-end justify-between gap-4">
                 <div>
                     <div className="flex flex-wrap gap-2">
-                        <span className="inline-flex items-center gap-2 rounded-full bg-orange-50 px-4 py-2 text-xs font-black uppercase tracking-wide text-orange-600 ring-1 ring-orange-100">
+                        <span className="inline-flex items-center gap-1.5 rounded-[9px] bg-orange-50 px-2.5 py-1.5 text-[9px] font-black uppercase tracking-wide text-orange-600 ring-1 ring-orange-100 sm:gap-2 sm:rounded-full sm:px-4 sm:py-2 sm:text-xs">
                             <FontAwesomeIcon icon={faStar} className="h-3.5 w-3.5" />
                             Similar ads
                         </span>
@@ -143,7 +143,7 @@ export default async function SimilarListings({ listing }: SimilarListingsProps)
                         </span>
                     </div>
 
-                    <h2 className="mt-3 text-2xl font-black tracking-tight text-slate-950 md:mt-4 md:text-3xl">
+                    <h2 className="mt-2 text-lg font-black tracking-tight text-slate-950 sm:mt-3 sm:text-2xl md:mt-4 md:text-3xl">
                         You may also like
                     </h2>
 
@@ -151,7 +151,7 @@ export default async function SimilarListings({ listing }: SimilarListingsProps)
                         More ads related to this ad, based on category and location.
                     </p>
 
-                    <p className="mt-1.5 text-xs font-bold text-slate-400 sm:hidden">
+                    <p className="mt-1 text-[10px] font-bold text-slate-400 sm:hidden">
                         Swipe to explore similar ads
                     </p>
                 </div>

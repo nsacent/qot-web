@@ -109,14 +109,14 @@ export default function SimilarListingsClient({
     const cleanListings = useMemo(() => listings.slice(0, 12), [listings]);
 
     return (
-        <div className="-mr-5 mt-5 flex snap-x snap-mandatory gap-3 overflow-x-auto overscroll-x-contain pb-2 pr-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:-mr-7 sm:pr-7 md:mr-0 md:mt-7 md:grid md:grid-cols-3 md:gap-4 md:overflow-visible md:pr-0 lg:grid-cols-4 xl:grid-cols-6">
+        <div className="-mr-4 mt-3 flex snap-x snap-mandatory gap-2.5 overflow-x-auto overscroll-x-contain pb-2 pr-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:-mr-7 sm:mt-5 sm:gap-3 sm:pr-7 md:mr-0 md:mt-7 md:grid md:grid-cols-3 md:gap-4 md:overflow-visible md:pr-0 lg:grid-cols-4 xl:grid-cols-6">
             {cleanListings.map((item: any) => {
                 const id = String(getListingId(item));
 
                 return (
                     <div
                         key={id || item?.slug}
-                        className="w-[72vw] min-w-[220px] max-w-[260px] shrink-0 snap-start md:w-auto md:min-w-0 md:max-w-none"
+                        className="w-[48vw] min-w-[166px] max-w-[190px] shrink-0 snap-start sm:w-[72vw] sm:min-w-[220px] sm:max-w-[260px] md:w-auto md:min-w-0 md:max-w-none"
                     >
                         <HomeAdCard
                             ad={item}

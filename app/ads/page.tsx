@@ -6,6 +6,7 @@ import ListingsResultsToolbar from "@/components/listings/ListingsResultsToolbar
 import Pagination from "@/components/listings/Pagination";
 import SaveSearchButton from "@/components/listings/SaveSearchButton";
 import ListingsGridClient from "@/components/listings/ListingsGridClient";
+import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
 
@@ -115,6 +116,57 @@ type ListingsPageProps = {
         posted_within?: string;
     }>;
 };
+
+function titleCaseSlug(value: string) {
+    return decodeURIComponent(value)
+        .replace(/[-_]+/g, " ")
+        .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+export async function generateMetadata({ searchParams }: ListingsPageProps): Promise<Metadata> {
+    const params = await searchParams;
+    const page = Math.max(1, Number.parseInt(String(params.page || "1"), 10) || 1);
+    const category = String(params.category || "").trim();
+    const search = String(params.q || params.search || "").trim();
+    const indexableKeys = new Set(["category", "page"]);
+    const activeKeys = Object.entries(params)
+        .filter(([, value]) => value !== undefined && String(value).trim() !== "")
+        .map(([key]) => key);
+    const hasFacetedNoise = activeKeys.some((key) => !indexableKeys.has(key));
+    const shouldIndex = !search && !hasFacetedNoise;
+
+    const canonicalParams = new URLSearchParams();
+    if (category) canonicalParams.set("category", category);
+    if (page > 1) canonicalParams.set("page", String(page));
+    const canonicalPath = canonicalParams.size
+        ? `/ads?${canonicalParams.toString()}`
+        : "/ads";
+
+    const categoryName = category ? titleCaseSlug(category) : "All Categories";
+    const title = search
+        ? `Search results for “${search}”`
+        : category
+            ? `${categoryName} for Sale in Uganda${page > 1 ? ` – Page ${page}` : ""}`
+            : `Buy & Sell in Uganda${page > 1 ? ` – Page ${page}` : ""}`;
+    const description = category
+        ? `Browse new and used ${categoryName.toLowerCase()} for sale across Uganda. Contact sellers directly and post ads for free on QOT.`
+        : "Browse cars, phones, property, electronics, fashion, services and more for sale across Uganda on QOT.";
+
+    return {
+        title,
+        description,
+        alternates: { canonical: canonicalPath },
+        robots: shouldIndex
+            ? { index: true, follow: true }
+            : { index: false, follow: true },
+        openGraph: {
+            title,
+            description,
+            url: `https://qot.ug${canonicalPath}`,
+            type: "website",
+        },
+    };
+}
 
 function buildListingsQuery(params: any) {
     const query = new URLSearchParams();
@@ -290,8 +342,28 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
 
     const resultCount =
         typeof totalCount === "number" ? totalCount : listings.length;
+    const currentPage = Math.max(1, Number(params.page || 1));
+    const listingListSchema = {
+        "@context": "https://schema.org",
+        "@type": "ItemList",
+        name: params.category
+            ? `${titleCaseSlug(params.category)} ads in Uganda`
+            : "Marketplace ads in Uganda",
+        numberOfItems: listings.length,
+        itemListElement: listings.map((listing, index) => ({
+            "@type": "ListItem",
+            position: ((currentPage - 1) * 16) + index + 1,
+            name: listing?.title,
+            url: `https://qot.ug/ads/${listing?.id}`,
+            image: listing?.primary_image || undefined,
+        })),
+    };
 
     return (
+        <>
+        {listings.length > 0 && (
+            <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(listingListSchema).replace(/</g, "\\u003c") }} />
+        )}
         <main className="min-h-screen bg-[#fff7f2] text-slate-950 antialiased">
             <div className="mx-auto max-w-[1500px] px-3 py-2 md:px-6 md:py-4">
                 <Navbar categories={categories} cities={cities} />
@@ -353,7 +425,7 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
                             )}
 
                             <Pagination
-                                currentPage={Number(params.page || 1)}
+                                currentPage={currentPage}
                                 hasNext={hasNext}
                                 hasPrevious={hasPrevious}
                                 totalCount={totalCount}
@@ -384,5 +456,6 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
 
             </div>
         </main>
+        </>
     );
 }

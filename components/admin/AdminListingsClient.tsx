@@ -461,6 +461,11 @@ export default function AdminListingsClient() {
                                                 <span className={`rounded-full px-3 py-1 text-[9px] font-black uppercase tracking-wider ${statusClass(listing.status)}`}>
                                                     {listing.status || "Unknown"}
                                                 </span>
+                                                {listing.status === "pending" && listing.review_submission_type === "edit" && (
+                                                    <span className="rounded-full bg-blue-50 px-3 py-1 text-[9px] font-black uppercase tracking-wider text-blue-700">
+                                                        Edited — review changes
+                                                    </span>
+                                                )}
                                                 {listingFeatured && (
                                                     <span className="rounded-full bg-violet-50 px-3 py-1 text-[9px] font-black uppercase tracking-wider text-violet-700">
                                                         Featured

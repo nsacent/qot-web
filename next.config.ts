@@ -15,8 +15,36 @@ const nextConfig: NextConfig = {
             key: "Referrer-Policy",
             value: "strict-origin-when-cross-origin",
           },
+          {
+            key: "X-Robots-Tag",
+            value: "noindex, nofollow, noarchive",
+          },
         ],
       },
+      ...[
+        "/account/:path*",
+        "/admin/:path*",
+        "/api/:path*",
+        "/register",
+        "/forgot-password",
+        "/reset-password",
+        "/verification",
+        "/post-ad",
+        "/messages/:path*",
+        "/my-ads/:path*",
+        "/my-listings/:path*",
+        "/notifications",
+        "/recently-viewed",
+        "/saved-searches",
+      ].map((source) => ({
+        source,
+        headers: [
+          {
+            key: "X-Robots-Tag",
+            value: "noindex, nofollow, noarchive",
+          },
+        ],
+      })),
     ];
   },
 };

@@ -891,7 +891,7 @@ export default function PostAdForm() {
 
         try {
             const formData = new FormData();
-            formData.append("image", file);
+            formData.append("crop_image", file);
             const data = await clientApiPatchForm(
                 `/listings/images/stage/${cropPhoto.id}/`,
                 formData,
@@ -901,14 +901,13 @@ export default function PostAdForm() {
                 photo.id === cropPhoto.id
                     ? {
                         ...photo,
-                        name: file.name,
-                        url: data.source_image_url || data.image_url || data.card_image_url || photo.url,
+                        url: data.card_image_url || data.image_url || photo.url,
                         sourceUrl: data.source_image_url || data.image_url || photo.sourceUrl,
                     }
                     : photo
             )));
             setCropPhoto(null);
-            setUploadProgress("Photo crop updated and optimized.");
+            setUploadProgress("Display crop updated. Your original photo is preserved for the gallery and full-screen view.");
         } catch (cropError: unknown) {
             const message = cropError instanceof Error
                 ? cropError.message
@@ -1194,7 +1193,7 @@ export default function PostAdForm() {
                     ? "border-orange-200 bg-orange-50/70 hover:border-orange-300 hover:bg-orange-50"
                     : "border-slate-200 bg-slate-50"
                 }`}>
-                    <label className={`flex min-h-20 items-center gap-3 rounded-[14px] px-2 py-2 text-left ${category ? "cursor-pointer" : "cursor-not-allowed opacity-65"}`}>
+                    <label className={`flex min-h-[68px] items-center gap-3 rounded-[14px] px-2 py-2 text-left sm:min-h-20 ${category ? "cursor-pointer" : "cursor-not-allowed opacity-65"}`}>
                         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] bg-white text-orange-600 ring-1 ring-orange-100">
                             <FontAwesomeIcon icon={faCamera} className="h-4 w-4" />
                         </span>
@@ -1204,7 +1203,7 @@ export default function PostAdForm() {
                                     ? "Choose a category first"
                                     : photosUploading
                                         ? "Uploading photos..."
-                                        : "Tap to add photos"}
+                                        : "Choose photos from gallery"}
                             </span>
                             <span className="mt-0.5 block text-xs font-semibold text-slate-500">
                                 JPG, PNG or WEBP · 8MB maximum each · optimized automatically
@@ -1217,6 +1216,19 @@ export default function PostAdForm() {
                             type="file"
                             accept="image/jpeg,image/png,image/webp"
                             multiple
+                            onChange={handlePhotoSelection}
+                            disabled={photosUploading || !category}
+                            className="sr-only"
+                        />
+                    </label>
+
+                    <label className={`mt-2 flex min-h-12 items-center justify-center gap-2 rounded-[12px] bg-white px-3 text-xs font-black text-orange-600 ring-1 ring-orange-200 sm:hidden ${category ? "cursor-pointer" : "cursor-not-allowed opacity-60"}`}>
+                        <FontAwesomeIcon icon={faCamera} className="h-4 w-4" />
+                        Take a photo
+                        <input
+                            type="file"
+                            accept="image/*"
+                            capture="environment"
                             onChange={handlePhotoSelection}
                             disabled={photosUploading || !category}
                             className="sr-only"

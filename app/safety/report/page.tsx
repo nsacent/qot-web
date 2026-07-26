@@ -2,8 +2,20 @@ import { Suspense } from "react";
 import Navbar from "@/components/layout/QotMarketplaceNav";
 import QotMarketplaceFooter from "@/components/layout/QotMarketplaceFooter";
 import SafetyReportClient from "@/components/safety/SafetyReportClient";
+import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+    title: "Marketplace Safety and Reporting",
+    description: "Learn how to buy and sell safely on QOT Uganda, identify common scams and report a suspicious ad or seller.",
+    alternates: { canonical: "/safety/report" },
+    openGraph: {
+        title: "Marketplace Safety on QOT Uganda",
+        description: "Safety guidance for buyers and sellers, plus tools to report suspicious marketplace activity.",
+        url: "https://qot.ug/safety/report",
+    },
+};
 
 function SafetyReportFallback() {
     return (

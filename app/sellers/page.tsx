@@ -12,8 +12,28 @@ import {
     faStore,
     faUsers,
 } from "@fortawesome/free-solid-svg-icons";
+import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata({ searchParams }: SellersPageProps): Promise<Metadata> {
+    const params = await searchParams;
+    const hasSearch = Boolean(String(params?.search || "").trim());
+    const page = Math.max(1, Number.parseInt(String(params?.page || "1"), 10) || 1);
+    const canonical = page > 1 ? `/sellers?page=${page}` : "/sellers";
+
+    return {
+        title: page > 1 ? `Verified Sellers in Uganda – Page ${page}` : "Verified Sellers in Uganda",
+        description: "Browse verified, highly rated sellers with active ads on QOT Uganda.",
+        alternates: { canonical },
+        robots: hasSearch ? { index: false, follow: true } : { index: true, follow: true },
+        openGraph: {
+            title: "Verified Sellers on QOT Uganda",
+            description: "Discover trusted sellers and their active marketplace ads across Uganda.",
+            url: `https://qot.ug${canonical}`,
+        },
+    };
+}
 
 type SellersPageProps = {
     searchParams: Promise<{
@@ -75,8 +95,24 @@ export default async function SellersPage({ searchParams }: SellersPageProps) {
         params.set("page", String(nextPage));
         return `/sellers?${params.toString()}`;
     };
+    const sellerListSchema = {
+        "@context": "https://schema.org",
+        "@type": "ItemList",
+        name: `Verified QOT Uganda sellers${page > 1 ? ` – page ${page}` : ""}`,
+        numberOfItems: sellers.length,
+        itemListElement: sellers.map((seller, index) => ({
+            "@type": "ListItem",
+            position: ((page - 1) * 24) + index + 1,
+            name: sellerName(seller),
+            url: `https://qot.ug/sellers/${seller.id}`,
+        })),
+    };
 
     return (
+        <>
+        {!search && sellers.length > 0 && (
+            <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(sellerListSchema).replace(/</g, "\\u003c") }} />
+        )}
         <main className="min-h-screen bg-[#fff7f2] text-slate-950 antialiased">
             <div className="mx-auto max-w-[1500px] px-3 py-2 md:px-6 md:py-4">
                 <QotMarketplaceNav />
@@ -240,5 +276,6 @@ export default async function SellersPage({ searchParams }: SellersPageProps) {
 
             <QotMarketplaceFooter />
         </main>
+        </>
     );
 }

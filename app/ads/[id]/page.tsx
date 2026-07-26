@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import Navbar from "@/components/layout/QotMarketplaceNav";
-import QotMarketplaceFooter from "@/components/layout/QotMarketplaceFooter";
 import { apiGet } from "@/lib/api";
 import RecentlyViewedTracker from "@/components/listings/RecentlyViewedTracker";
 import SimilarListings from "@/components/listings/SimilarListings";
@@ -10,7 +9,8 @@ import BuyerSafetyCard from "@/components/listings/BuyerSafetyCard";
 import AdSellerCard from "@/components/sellers/AdSellerCard";
 import { formatDateTime, formatRelativeTime } from "@/lib/dateTime";
 import { backendJson, getAccessToken } from "@/lib/authCookies";
-import { getPrimaryListingSocialImage } from "@/lib/listingImages";
+import { getOrderedListingImages, getPrimaryListingSocialImage } from "@/lib/listingImages";
+import { notFound } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
@@ -119,6 +119,10 @@ function getCategoryName(listing: any) {
     return listing?.category?.name || listing?.category_name || "Ad";
 }
 
+function getCategorySlug(listing: any) {
+    return listing?.category?.slug || listing?.category_slug || listing?.category?.id || listing?.category || "";
+}
+
 function getCategoryBreadcrumb(listing: any) {
     const category = getCategoryName(listing);
     const parent =
@@ -168,7 +172,21 @@ function getShareDescription(listing: any) {
     const location = getLocation(listing);
     const summary = [price, location, description].filter(Boolean).join(" · ");
 
-    return summary.length > 200 ? `${summary.slice(0, 197).trimEnd()}...` : summary;
+    return summary.length > 160 ? `${summary.slice(0, 159).trimEnd()}…` : summary;
+}
+
+function getListingAttribute(listing: any, key: string) {
+    const attribute = Array.isArray(listing?.attributes)
+        ? listing.attributes.find((item: any) => String(item?.filter_key || item?.key || "").toLowerCase() === key)
+        : null;
+    return attribute?.display_value ?? attribute?.value_text ?? attribute?.value_number ?? "";
+}
+
+function getConditionSchemaUrl(condition: any) {
+    const value = String(condition || "").toLowerCase();
+    if (value === "new") return "https://schema.org/NewCondition";
+    if (value === "refurbished") return "https://schema.org/RefurbishedCondition";
+    return "https://schema.org/UsedCondition";
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
@@ -190,7 +208,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
     const adName = String(listing?.title || "QOT ad").trim();
     const price = formatPrice(listing?.price, listing?.currency || "UGX");
-    const shareTitle = `${adName} - ${price}`;
+    const location = getLocation(listing);
+    const rawTitle = `${adName} – ${price} in ${location}`;
+    const shareTitle = rawTitle.length > 68
+        ? `${rawTitle.slice(0, 67).trimEnd()}…`
+        : rawTitle;
     const shareDescription = getShareDescription(listing);
     const coverImage = getPrimaryListingSocialImage(listing);
     const images = coverImage
@@ -201,6 +223,16 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
         title: shareTitle,
         description: shareDescription,
         alternates: { canonical: canonicalUrl },
+        robots: {
+            index: true,
+            follow: true,
+            googleBot: {
+                index: true,
+                follow: true,
+                "max-image-preview": "large",
+                "max-snippet": -1,
+            },
+        },
         openGraph: {
             title: shareTitle,
             description: shareDescription,
@@ -234,36 +266,7 @@ export default async function ListingDetailsPage({ params }: PageProps) {
     const listingPayload = await getListingForRequest(id);
     listing = getListingFromPayload(listingPayload);
 
-    if (!listing) {
-        return (
-            <main className="min-h-screen bg-[#fff7f2] text-slate-950 antialiased">
-                <div className="mx-auto max-w-[1500px] px-4 py-4 sm:px-6">
-                    <Navbar categories={categories} cities={cities} />
-
-                    <section className="py-10">
-                        <div className="mx-auto max-w-3xl rounded-[34px] bg-white p-8 text-center shadow-[0_18px_60px_rgba(15,23,42,0.10)] ring-1 ring-black/5">
-                            <h1 className="text-2xl font-black text-slate-950">
-                                Ad not found
-                            </h1>
-
-                            <p className="mt-2 text-sm font-semibold text-slate-500">
-                                This ad may have been removed, expired, or is no longer available.
-                            </p>
-
-                            <Link
-                                href="/ads"
-                                className="mt-6 inline-flex rounded-2xl bg-orange-500 px-5 py-3 text-sm font-black text-white hover:bg-orange-600"
-                            >
-                                Back to Ads
-                            </Link>
-                        </div>
-                    </section>
-
-                    <QotMarketplaceFooter />
-                </div>
-            </main>
-        );
-    }
+    if (!listing) notFound();
 
     const sellerId = getSellerId(listing);
     const sellerProfile = sellerId
@@ -293,18 +296,126 @@ export default async function ListingDetailsPage({ params }: PageProps) {
         listing?.admin_note ||
         ""
     ).trim();
+    const canonicalUrl = `${SITE_URL}/ads/${encodeURIComponent(id)}`;
+    const categorySlug = getCategorySlug(listing);
+    const listingImages = getOrderedListingImages(listing);
+    const schemaImages = Array.from(new Set(
+        listingImages.flatMap((image: any) => [image.url, image.cardUrl, image.socialUrl]).filter(Boolean)
+    ));
+    const priceValue = Number(String(listing?.price || "").replace(/[^\d.]/g, ""));
+    const sellerSchema = {
+        "@type": sellerProfile?.business_name ? "Organization" : "Person",
+        name: sellerName,
+        url: sellerId ? `${SITE_URL}/sellers/${sellerId}` : undefined,
+    };
+    const offerSchema = {
+        "@type": "Offer",
+        url: canonicalUrl,
+        priceCurrency: listing?.currency || "UGX",
+        price: Number.isFinite(priceValue) && priceValue > 0 ? priceValue : undefined,
+        availability: isPublicListing
+            ? "https://schema.org/InStock"
+            : "https://schema.org/OutOfStock",
+        itemCondition: getConditionSchemaUrl(listing?.condition),
+        priceValidUntil: listing?.expires_at
+            ? String(listing.expires_at).slice(0, 10)
+            : undefined,
+        seller: sellerSchema,
+        areaServed: { "@type": "Country", name: "Uganda" },
+    };
+    const categoryType = getCategoryName(listing).toLowerCase();
+    const commonSchema = {
+        "@context": "https://schema.org",
+        "@id": `${canonicalUrl}#ad`,
+        name: listing?.title,
+        description: String(listing?.description || "").trim(),
+        url: canonicalUrl,
+        image: schemaImages,
+        dateCreated: listing?.created_at,
+        dateModified: listing?.updated_at,
+    };
+    let adSchema: Record<string, any>;
+    if (categoryType.includes("job")) {
+        adSchema = {
+            ...commonSchema,
+            "@type": "JobPosting",
+            title: listing?.title,
+            datePosted: listing?.created_at,
+            validThrough: listing?.expires_at || undefined,
+            hiringOrganization: sellerSchema,
+            jobLocation: {
+                "@type": "Place",
+                address: {
+                    "@type": "PostalAddress",
+                    addressLocality: location,
+                    addressCountry: "UG",
+                },
+            },
+        };
+    } else if (categoryType.includes("service")) {
+        adSchema = {
+            ...commonSchema,
+            "@type": "Service",
+            provider: sellerSchema,
+            areaServed: location,
+            offers: offerSchema,
+        };
+    } else if (categoryType.includes("property") || categoryType.includes("real estate")) {
+        adSchema = {
+            ...commonSchema,
+            "@type": "RealEstateListing",
+            offers: offerSchema,
+        };
+    } else {
+        const brand = getListingAttribute(listing, "brand");
+        adSchema = {
+            ...commonSchema,
+            "@type": "Product",
+            sku: `QOT-${listing.id}`,
+            category: categoryName,
+            brand: brand ? { "@type": "Brand", name: String(brand) } : undefined,
+            offers: offerSchema,
+        };
+    }
+    const breadcrumbSchema = {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        itemListElement: [
+            { "@type": "ListItem", position: 1, name: "Home", item: `${SITE_URL}/` },
+            { "@type": "ListItem", position: 2, name: "Ads", item: `${SITE_URL}/ads` },
+            ...(categorySlug ? [{
+                "@type": "ListItem",
+                position: 3,
+                name: categoryName,
+                item: `${SITE_URL}/ads?category=${encodeURIComponent(categorySlug)}`,
+            }] : []),
+            {
+                "@type": "ListItem",
+                position: categorySlug ? 4 : 3,
+                name: listing?.title,
+                item: canonicalUrl,
+            },
+        ],
+    };
 
     return (
+        <>
+        {isPublicListing && (
+            <>
+                <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(adSchema).replace(/</g, "\\u003c") }} />
+                <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema).replace(/</g, "\\u003c") }} />
+            </>
+        )}
         <main className="min-h-screen bg-[#fff7f2] text-slate-950 antialiased">
             {isPublicListing && <RecentlyViewedTracker listing={listing} />}
 
             <div className="mx-auto max-w-[1500px] px-4 py-4 sm:px-6">
                 <Navbar categories={categories} cities={cities} />
 
-                <section className="py-6">
+                <section className="py-2 sm:py-6">
                     <Link
                         href="/ads"
-                        className="inline-flex rounded-2xl bg-white px-4 py-2 text-sm font-black text-orange-600 shadow-sm ring-1 ring-black/5 hover:bg-orange-50"
+                        className="hidden rounded-2xl bg-white px-4 py-2 text-sm font-black text-orange-600 shadow-sm ring-1 ring-black/5 hover:bg-orange-50 sm:inline-flex"
                     >
                         ← Back to Ads
                     </Link>
@@ -360,77 +471,78 @@ export default async function ListingDetailsPage({ params }: PageProps) {
                         </div>
                     )}
 
-                    <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_0.42fr]">
-                        <div className="rounded-[34px] bg-white p-5 shadow-[0_18px_60px_rgba(15,23,42,0.10)] ring-1 ring-black/5 sm:p-7">
+                    <div className="mt-2 grid gap-3 sm:mt-6 sm:gap-6 lg:grid-cols-[1fr_0.42fr]">
+                        <div className="-mx-4 overflow-hidden bg-white shadow-none sm:mx-0 sm:rounded-[34px] sm:p-7 sm:shadow-[0_18px_60px_rgba(15,23,42,0.10)] sm:ring-1 sm:ring-black/5">
                             <ListingImageCarousel
                                 listing={listing}
                                 title={listing?.title || "Ad image"}
                             />
 
-                            <div className="mt-7 flex flex-wrap gap-2">
-                                <span className="rounded-full bg-orange-50 px-3 py-1 text-xs font-black uppercase tracking-wide text-orange-600">
+                            <div className="px-4 pb-4 sm:px-0 sm:pb-0">
+                            <div className="mt-3 flex flex-wrap items-center gap-1.5 sm:mt-7 sm:gap-2">
+                                <span className="max-w-full truncate rounded-[7px] bg-orange-50 px-2 py-1 text-[9px] font-black uppercase tracking-wide text-orange-600 sm:rounded-full sm:px-3 sm:text-xs">
                                     {categoryName}
                                 </span>
 
                                 {(listing?.is_featured ||
                                     listing?.featured ||
                                     listing?.featured_until) && (
-                                        <span className="rounded-full bg-orange-500 px-3 py-1 text-xs font-black uppercase tracking-wide text-white">
+                                        <span className="rounded-[7px] bg-orange-500 px-2 py-1 text-[9px] font-black uppercase tracking-wide text-white sm:rounded-full sm:px-3 sm:text-xs">
                                             Featured
                                         </span>
                                     )}
 
                                 {(listing?.seller?.is_verified || listing?.seller?.verified) && (
-                                    <span className="rounded-full bg-green-50 px-3 py-1 text-xs font-black uppercase tracking-wide text-green-700">
+                                    <span className="hidden rounded-full bg-green-50 px-3 py-1 text-xs font-black uppercase tracking-wide text-green-700 sm:inline-flex">
                                         Verified Seller
                                     </span>
                                 )}
 
-                                <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black uppercase tracking-wide text-slate-700">
+                                <span className="rounded-[7px] bg-slate-100 px-2 py-1 text-[9px] font-black uppercase tracking-wide text-slate-700 sm:rounded-full sm:px-3 sm:text-xs">
                                     {statusLabel}
                                 </span>
                             </div>
 
-                            <h1 className="mt-5 text-3xl font-black tracking-tight text-slate-950 md:text-5xl">
+                            <h1 className="mt-3 text-xl font-black leading-6 tracking-tight text-slate-950 sm:mt-5 sm:text-3xl sm:leading-tight md:text-5xl">
                                 {listing?.title || "Untitled ad"}
                             </h1>
 
-                            <div className="mt-4 flex flex-wrap items-center gap-2.5">
-                                <p className="text-3xl font-black text-orange-600 md:text-4xl">
+                            <div className="mt-2 flex min-w-0 flex-nowrap items-center gap-2.5 sm:mt-4">
+                                <p className="min-w-0 truncate whitespace-nowrap text-2xl font-black tracking-tight text-orange-600 sm:text-3xl md:text-4xl">
                                     {formatPrice(listing?.price, listing?.currency || "UGX")}
                                 </p>
                                 {isNegotiable && (
-                                    <span className="rounded-full bg-orange-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-orange-700 ring-1 ring-orange-100">
+                                    <span className="shrink-0 rounded-[7px] bg-orange-50 px-2 py-1 text-[8px] font-black uppercase tracking-wide text-orange-700 ring-1 ring-orange-100 sm:rounded-full sm:px-2.5 sm:text-[10px]">
                                         Negotiable
                                     </span>
                                 )}
                             </div>
 
-                            <div className="mt-6 grid gap-3 sm:grid-cols-3">
-                                <div className="rounded-3xl bg-slate-50 p-4">
-                                    <p className="text-xs font-black uppercase tracking-wide text-slate-400">
+                            <div className="mt-3 grid grid-cols-3 gap-1.5 sm:mt-6 sm:gap-3">
+                                <div className="min-w-0 rounded-[12px] bg-slate-50 p-2.5 sm:rounded-3xl sm:p-4">
+                                    <p className="text-[8px] font-black uppercase tracking-wide text-slate-400 sm:text-xs">
                                         Location
                                     </p>
-                                    <p className="mt-1 text-sm font-black text-slate-800">
+                                    <p className="mt-1 truncate text-[10px] font-black text-slate-800 sm:text-sm">
                                         {location}
                                     </p>
                                 </div>
 
-                                <div className="rounded-3xl bg-slate-50 p-4">
-                                    <p className="text-xs font-black uppercase tracking-wide text-slate-400">
+                                <div className="min-w-0 rounded-[12px] bg-slate-50 p-2.5 sm:rounded-3xl sm:p-4">
+                                    <p className="text-[8px] font-black uppercase tracking-wide text-slate-400 sm:text-xs">
                                         Condition
                                     </p>
-                                    <p className="mt-1 text-sm font-black text-slate-800">
+                                    <p className="mt-1 truncate text-[10px] font-black text-slate-800 sm:text-sm">
                                         {conditionLabel}
                                     </p>
                                 </div>
 
-                                <div className="rounded-3xl bg-slate-50 p-4">
-                                    <p className="text-xs font-black uppercase tracking-wide text-slate-400">
+                                <div className="min-w-0 rounded-[12px] bg-slate-50 p-2.5 sm:rounded-3xl sm:p-4">
+                                    <p className="text-[8px] font-black uppercase tracking-wide text-slate-400 sm:text-xs">
                                         Posted
                                     </p>
                                     <p
-                                        className="mt-1 text-sm font-black text-slate-800"
+                                        className="mt-1 truncate text-[10px] font-black text-slate-800 sm:text-sm"
                                         title={formatDateTime(postedValue)}
                                     >
                                         {postedDate}
@@ -438,24 +550,24 @@ export default async function ListingDetailsPage({ params }: PageProps) {
                                 </div>
                             </div>
 
-                            <div className="mt-8 rounded-[28px] bg-slate-50 p-5">
-                                <h2 className="text-lg font-black text-slate-950">
+                            <div className="mt-4 rounded-[14px] bg-slate-50 p-3 sm:mt-8 sm:rounded-[28px] sm:p-5">
+                                <h2 className="text-sm font-black text-slate-950 sm:text-lg">
                                     Description
                                 </h2>
 
-                                <p className="mt-3 whitespace-pre-line text-sm font-semibold leading-7 text-slate-600">
+                                <p className="mt-2 whitespace-pre-line text-[13px] font-semibold leading-5 text-slate-600 sm:mt-3 sm:text-sm sm:leading-7">
                                     {listing?.description || "No description provided."}
                                 </p>
                             </div>
 
                             {Array.isArray(listing?.attributes) &&
                                 listing.attributes.length > 0 && (
-                                    <div className="mt-6 rounded-[28px] bg-slate-50 p-5">
-                                        <h2 className="text-lg font-black text-slate-950">
+                                    <div className="mt-3 rounded-[14px] bg-slate-50 p-3 sm:mt-6 sm:rounded-[28px] sm:p-5">
+                                        <h2 className="text-sm font-black text-slate-950 sm:text-lg">
                                             Product Details
                                         </h2>
 
-                                        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                                        <div className="mt-2 grid grid-cols-2 gap-2 sm:mt-4 sm:gap-3">
                                             {listing.attributes.map((item: any) => {
                                                 const label =
                                                     item?.filter_name ||
@@ -481,13 +593,13 @@ export default async function ListingDetailsPage({ params }: PageProps) {
                                                 return (
                                                     <div
                                                         key={`${label}-${value}`}
-                                                        className="rounded-2xl bg-white px-4 py-3 ring-1 ring-black/5"
+                                                        className="min-w-0 rounded-[10px] bg-white px-2.5 py-2 ring-1 ring-black/5 sm:rounded-2xl sm:px-4 sm:py-3"
                                                     >
-                                                        <p className="text-xs font-black uppercase tracking-wide text-slate-400">
+                                                        <p className="truncate text-[8px] font-black uppercase tracking-wide text-slate-400 sm:text-xs">
                                                             {label}
                                                         </p>
 
-                                                        <p className="mt-1 text-sm font-black text-slate-800">
+                                                        <p className="mt-1 break-words text-[11px] font-black text-slate-800 sm:text-sm">
                                                             {String(value)}
                                                         </p>
                                                     </div>
@@ -496,9 +608,10 @@ export default async function ListingDetailsPage({ params }: PageProps) {
                                         </div>
                                     </div>
                                 )}
+                            </div>
                         </div>
 
-                        <aside className="space-y-6">
+                        <aside className="space-y-3 sm:space-y-6">
                             <BuyerSafetyCard listingId={listing.id} />
 
                             <AdSellerCard
@@ -518,5 +631,6 @@ export default async function ListingDetailsPage({ params }: PageProps) {
 
             </div>
         </main>
+        </>
     );
 }

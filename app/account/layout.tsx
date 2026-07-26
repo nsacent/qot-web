@@ -1,9 +1,15 @@
 import type { ReactNode } from "react";
+import type { Metadata } from "next";
 import AccountShell from "@/components/account/AccountShell";
 import QotMarketplaceFooter from "@/components/layout/QotMarketplaceFooter";
 import QotMarketplaceNav from "@/components/layout/QotMarketplaceNav";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+    title: "My Account",
+    robots: { index: false, follow: false, noarchive: true },
+};
 
 const API_BASE_URL =
     process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000/api/v1";

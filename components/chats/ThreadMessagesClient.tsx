@@ -8,6 +8,8 @@ import {
     faBoxArchive,
     faEllipsisVertical,
     faFileLines,
+    faCircleCheck,
+    faPhone,
     faPaperclip,
     faPaperPlane,
     faReply,
@@ -26,7 +28,7 @@ import { formatRelativeTime } from "@/lib/dateTime";
 const QUICK_MESSAGES = [
     "Hi, is this ad still available?",
     "What is your best price?",
-    "I would like to offer UGX ",
+    "Can we discuss the price?",
     "Where can I inspect the item?",
 ];
 
@@ -117,6 +119,7 @@ export default function ThreadMessagesClient({ threadId }: { threadId: string })
     const [sendError, setSendError] = useState("");
     const [actionError, setActionError] = useState("");
     const [actionLoading, setActionLoading] = useState(false);
+    const [offerActionId, setOfferActionId] = useState<string | null>(null);
     const [attachments, setAttachments] = useState<File[]>([]);
     const [otherUserOnline, setOtherUserOnline] = useState(false);
     const [otherUserLastSeen, setOtherUserLastSeen] = useState<string | null>(null);
@@ -476,6 +479,26 @@ export default function ThreadMessagesClient({ threadId }: { threadId: string })
         }
     }
 
+    async function updateOffer(messageId: string | number, action: "accept" | "decline" | "withdraw") {
+        setOfferActionId(String(messageId));
+        setActionError("");
+        try {
+            const response = await fetch(`/api/proxy/chats/threads/${threadId}/messages/${messageId}/offer/`, {
+                method: "POST",
+                credentials: "include",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ action }),
+            });
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok) throw new Error(data?.detail || "Failed to update this offer.");
+            setMessages((current) => mergeMessage(current, data));
+        } catch (requestError: any) {
+            setActionError(requestError?.message || "Failed to update this offer.");
+        } finally {
+            setOfferActionId(null);
+        }
+    }
+
     function startReply(message: any) {
         setReplyingTo(message);
         window.setTimeout(() => composerRef.current?.focus(), 0);
@@ -628,6 +651,12 @@ export default function ThreadMessagesClient({ threadId }: { threadId: string })
                         </span>
                         <div className="min-w-0">
                             <h1 className="truncate text-sm font-black text-slate-950 sm:text-base">{participantName}</h1>
+                            {thread?.other_user_is_admin && (
+                                <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-1 text-[8px] font-black uppercase tracking-wider text-blue-700 ring-1 ring-blue-100">
+                                    <FontAwesomeIcon icon={faShieldHalved} className="h-2.5 w-2.5" />
+                                    QOT {thread?.other_user_role === "moderator" ? "Moderator" : "Admin"}
+                                </span>
+                            )}
                             <p className={`mt-0.5 flex items-center gap-1.5 text-[10px] font-black sm:text-[11px] ${otherUserTyping ? "text-orange-600" : otherUserOnline ? "text-emerald-600" : "text-slate-400"}`}>
                                 {otherUserTyping ? (
                                     <><span className="flex gap-0.5"><span className="h-1.5 w-1.5 animate-bounce rounded-full bg-orange-500" /><span className="h-1.5 w-1.5 animate-bounce rounded-full bg-orange-500 [animation-delay:120ms]" /><span className="h-1.5 w-1.5 animate-bounce rounded-full bg-orange-500 [animation-delay:240ms]" /></span>is typing…</>
@@ -702,6 +731,10 @@ export default function ThreadMessagesClient({ threadId }: { threadId: string })
                     const legacyImage = message?.image;
                     const messageAttachments = Array.isArray(message?.attachments) ? message.attachments : [];
                     const messageBody = message?.body || message?.message || "";
+                    const isOffer = message?.message_type === "offer";
+                    const isCallback = message?.message_type === "callback";
+                    const offerPending = message?.offer_status === "pending";
+                    const currentUserIsSeller = String(currentUser?.id) === String(thread?.seller);
 
                     return (
                         <div key={message.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
@@ -744,7 +777,38 @@ export default function ThreadMessagesClient({ threadId }: { threadId: string })
                                         })}
                                     </div>
                                 )}
-                                {messageBody && (
+                                {isOffer && (
+                                    <div className="min-w-[230px] overflow-hidden rounded-[18px] bg-white text-left shadow-sm ring-1 ring-orange-200">
+                                        <div className="bg-orange-50 px-4 py-3">
+                                            <p className="text-[9px] font-black uppercase tracking-[0.16em] text-orange-600">Price offer</p>
+                                            <p className="mt-1 text-xl font-black text-slate-950">UGX {Number(message?.offer_amount || 0).toLocaleString("en-UG")}</p>
+                                            <span className={`mt-2 inline-flex rounded-full px-2 py-1 text-[9px] font-black uppercase ${message?.offer_status === "accepted" ? "bg-emerald-100 text-emerald-700" : message?.offer_status === "declined" || message?.offer_status === "withdrawn" ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"}`}>{message?.offer_status || "pending"}</span>
+                                        </div>
+                                        {offerPending && (
+                                            <div className="flex gap-2 p-3">
+                                                {currentUserIsSeller ? (
+                                                    <>
+                                                        <button type="button" disabled={offerActionId === String(message.id)} onClick={() => void updateOffer(message.id, "decline")} className="flex-1 rounded-xl bg-slate-100 px-3 py-2 text-[10px] font-black text-slate-700 disabled:opacity-50">Decline</button>
+                                                        <button type="button" disabled={offerActionId === String(message.id)} onClick={() => void updateOffer(message.id, "accept")} className="flex flex-1 items-center justify-center gap-1 rounded-xl bg-emerald-600 px-3 py-2 text-[10px] font-black text-white disabled:opacity-50"><FontAwesomeIcon icon={faCircleCheck} className="h-3 w-3" />Accept</button>
+                                                    </>
+                                                ) : mine ? (
+                                                    <button type="button" disabled={offerActionId === String(message.id)} onClick={() => void updateOffer(message.id, "withdraw")} className="w-full rounded-xl bg-slate-100 px-3 py-2 text-[10px] font-black text-slate-700 disabled:opacity-50">Withdraw offer</button>
+                                                ) : null}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                                {isCallback && (
+                                    <div className="min-w-[230px] rounded-[18px] bg-white p-4 text-left shadow-sm ring-1 ring-blue-200">
+                                        <div className="flex items-center gap-2 text-blue-700">
+                                            <FontAwesomeIcon icon={faPhone} className="h-3.5 w-3.5" />
+                                            <p className="text-[9px] font-black uppercase tracking-[0.16em]">Callback requested</p>
+                                        </div>
+                                        <p className="mt-3 text-sm font-black text-slate-950">{message?.callback_name}</p>
+                                        <a href={`tel:${message?.callback_phone}`} className="mt-1 block text-sm font-black text-blue-700 hover:underline">{message?.callback_phone}</a>
+                                    </div>
+                                )}
+                                {messageBody && !isOffer && !isCallback && (
                                     <div className={`overflow-hidden rounded-[20px] px-4 py-3 text-left shadow-sm ${mine ? "rounded-br-[6px] bg-orange-500 text-white" : "rounded-bl-[6px] bg-white text-slate-800 ring-1 ring-slate-200"}`}>
                                         <MessageText text={messageBody} mine={mine} />
                                     </div>

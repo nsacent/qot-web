@@ -7,6 +7,7 @@ import {
     faArrowLeft,
     faArrowRight,
     faCircleCheck,
+    faCropSimple,
     faEye,
     faFloppyDisk,
     faLocationDot,
@@ -15,8 +16,9 @@ import {
     faStore,
     faTag,
     faTriangleExclamation,
+    faTrashCan,
 } from "@fortawesome/free-solid-svg-icons";
-import { apiGet, apiPatch } from "@/lib/apiClient";
+import { apiGet, apiPatch, apiPost } from "@/lib/apiClient";
 import {
     CategoryPickerModal,
     LocationPickerModal,
@@ -28,6 +30,8 @@ import {
     AdminLoadingState,
 } from "@/components/admin/AdminUi";
 import InlineError from "@/components/forms/InlineError";
+import PhotoCropModal from "@/components/listings/PhotoCropModal";
+import AdActionModal from "@/components/listings/AdActionModal";
 import {
     AD_DESCRIPTION_MIN_LENGTH,
     AD_TITLE_MAX_LENGTH,
@@ -62,6 +66,17 @@ type AdminListing = {
     condition: string;
     is_negotiable: boolean;
     attributes: ListingAttribute[];
+    images: AdminListingImage[];
+};
+
+type AdminListingImage = {
+    id: number;
+    image?: string | null;
+    image_url?: string | null;
+    source_image_url?: string | null;
+    card_image_url?: string | null;
+    is_primary: boolean;
+    sort_order: number;
 };
 
 type Category = {
@@ -244,6 +259,11 @@ function formFromListing(listing: AdminListing): ListingForm {
     };
 }
 
+function photoUrl(image: AdminListingImage, original = false) {
+    if (original) return image.source_image_url || image.image_url || image.image || "";
+    return image.card_image_url || image.image_url || image.image || "";
+}
+
 export default function AdminListingEditClient({
     listingId,
 }: {
@@ -264,6 +284,12 @@ export default function AdminListingEditClient({
     const [specificationsError, setSpecificationsError] = useState("");
     const [saveError, setSaveError] = useState("");
     const [message, setMessage] = useState("");
+    const [photos, setPhotos] = useState<AdminListingImage[]>([]);
+    const [photoError, setPhotoError] = useState("");
+    const [photoBusy, setPhotoBusy] = useState(false);
+    const [draggedPhotoId, setDraggedPhotoId] = useState<number | null>(null);
+    const [cropPhoto, setCropPhoto] = useState<AdminListingImage | null>(null);
+    const [deletePhoto, setDeletePhoto] = useState<AdminListingImage | null>(null);
     const [categoryModalOpen, setCategoryModalOpen] = useState(false);
     const [locationModalOpen, setLocationModalOpen] = useState(false);
     const [categorySearch, setCategorySearch] = useState("");
@@ -360,6 +386,7 @@ export default function AdminListingEditClient({
                     .filter((city): city is City => Boolean(city));
 
                 setListing(listingData);
+                setPhotos([...(listingData.images || [])].sort((a, b) => a.sort_order - b.sort_order));
                 setForm(formFromListing(listingData));
                 setCategories(normalizedCategories);
                 setCities(normalizedCities);
@@ -513,6 +540,99 @@ export default function AdminListingEditClient({
         }
     }
 
+    async function savePhotoOrder(nextPhotos: AdminListingImage[]) {
+        setPhotoBusy(true);
+        setPhotoError("");
+        try {
+            await apiPost(`/admin-panel/listings/${listingId}/images/reorder/`, {
+                image_ids: nextPhotos.map((photo) => photo.id),
+            });
+            setPhotos(nextPhotos.map((photo, index) => ({
+                ...photo,
+                sort_order: index,
+                is_primary: index === 0,
+            })));
+            setMessage("Photo order updated. The first photo is now the cover.");
+        } catch (requestError: unknown) {
+            setPhotoError(errorMessage(requestError, "Failed to reorder photos."));
+        } finally {
+            setPhotoBusy(false);
+        }
+    }
+
+    function dropPhoto(targetId: number) {
+        if (!draggedPhotoId || draggedPhotoId === targetId || photoBusy) return;
+        const fromIndex = photos.findIndex((photo) => photo.id === draggedPhotoId);
+        const toIndex = photos.findIndex((photo) => photo.id === targetId);
+        if (fromIndex < 0 || toIndex < 0) return;
+        const nextPhotos = [...photos];
+        const [moved] = nextPhotos.splice(fromIndex, 1);
+        nextPhotos.splice(toIndex, 0, moved);
+        setDraggedPhotoId(null);
+        void savePhotoOrder(nextPhotos);
+    }
+
+    function movePhoto(photoId: number, direction: -1 | 1) {
+        if (photoBusy) return;
+        const currentIndex = photos.findIndex((photo) => photo.id === photoId);
+        const nextIndex = currentIndex + direction;
+        if (currentIndex < 0 || nextIndex < 0 || nextIndex >= photos.length) return;
+        const nextPhotos = [...photos];
+        [nextPhotos[currentIndex], nextPhotos[nextIndex]] = [
+            nextPhotos[nextIndex],
+            nextPhotos[currentIndex],
+        ];
+        void savePhotoOrder(nextPhotos);
+    }
+
+    async function cropExistingPhoto(file: File) {
+        if (!cropPhoto) return;
+        setPhotoBusy(true);
+        setPhotoError("");
+        try {
+            const formData = new FormData();
+            formData.append("crop_image", file);
+            const response = await fetch(`/api/proxy/admin-panel/listings/${listingId}/images/${cropPhoto.id}/`, {
+                method: "PATCH",
+                credentials: "include",
+                body: formData,
+            });
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok) throw new Error(data?.detail || "Failed to crop this photo.");
+            setPhotos((current) => current.map((photo) => photo.id === cropPhoto.id ? { ...photo, ...data } : photo));
+            setCropPhoto(null);
+            setMessage("Display crop updated. The seller’s original photo was preserved.");
+        } catch (requestError: unknown) {
+            setPhotoError(errorMessage(requestError, "Failed to crop this photo."));
+        } finally {
+            setPhotoBusy(false);
+        }
+    }
+
+    async function confirmDeletePhoto() {
+        if (!deletePhoto) return;
+        setPhotoBusy(true);
+        setPhotoError("");
+        try {
+            const response = await fetch(`/api/proxy/admin-panel/listings/${listingId}/images/${deletePhoto.id}/`, {
+                method: "DELETE",
+                credentials: "include",
+            });
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok) throw new Error(data?.detail || "Failed to delete this photo.");
+            setPhotos((current) => current
+                .filter((photo) => photo.id !== deletePhoto.id)
+                .map((photo, index) => ({ ...photo, sort_order: index, is_primary: index === 0 }))
+            );
+            setDeletePhoto(null);
+            setMessage("Photo removed from the ad.");
+        } catch (requestError: unknown) {
+            setPhotoError(errorMessage(requestError, "Failed to delete this photo."));
+        } finally {
+            setPhotoBusy(false);
+        }
+    }
+
     if (loading) {
         return <AdminLoadingState label="Loading ad editor" />;
     }
@@ -582,6 +702,44 @@ export default function AdminListingEditClient({
                 className="grid gap-6 xl:grid-cols-[minmax(0,1.5fr)_minmax(300px,0.65fr)]"
             >
                 <div className="space-y-6">
+                    <FormSection
+                        eyebrow="Moderation photos"
+                        title="Review and arrange photos"
+                        icon={faEye}
+                    >
+                        <p className="text-xs font-semibold leading-5 text-slate-500">
+                            Drag photos to reorder them. The first photo becomes the cover. You can crop or remove existing photos, but admins cannot upload photos for a seller.
+                        </p>
+                        {photoError && <InlineError message={photoError} onDismiss={() => setPhotoError("")} />}
+                        {photos.length ? (
+                            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                                {photos.map((photo, index) => (
+                                    <article
+                                        key={photo.id}
+                                        draggable={!photoBusy}
+                                        onDragStart={() => setDraggedPhotoId(photo.id)}
+                                        onDragOver={(event) => event.preventDefault()}
+                                        onDrop={() => dropPhoto(photo.id)}
+                                        className={`overflow-hidden rounded-[18px] bg-slate-50 ring-1 transition ${draggedPhotoId === photo.id ? "opacity-50 ring-orange-400" : "ring-slate-200"}`}
+                                    >
+                                        <div className="relative aspect-[4/3] bg-slate-100">
+                                            {photoUrl(photo) ? <img src={photoUrl(photo)} alt={`Ad photo ${index + 1}`} className="h-full w-full object-cover" /> : null}
+                                            <span className={`absolute left-2 top-2 rounded-full px-2 py-1 text-[8px] font-black uppercase ${index === 0 ? "bg-orange-500 text-white" : "bg-slate-950/70 text-white"}`}>{index === 0 ? "Cover" : index + 1}</span>
+                                        </div>
+                                        <div className="grid grid-cols-4 gap-1.5 p-2">
+                                            <button type="button" disabled={photoBusy || index === 0} onClick={() => movePhoto(photo.id, -1)} aria-label="Move photo earlier" title="Move earlier" className="inline-flex items-center justify-center rounded-xl bg-white px-2 py-2 text-slate-600 ring-1 ring-slate-200 hover:text-orange-600 disabled:opacity-30"><FontAwesomeIcon icon={faArrowLeft} className="h-3 w-3" /></button>
+                                            <button type="button" disabled={photoBusy || index === photos.length - 1} onClick={() => movePhoto(photo.id, 1)} aria-label="Move photo later" title="Move later" className="inline-flex items-center justify-center rounded-xl bg-white px-2 py-2 text-slate-600 ring-1 ring-slate-200 hover:text-orange-600 disabled:opacity-30"><FontAwesomeIcon icon={faArrowRight} className="h-3 w-3" /></button>
+                                            <button type="button" disabled={photoBusy} onClick={() => setCropPhoto(photo)} className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-white px-2 py-2 text-[10px] font-black text-slate-700 ring-1 ring-slate-200 hover:text-orange-600 disabled:opacity-50"><FontAwesomeIcon icon={faCropSimple} className="h-3 w-3" />Crop</button>
+                                            <button type="button" disabled={photoBusy} onClick={() => setDeletePhoto(photo)} className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-red-50 px-2 py-2 text-[10px] font-black text-red-600 hover:bg-red-100 disabled:opacity-50"><FontAwesomeIcon icon={faTrashCan} className="h-3 w-3" />Delete</button>
+                                        </div>
+                                    </article>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="rounded-2xl border border-dashed border-slate-200 px-4 py-8 text-center text-xs font-semibold text-slate-400">This ad has no photos.</div>
+                        )}
+                    </FormSection>
+
                     <FormSection
                         sectionRef={coreSectionRef}
                         eyebrow="Core content"
@@ -858,6 +1016,26 @@ export default function AdminListingEditClient({
                     </Link>
                 </aside>
             </form>
+            <PhotoCropModal
+                open={Boolean(cropPhoto)}
+                sourceUrl={cropPhoto ? photoUrl(cropPhoto, true) : ""}
+                sourceName={cropPhoto ? `ad-${listing.id}-photo-${cropPhoto.id}` : "ad-photo"}
+                title="Crop ad display photo"
+                isSaving={photoBusy}
+                onCancel={() => !photoBusy && setCropPhoto(null)}
+                onConfirm={cropExistingPhoto}
+            />
+            <AdActionModal
+                open={Boolean(deletePhoto)}
+                title="Delete this ad photo?"
+                description="This permanently removes the selected photo from the seller’s ad. Admins cannot upload a replacement on the seller’s behalf."
+                confirmLabel="Delete photo"
+                destructive
+                loading={photoBusy}
+                error={photoError}
+                onClose={() => { if (!photoBusy) { setDeletePhoto(null); setPhotoError(""); } }}
+                onConfirm={() => void confirmDeletePhoto()}
+            />
         </section>
     );
 }

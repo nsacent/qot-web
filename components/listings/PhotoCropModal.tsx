@@ -409,7 +409,7 @@ export default function PhotoCropModal({
                         <FontAwesomeIcon icon={faXmark} className="h-5 w-5" />
                     </button>
                     <div className="min-w-0 px-3 text-center">
-                        <p className="text-[10px] font-black uppercase tracking-[0.16em] text-orange-400">Edit photo</p>
+                        <p className="text-[10px] font-black uppercase tracking-[0.16em] text-orange-400">Display crop</p>
                         <h2 id="photo-crop-title" className="truncate text-sm font-black text-white sm:text-base">{title}</h2>
                     </div>
                     <button
@@ -478,8 +478,8 @@ export default function PhotoCropModal({
                             {error}
                         </div>
                     )}
-                    <p className="mb-3 text-center text-[11px] font-bold text-white/60">
-                        Drag the box to position it · Pull a corner to resize
+                    <p className="mb-3 text-center text-[11px] font-bold leading-5 text-white/60">
+                        Drag and resize the 4:3 display crop. Your original photo remains unchanged for the gallery and full-screen view.
                     </p>
                     <div className="grid grid-cols-2 gap-3">
                         <button
@@ -507,7 +507,7 @@ export default function PhotoCropModal({
                         disabled={isSaving}
                         className="mt-3 inline-flex h-11 w-full items-center justify-center rounded-[14px] bg-white/10 px-4 text-xs font-black text-white transition hover:bg-white/15 disabled:opacity-35"
                     >
-                        Keep original — QOT will optimize it
+                        Cancel — keep the automatic crop
                     </button>
                     <button
                         type="button"
@@ -516,7 +516,7 @@ export default function PhotoCropModal({
                         className="mt-3 inline-flex h-12 w-full items-center justify-center gap-2 rounded-[16px] bg-orange-500 px-5 text-sm font-black text-white transition hover:bg-orange-600 disabled:opacity-50"
                     >
                         <FontAwesomeIcon icon={faCropSimple} className="h-4 w-4" />
-                        {isSaving ? "Saving crop…" : "Apply crop"}
+                        {isSaving ? "Saving crop…" : "Apply display crop"}
                     </button>
                 </div>
             </div>

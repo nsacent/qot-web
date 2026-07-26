@@ -87,6 +87,7 @@ type ExistingImage = {
 type NewImageItem = {
     key: string;
     file: File;
+    cropFile?: File;
     progress: number;
     uploading: boolean;
 };
@@ -100,6 +101,7 @@ type EditablePhoto =
         url: string;
         sourceUrl: string;
         file: File;
+        cropFile?: File;
         progress: number;
         uploading: boolean;
     };
@@ -381,7 +383,7 @@ function EditAdForm({ id }: { id: string }) {
         if (!file) return image;
 
         const url = URL.createObjectURL(file);
-        return { ...image, file, url, sourceUrl: url };
+        return { ...image, file, url };
     }), [replacementImages, storedExistingImages]);
     useEffect(() => {
         return () => {
@@ -392,16 +394,27 @@ function EditAdForm({ id }: { id: string }) {
     }, [existingImages]);
 
     const newImagePreviews = useMemo(
-        () => newImages.map((item) => ({
-            ...item,
-            name: item.file.name,
-            url: URL.createObjectURL(item.file),
-        })),
+        () => newImages.map((item) => {
+            const sourceUrl = URL.createObjectURL(item.file);
+            const url = item.cropFile
+                ? URL.createObjectURL(item.cropFile)
+                : sourceUrl;
+
+            return {
+                ...item,
+                name: item.file.name,
+                url,
+                sourceUrl,
+            };
+        }),
         [newImages]
     );
     useEffect(() => {
         return () => {
-            newImagePreviews.forEach((image) => URL.revokeObjectURL(image.url));
+            newImagePreviews.forEach((image) => {
+                URL.revokeObjectURL(image.sourceUrl);
+                if (image.url !== image.sourceUrl) URL.revokeObjectURL(image.url);
+            });
         };
     }, [newImagePreviews]);
 
@@ -421,7 +434,6 @@ function EditAdForm({ id }: { id: string }) {
             photosByKey.set(image.key, {
                 ...image,
                 kind: "new",
-                sourceUrl: image.url,
             });
         });
 
@@ -739,7 +751,7 @@ function EditAdForm({ id }: { id: string }) {
         try {
             if (cropPhoto.kind === "new") {
                 setNewImages((current) => current.map((item) => (
-                    item.key === cropPhoto.key ? { ...item, file } : item
+                    item.key === cropPhoto.key ? { ...item, cropFile: file } : item
                 )));
             } else {
                 setReplacementImages((current) => ({
@@ -748,7 +760,7 @@ function EditAdForm({ id }: { id: string }) {
                 }));
             }
             setCropPhoto(null);
-            setMessage("Crop applied. Save the ad to keep this photo change.");
+            setMessage("Display crop applied. The original photo will remain available in the gallery and full-screen view.");
         } finally {
             setCropSaving(false);
         }
@@ -759,7 +771,7 @@ function EditAdForm({ id }: { id: string }) {
             if (deletedImageIds.includes(imageId)) continue;
 
             const formData = new FormData();
-            formData.append("image", file);
+            formData.append("crop_image", file);
             const response = await fetch(
                 `/api/proxy/listings/${id}/images/${imageId}/`,
                 {
@@ -800,6 +812,27 @@ function EditAdForm({ id }: { id: string }) {
 
                 if (!data?.id) {
                     throw new Error(`Failed to confirm the upload for ${item.file.name}.`);
+                }
+
+                if (item.cropFile) {
+                    const cropFormData = new FormData();
+                    cropFormData.append("crop_image", item.cropFile);
+                    const cropResponse = await fetch(
+                        `/api/proxy/listings/${id}/images/${data.id}/`,
+                        {
+                            method: "PATCH",
+                            credentials: "include",
+                            body: cropFormData,
+                        },
+                    );
+                    const cropData = await cropResponse.json().catch(() => ({}));
+
+                    if (!cropResponse.ok) {
+                        throw new Error(getApiErrorMessage(
+                            cropData,
+                            `The display crop for ${item.file.name} could not be saved.`,
+                        ));
+                    }
                 }
 
                 uploadedIds.set(item.key, String(data.id));
@@ -1151,16 +1184,28 @@ function EditAdForm({ id }: { id: string }) {
                 )}
 
                 <div className="rounded-[18px] border-2 border-dashed border-orange-200 bg-orange-50/70 p-3 transition hover:border-orange-300 hover:bg-orange-50">
-                    <label className="flex min-h-20 cursor-pointer items-center gap-3 rounded-[14px] px-2 py-2 text-left">
+                    <label className="flex min-h-[68px] cursor-pointer items-center gap-3 rounded-[14px] px-2 py-2 text-left sm:min-h-20">
                         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] bg-white text-orange-600 ring-1 ring-orange-100">
                             <FontAwesomeIcon icon={faCamera} className="h-4 w-4" />
                         </span>
                         <span className="min-w-0 flex-1">
-                            <span className="block text-sm font-black text-slate-900">Add more photos</span>
+                            <span className="block text-sm font-black text-slate-900">Choose photos from gallery</span>
                             <span className="mt-0.5 block text-xs font-semibold text-slate-500">JPG, PNG or WEBP · 8MB maximum each · optimized automatically</span>
                         </span>
                         <span className="hidden rounded-full bg-orange-500 px-3 py-1.5 text-xs font-black text-white sm:inline-flex">Choose</span>
                         <input type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={handleAddImages} className="sr-only" />
+                    </label>
+
+                    <label className="mt-2 flex min-h-12 cursor-pointer items-center justify-center gap-2 rounded-[12px] bg-white px-3 text-xs font-black text-orange-600 ring-1 ring-orange-200 sm:hidden">
+                        <FontAwesomeIcon icon={faCamera} className="h-4 w-4" />
+                        Take a photo
+                        <input
+                            type="file"
+                            accept="image/*"
+                            capture="environment"
+                            onChange={handleAddImages}
+                            className="sr-only"
+                        />
                     </label>
 
                     {totalPhotos > 0 && (

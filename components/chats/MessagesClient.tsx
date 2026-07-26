@@ -408,7 +408,14 @@ export default function MessagesClient() {
 
                                         <span className="min-w-0 flex-1">
                                             <span className="flex items-center justify-between gap-3">
-                                                <span className="truncate text-sm font-black text-slate-950 sm:text-base">{participant}</span>
+                                                <span className="flex min-w-0 items-center gap-2">
+                                                    <span className="truncate text-sm font-black text-slate-950 sm:text-base">{participant}</span>
+                                                    {thread?.other_user_is_admin && (
+                                                        <span className="shrink-0 rounded-full bg-blue-50 px-2 py-1 text-[7px] font-black uppercase tracking-wider text-blue-700 ring-1 ring-blue-100">
+                                                            QOT {thread?.other_user_role === "moderator" ? "Moderator" : "Admin"}
+                                                        </span>
+                                                    )}
+                                                </span>
                                                 <span className="shrink-0 text-[10px] font-bold text-slate-400" title={formatDateTime(thread?.last_message_at || thread?.created_at)}>
                                                     {formatRelativeTime(thread?.last_message_at || thread?.created_at)}
                                                 </span>

@@ -56,6 +56,15 @@ type ListingAttribute = {
     value_boolean?: boolean | null;
 };
 
+type ListingEditChange = {
+    field: string;
+    label: string;
+    before: string | number | boolean | null;
+    after: string | number | boolean | null;
+    summary?: string;
+    kind: "field" | "attribute" | "photos";
+};
+
 type AdminListingDetail = {
     id: number;
     title: string;
@@ -95,6 +104,9 @@ type AdminListingDetail = {
     sold_at: string | null;
     created_at: string;
     updated_at: string;
+    review_submission_type: "new" | "edit";
+    submitted_for_review_at: string | null;
+    edit_changes: ListingEditChange[];
 };
 
 type ModerationAction = "reject" | "feature" | "unfeature" | "delete";
@@ -405,6 +417,11 @@ export default function AdminListingDetailClient({
                         <span className={`rounded-full px-3 py-1 text-[9px] font-black uppercase tracking-wider ${statusClass(listing.status)}`}>
                             {formatLabel(listing.status)}
                         </span>
+                        {listing.status === "pending" && listing.review_submission_type === "edit" && (
+                            <span className="rounded-full bg-blue-50 px-3 py-1 text-[9px] font-black uppercase tracking-wider text-blue-700">
+                                Edited ad
+                            </span>
+                        )}
                         {listing.is_featured && (
                             <span className="rounded-full bg-violet-50 px-3 py-1 text-[9px] font-black uppercase tracking-wider text-violet-700">
                                 Featured
@@ -462,6 +479,52 @@ export default function AdminListingDetailClient({
                 <div role="alert" className="mb-5 rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm font-bold text-red-700">
                     {actionError || error}
                 </div>
+            )}
+
+            {listing.status === "pending" && listing.review_submission_type === "edit" && (
+                <section className="mb-6 overflow-hidden rounded-[28px] border border-blue-200 bg-blue-50/70">
+                    <div className="flex flex-col gap-3 border-b border-blue-200 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+                        <div className="flex items-start gap-3">
+                            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-blue-600 text-white">
+                                <FontAwesomeIcon icon={faPenToSquare} className="h-4 w-4" />
+                            </span>
+                            <div>
+                                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-blue-700">Edited — pending approval</p>
+                                <h2 className="mt-1 text-lg font-black text-slate-950">Review what the seller changed</h2>
+                                <p className="mt-1 text-xs font-semibold text-slate-500">
+                                    Submitted {formatDate(listing.submitted_for_review_at, true)}
+                                </p>
+                            </div>
+                        </div>
+                        <span className="w-fit rounded-full bg-white px-3 py-1.5 text-[10px] font-black text-blue-700 ring-1 ring-blue-200">
+                            {listing.edit_changes.length} change{listing.edit_changes.length === 1 ? "" : "s"}
+                        </span>
+                    </div>
+
+                    {listing.edit_changes.length ? (
+                        <div className="divide-y divide-blue-100 bg-white/70">
+                            {listing.edit_changes.map((change) => (
+                                <div key={change.field} className="grid gap-3 px-5 py-4 sm:grid-cols-[150px_1fr_32px_1fr] sm:items-start sm:px-6">
+                                    <p className="text-xs font-black text-slate-700">{change.label}</p>
+                                    <div className="rounded-xl bg-red-50 px-3 py-2 text-xs font-semibold leading-5 text-red-800">
+                                        <span className="mb-1 block text-[9px] font-black uppercase tracking-wider text-red-500">Before</span>
+                                        <span className="whitespace-pre-wrap break-words">{String(change.before || "Not provided")}</span>
+                                    </div>
+                                    <span className="hidden pt-5 text-center text-sm font-black text-blue-400 sm:block">→</span>
+                                    <div className="rounded-xl bg-emerald-50 px-3 py-2 text-xs font-semibold leading-5 text-emerald-800">
+                                        <span className="mb-1 block text-[9px] font-black uppercase tracking-wider text-emerald-600">After</span>
+                                        <span className="whitespace-pre-wrap break-words">{String(change.after || "Removed")}</span>
+                                        {change.summary && <span className="mt-1 block font-black">{change.summary}</span>}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <p className="bg-white/70 px-6 py-5 text-sm font-semibold text-slate-600">
+                            No content differences remain. The seller may have reverted the edit.
+                        </p>
+                    )}
+                </section>
             )}
 
             <div className="grid gap-6 xl:grid-cols-[minmax(0,1.65fr)_minmax(320px,0.75fr)]">

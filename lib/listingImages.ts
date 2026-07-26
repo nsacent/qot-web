@@ -133,7 +133,7 @@ export function getPrimaryListingImage(ad: any) {
 
 export function getPrimaryListingSocialImage(ad: any) {
     const primaryImage = getOrderedListingImages(ad)[0];
-    return primaryImage?.socialUrl || primaryImage?.cardUrl || primaryImage?.url || "";
+    return primaryImage?.cardUrl || primaryImage?.socialUrl || primaryImage?.url || "";
 }
 
 export function getListingImageCount(ad: any) {

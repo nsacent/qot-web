@@ -17,12 +17,21 @@ import {
     faStore,
 } from "@fortawesome/free-solid-svg-icons";
 import { notFound } from "next/navigation";
+import type { Metadata } from "next";
 
 type PageProps = {
     params: Promise<{
         id: string;
     }>;
 };
+
+const SITE_URL = "https://qot.ug";
+
+function cleanSeoText(value: any, maximum = 160) {
+    const clean = String(value || "").replace(/\s+/g, " ").trim();
+    if (clean.length <= maximum) return clean;
+    return `${clean.slice(0, maximum - 1).trimEnd()}…`;
+}
 
 function unwrapObject(data: any) {
     return data?.seller || data?.data || data?.profile || data || null;
@@ -169,6 +178,47 @@ function formatMemberSince(seller: any) {
     }).format(date);
 }
 
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+    const { id } = await params;
+    const canonical = `${SITE_URL}/sellers/${encodeURIComponent(id)}`;
+    const payload = await apiGet(`/sellers/${encodeURIComponent(id)}/`).catch(() => null);
+    const seller = unwrapObject(payload);
+
+    if (!seller) {
+        return {
+            title: "Seller unavailable",
+            robots: { index: false, follow: false },
+            alternates: { canonical },
+        };
+    }
+
+    const name = getSellerName(seller);
+    const location = getSellerLocation(seller);
+    const avatar = getSellerAvatar(seller);
+    const description = cleanSeoText(
+        `${name} is a seller in ${location}. Browse their active ads, ratings and profile on QOT Uganda.`,
+    );
+
+    return {
+        title: `${name} – Seller in ${location}`,
+        description,
+        alternates: { canonical },
+        openGraph: {
+            title: `${name} on QOT Uganda`,
+            description,
+            url: canonical,
+            type: "profile",
+            images: avatar ? [{ url: avatar, alt: `${name} profile photo` }] : undefined,
+        },
+        twitter: {
+            card: avatar ? "summary_large_image" : "summary",
+            title: `${name} on QOT Uganda`,
+            description,
+            images: avatar ? [avatar] : undefined,
+        },
+    };
+}
+
 export default async function SellerProfilePage({ params }: PageProps) {
     const { id } = await params;
 
@@ -216,8 +266,44 @@ export default async function SellerProfilePage({ params }: PageProps) {
     const verified = isVerifiedSeller(seller);
     const whatsappPhone = formatPhoneForWhatsApp(sellerPhone);
     const memberSince = formatMemberSince(seller);
+    const canonicalUrl = `${SITE_URL}/sellers/${encodeURIComponent(id)}`;
+    const sellerSchema: Record<string, any> = {
+        "@context": "https://schema.org",
+        "@type": seller?.business_name ? "Store" : "Person",
+        "@id": `${canonicalUrl}#seller`,
+        name: sellerName,
+        url: canonicalUrl,
+        description: cleanSeoText(sellerBio, 500),
+        image: sellerAvatar || undefined,
+        areaServed: { "@type": "Place", name: sellerLocation },
+        memberOf: { "@id": `${SITE_URL}/#organization` },
+    };
+    if (seller?.business_name) {
+        sellerSchema.parentOrganization = { "@id": `${SITE_URL}/#organization` };
+    }
+    if (rating > 0 && totalReviews > 0 && seller?.business_name) {
+        sellerSchema.aggregateRating = {
+            "@type": "AggregateRating",
+            ratingValue: rating,
+            reviewCount: totalReviews,
+            bestRating: 5,
+            worstRating: 1,
+        };
+    }
+    const breadcrumbSchema = {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        itemListElement: [
+            { "@type": "ListItem", position: 1, name: "Home", item: `${SITE_URL}/` },
+            { "@type": "ListItem", position: 2, name: "Sellers", item: `${SITE_URL}/sellers` },
+            { "@type": "ListItem", position: 3, name: sellerName, item: canonicalUrl },
+        ],
+    };
 
     return (
+        <>
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(sellerSchema).replace(/</g, "\\u003c") }} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema).replace(/</g, "\\u003c") }} />
         <main className="min-h-screen bg-[#f6f7f9] text-slate-950">
             <div className="mx-auto max-w-[1500px] px-4 pt-4 sm:px-6">
                 <Navbar />
@@ -488,5 +574,6 @@ export default async function SellerProfilePage({ params }: PageProps) {
 
             <QotMarketplaceFooter />
         </main>
+        </>
     );
 }

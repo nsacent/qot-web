@@ -75,7 +75,7 @@ export default function ListingImageCarousel({
     if (!images.length) {
         return (
             <div
-                className={`flex aspect-[16/10] w-full items-center justify-center rounded-[28px] bg-slate-100 text-3xl font-black text-slate-300 ${className}`}
+                className={`flex aspect-[16/9] w-full items-center justify-center rounded-none bg-slate-100 text-3xl font-black text-slate-300 sm:aspect-[16/10] sm:rounded-[28px] ${className}`}
             >
                 QOT
             </div>
@@ -85,7 +85,7 @@ export default function ListingImageCarousel({
     return (
         <>
             <div className={className}>
-                <div className="relative overflow-hidden rounded-[28px] bg-slate-100">
+                <div className="relative overflow-hidden rounded-none bg-slate-100 sm:rounded-[28px]">
                     <button
                         type="button"
                         onClick={() => setIsPreviewOpen(true)}
@@ -95,12 +95,12 @@ export default function ListingImageCarousel({
                         <img
                             src={activeImage.url}
                             alt={title}
-                            className="aspect-[16/10] w-full object-cover"
+                            className="aspect-[16/9] w-full object-cover sm:aspect-[16/10]"
                         />
                     </button>
 
                     {activeIndex === 0 && (
-                        <span className="absolute left-4 top-4 rounded-full bg-green-500 px-3 py-1 text-[11px] font-black uppercase tracking-wide text-white shadow">
+                        <span className="absolute left-4 top-4 hidden rounded-full bg-green-500 px-3 py-1 text-[11px] font-black uppercase tracking-wide text-white shadow sm:inline-flex">
                             Main Image
                         </span>
                     )}
@@ -110,7 +110,7 @@ export default function ListingImageCarousel({
                             <button
                                 type="button"
                                 onClick={goPrevious}
-                                className="absolute left-3 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-2xl font-black text-slate-800 shadow hover:bg-white"
+                                className="absolute left-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-xl font-black text-slate-800 shadow hover:bg-white sm:left-3 sm:h-10 sm:w-10 sm:text-2xl"
                                 aria-label="Previous image"
                             >
                                 ‹
@@ -119,13 +119,13 @@ export default function ListingImageCarousel({
                             <button
                                 type="button"
                                 onClick={goNext}
-                                className="absolute right-3 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-2xl font-black text-slate-800 shadow hover:bg-white"
+                                className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-xl font-black text-slate-800 shadow hover:bg-white sm:right-3 sm:h-10 sm:w-10 sm:text-2xl"
                                 aria-label="Next image"
                             >
                                 ›
                             </button>
 
-                            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-black/55 px-3 py-1 text-xs font-black text-white">
+                            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 rounded-full bg-black/55 px-2.5 py-1 text-[10px] font-black text-white sm:bottom-4 sm:px-3 sm:text-xs">
                                 {activeIndex + 1} / {images.length}
                             </div>
                         </>
@@ -133,7 +133,7 @@ export default function ListingImageCarousel({
                 </div>
 
                 {images.length > 1 && (
-                    <div className="mt-4 grid grid-cols-4 gap-3 sm:grid-cols-6">
+                    <div className="mt-4 hidden grid-cols-6 gap-3 sm:grid">
                         {images.slice(0, 12).map((image: any, index: number) => (
                             <button
                                 key={`${image.url}-${index}`}

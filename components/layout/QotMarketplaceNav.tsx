@@ -805,7 +805,12 @@ export default function QotMarketplaceNav({
                                             </span>
                                             <span className="min-w-0 flex-1">
                                                 <span className="flex items-center justify-between gap-3">
-                                                    <span className="truncate text-xs font-black text-slate-950">{name}</span>
+                                                    <span className="flex min-w-0 items-center gap-1.5">
+                                                        <span className="truncate text-xs font-black text-slate-950">{name}</span>
+                                                        {thread?.other_user_is_admin && (
+                                                            <span className="shrink-0 rounded-full bg-blue-50 px-1.5 py-0.5 text-[7px] font-black uppercase text-blue-700">Admin</span>
+                                                        )}
+                                                    </span>
                                                     {unread > 0 && (
                                                         <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-orange-500 px-1 text-[9px] font-black text-white">
                                                             {unread > 99 ? "99+" : unread}
