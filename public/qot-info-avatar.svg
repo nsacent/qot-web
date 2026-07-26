@@ -1,0 +1,28 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <title>QOT Uganda info email avatar</title>
+  <defs>
+    <radialGradient id="avatar-bg" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(350 260) rotate(51) scale(860)">
+      <stop stop-color="#1E293B"/>
+      <stop offset="0.7" stop-color="#0F172A"/>
+      <stop offset="1" stop-color="#020617"/>
+    </radialGradient>
+    <linearGradient id="accent" x1="260" y1="310" x2="755" y2="705" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FB923C"/>
+      <stop offset="1" stop-color="#F97316"/>
+    </linearGradient>
+  </defs>
+  <circle cx="512" cy="512" r="500" fill="url(#avatar-bg)"/>
+  <circle cx="512" cy="512" r="478" stroke="#F97316" stroke-opacity="0.22" stroke-width="4"/>
+  <g transform="translate(176 340) scale(2.8)">
+    <circle cx="40" cy="42" r="29" stroke="url(#accent)" stroke-width="18"/>
+    <path d="M58.5 60.5L81.5 83.5" stroke="url(#accent)" stroke-width="18" stroke-linecap="square"/>
+    <circle cx="124" cy="42" r="29" stroke="url(#accent)" stroke-width="18"/>
+    <path d="M178 12L196 3V24H226V43H196V68C196 76 200 80 208 80H224V98H208C188 98 178 88 178 68V12Z" fill="url(#accent)"/>
+  </g>
+  <g transform="translate(682 680)">
+    <circle cx="100" cy="100" r="100" fill="#F97316"/>
+    <circle cx="100" cy="100" r="91" stroke="white" stroke-opacity="0.2" stroke-width="3"/>
+    <rect x="47" y="63" width="106" height="76" rx="14" stroke="white" stroke-width="13"/>
+    <path d="M54 72L100 106L146 72" stroke="white" stroke-width="13" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+</svg>
