@@ -70,6 +70,7 @@ export default function ContactSellerButton({
     const [callbackName, setCallbackName] = useState("");
     const [callbackPhone, setCallbackPhone] = useState("+256");
     const [loading, setLoading] = useState(false);
+    const [checkingAuth, setCheckingAuth] = useState(false);
     const [error, setError] = useState("");
     const customQuestionRef = useRef<HTMLTextAreaElement | null>(null);
 
@@ -106,6 +107,29 @@ export default function ContactSellerButton({
             Math.max(1000, Math.round((price * ratio) / 1000) * 1000)
         );
     }, [price]);
+
+    async function openContact() {
+        if (checkingAuth) return;
+        setCheckingAuth(true);
+
+        try {
+            const response = await fetch("/api/auth/me", {
+                credentials: "include",
+                cache: "no-store",
+            });
+
+            if (!response.ok) {
+                window.location.assign(getLoginNext(listingId));
+                return;
+            }
+
+            setOpen(true);
+        } catch {
+            window.location.assign(getLoginNext(listingId));
+        } finally {
+            setCheckingAuth(false);
+        }
+    }
 
     async function submit() {
         if (loading) return;
@@ -275,9 +299,9 @@ export default function ContactSellerButton({
 
     return (
         <>
-            <button type="button" onClick={() => setOpen(true)} className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-[18px] bg-slate-50 px-4 text-sm font-black text-slate-700 transition hover:bg-orange-50 hover:text-orange-600">
-                {!compact && <FontAwesomeIcon icon={faCommentDots} className="h-4 w-4" />}
-                Chat Seller
+            <button type="button" onClick={() => void openContact()} disabled={checkingAuth} className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-[18px] bg-slate-50 px-4 text-sm font-black text-slate-700 transition hover:bg-orange-50 hover:text-orange-600 disabled:cursor-wait disabled:opacity-70">
+                {!compact && <FontAwesomeIcon icon={checkingAuth ? faSpinner : faCommentDots} className={`h-4 w-4 ${checkingAuth ? "animate-spin" : ""}`} />}
+                {checkingAuth ? "Checking…" : "Chat Seller"}
             </button>
             {modal}
         </>

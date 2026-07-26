@@ -63,7 +63,7 @@ export const metadata: Metadata = {
     type: "website",
     images: [
       {
-        url: "/opengraph-image",
+        url: "/qot-social-card.png",
         width: 1200,
         height: 630,
         alt: "QOT Uganda - Buy and Sell for Free",
@@ -74,7 +74,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "QOT - Buy & Sell for Free",
     description: "Buy and sell cars, phones, property, electronics, services and more across Uganda for free.",
-    images: ["/opengraph-image"],
+    images: ["/qot-social-card.png"],
   },
 };
 
