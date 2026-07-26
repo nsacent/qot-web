@@ -231,7 +231,7 @@ export default function ContactSellerButton({
                                 </button>
                             </div>
                             {customQuestion && (
-                                <textarea ref={customQuestionRef} value={question} onChange={(event) => setQuestion(event.target.value)} rows={4} maxLength={1000} placeholder="Type your message to the seller…" className="mt-3 w-full resize-none rounded-[16px] border border-slate-200 px-4 py-3 text-sm font-semibold outline-none focus:border-orange-400 focus:ring-4 focus:ring-orange-50" />
+                                <textarea ref={customQuestionRef} value={question} onChange={(event) => setQuestion(event.target.value)} rows={4} maxLength={1000} placeholder="Type your message to the seller…" className="mt-3 w-full resize-none rounded-[16px] border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-950 caret-orange-500 outline-none placeholder:text-slate-400 focus:border-orange-400 focus:ring-4 focus:ring-orange-50" />
                             )}
                         </div>
                     )}
