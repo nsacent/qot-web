@@ -24,7 +24,6 @@ import {
     faExpand,
     faFileLines,
     faLayerGroup,
-    faLock,
     faLocationDot,
     faMoneyBillWave,
     faPenToSquare,
@@ -39,7 +38,10 @@ import PhotoViewerModal from "@/components/listings/PhotoViewerModal";
 import PhotoCropModal from "@/components/listings/PhotoCropModal";
 import InlineError from "@/components/forms/InlineError";
 import { getCurrentUser } from "@/lib/sessionClient";
-import { LocationPickerModal } from "@/components/listings/MarketplacePickerModals";
+import {
+    CategoryPickerModal,
+    LocationPickerModal,
+} from "@/components/listings/MarketplacePickerModals";
 import CurrentLocationButton from "@/components/listings/CurrentLocationButton";
 import { fetchAllProxyPages } from "@/lib/marketplaceCatalog";
 import { getOrderedListingImages } from "@/lib/listingImages";
@@ -74,6 +76,7 @@ type CategoryFilterField = {
     type: string;
     placeholder: string;
     options: any[];
+    required: boolean;
 };
 
 type ExistingImage = {
@@ -227,6 +230,7 @@ function normalizeCategoryFilter(field: any): CategoryFilterField | null {
         ).toLowerCase(),
         placeholder: String(field?.placeholder || ""),
         options: getFilterOptions(field),
+        required: Boolean(field?.is_required ?? field?.required),
     };
 }
 
@@ -318,6 +322,7 @@ function EditAdForm({ id }: { id: string }) {
     const [condition, setCondition] = useState("used");
     const [category, setCategory] = useState("");
     const [city, setCity] = useState("");
+    const [area, setArea] = useState("");
     const [description, setDescription] = useState("");
     const [isNegotiable, setIsNegotiable] = useState(false);
 
@@ -334,17 +339,21 @@ function EditAdForm({ id }: { id: string }) {
     const [categoryError, setCategoryError] = useState("");
     const [detailsError, setDetailsError] = useState("");
     const [pricingError, setPricingError] = useState("");
+    const [specificationsError, setSpecificationsError] = useState("");
     const [actionError, setActionError] = useState("");
     const [viewerPhoto, setViewerPhoto] = useState<{ url: string; name: string } | null>(null);
     const [cropPhoto, setCropPhoto] = useState<EditablePhoto | null>(null);
     const [cropSaving, setCropSaving] = useState(false);
+    const [categoryModalOpen, setCategoryModalOpen] = useState(false);
     const [locationModalOpen, setLocationModalOpen] = useState(false);
+    const [categorySearch, setCategorySearch] = useState("");
     const [locationSearch, setLocationSearch] = useState("");
     const pendingAttributeValues = useRef<Record<string, string>>({});
     const photoSectionRef = useRef<HTMLElement>(null);
     const detailsSectionRef = useRef<HTMLElement>(null);
     const pricingSectionRef = useRef<HTMLElement>(null);
     const categorySectionRef = useRef<HTMLElement>(null);
+    const specificationsSectionRef = useRef<HTMLElement>(null);
 
     const flatCategories = useMemo(() => flattenCategories(categories), [categories]);
     const selectedCategory = useMemo(
@@ -355,6 +364,10 @@ function EditAdForm({ id }: { id: string }) {
         () => cities.find((item: any) => String(getOptionValue(item)) === city),
         [cities, city]
     );
+    const selectedArea = useMemo(() => {
+        const areas = Array.isArray(selectedCity?.areas) ? selectedCity.areas : [];
+        return areas.find((item: any) => String(getOptionValue(item)) === area);
+    }, [selectedCity, area]);
     const photoRequirements = useMemo(
         () => getCategoryPhotoRequirements(selectedCategory),
         [selectedCategory],
@@ -525,6 +538,7 @@ function EditAdForm({ id }: { id: string }) {
             setCondition(getValue(listing?.condition) || "used");
             setCategory(getValue(listing?.category?.id || listing?.category_id || listing?.category));
             setCity(getValue(listing?.city?.id || listing?.city_id || listing?.city));
+            setArea(getValue(listing?.area?.id || listing?.area_id || listing?.area));
             setDescription(normalizeListingText(getValue(listing?.description)));
             setIsNegotiable(Boolean(listing?.is_negotiable || listing?.negotiable));
             setCategoryFilterValues(restoredAttributes);
@@ -611,14 +625,36 @@ function EditAdForm({ id }: { id: string }) {
         };
     }, [category, selectedCategory]);
 
+    function selectCategoryValue(value: string) {
+        pendingAttributeValues.current = {};
+        setCategory(value);
+        setCategoryFilters([]);
+        setCategoryFilterValues({});
+        setCategoryError("");
+        setPhotoError("");
+        setSpecificationsError("");
+        setCategorySearch("");
+        setCategoryModalOpen(false);
+    }
+
     function selectCityValue(value: string) {
         setCity(value);
+        setArea("");
+        setCategoryError("");
+        setLocationSearch("");
+        setLocationModalOpen(false);
+    }
+
+    function selectAreaValue(value: string, cityValue: string) {
+        setCity(cityValue);
+        setArea(value);
         setCategoryError("");
         setLocationSearch("");
         setLocationModalOpen(false);
     }
 
     function updateCategoryFilter(key: string, value: string) {
+        setSpecificationsError("");
         setCategoryFilterValues((current) => ({ ...current, [key]: value }));
     }
 
@@ -933,6 +969,11 @@ function EditAdForm({ id }: { id: string }) {
         if (!category) return "Please select a category.";
         if (!city) return "Please select a location.";
         if (!condition) return "Please select the item condition.";
+        if (filtersLoading) return "Please wait for category details to finish loading.";
+        const missingSpecification = categoryFilters.find(
+            (field) => field.required && !String(categoryFilterValues[field.key] || "").trim()
+        );
+        if (missingSpecification) return `Please complete ${missingSpecification.label}.`;
         if (totalPhotos < photoRequirements.minimum) {
             return `${selectedCategory ? getOptionLabel(selectedCategory) : "This category"} requires at least ${photoRequirements.minimum} photos.`;
         }
@@ -950,12 +991,14 @@ function EditAdForm({ id }: { id: string }) {
         setCategoryError("");
         setDetailsError("");
         setPricingError("");
+        setSpecificationsError("");
         setPhotoError("");
 
         const validationError = validateForm();
         if (validationError) {
             if (
                 title.trim().length < AD_TITLE_MIN_LENGTH ||
+                title.trim().length > AD_TITLE_MAX_LENGTH ||
                 description.trim().length < AD_DESCRIPTION_MIN_LENGTH
             ) {
                 setDetailsError(validationError);
@@ -966,6 +1009,14 @@ function EditAdForm({ id }: { id: string }) {
             } else if (!category || !city) {
                 setCategoryError(validationError);
                 revealSection(categorySectionRef);
+            } else if (
+                filtersLoading ||
+                categoryFilters.some(
+                    (field) => field.required && !String(categoryFilterValues[field.key] || "").trim()
+                )
+            ) {
+                setSpecificationsError(validationError);
+                revealSection(specificationsSectionRef);
             } else {
                 setPhotoError(validationError);
                 revealSection(photoSectionRef);
@@ -976,6 +1027,7 @@ function EditAdForm({ id }: { id: string }) {
         setCategoryError("");
         setDetailsError("");
         setPricingError("");
+        setSpecificationsError("");
         setPhotoError("");
         setShowPreview(true);
         window.scrollTo({ top: 0, behavior: "smooth" });
@@ -987,9 +1039,11 @@ function EditAdForm({ id }: { id: string }) {
             setCategoryError("");
             setDetailsError("");
             setPricingError("");
+            setSpecificationsError("");
             setPhotoError("");
             if (
                 title.trim().length < AD_TITLE_MIN_LENGTH ||
+                title.trim().length > AD_TITLE_MAX_LENGTH ||
                 description.trim().length < AD_DESCRIPTION_MIN_LENGTH
             ) {
                 setDetailsError(validationError);
@@ -1000,6 +1054,14 @@ function EditAdForm({ id }: { id: string }) {
             } else if (!category || !city) {
                 setCategoryError(validationError);
                 revealSection(categorySectionRef);
+            } else if (
+                filtersLoading ||
+                categoryFilters.some(
+                    (field) => field.required && !String(categoryFilterValues[field.key] || "").trim()
+                )
+            ) {
+                setSpecificationsError(validationError);
+                revealSection(specificationsSectionRef);
             } else {
                 setPhotoError(validationError);
                 revealSection(photoSectionRef);
@@ -1023,7 +1085,9 @@ function EditAdForm({ id }: { id: string }) {
                     price,
                     description: description.trim(),
                     condition,
+                    category,
                     city,
+                    area: area || null,
                     is_negotiable: isNegotiable,
                     attributes: buildAttributes(),
                 }),
@@ -1094,7 +1158,7 @@ function EditAdForm({ id }: { id: string }) {
                     title={title}
                     price={formatPrice(price)}
                     category={selectedCategory ? getOptionLabel(selectedCategory) : "Category"}
-                    location={selectedCity ? getOptionLabel(selectedCity) : "Uganda"}
+                    location={selectedArea ? `${getOptionLabel(selectedArea)}, ${getOptionLabel(selectedCity)}` : selectedCity ? getOptionLabel(selectedCity) : "Uganda"}
                     condition={condition}
                     description={description}
                     isNegotiable={isNegotiable}
@@ -1366,25 +1430,25 @@ function EditAdForm({ id }: { id: string }) {
                 </div>
             </FormCard>
 
-            <FormCard sectionRef={categorySectionRef} className="order-4" icon={faLayerGroup} eyebrow="Step 4" title="Category and location" description="The original category stays locked; you can update where the ad appears.">
+            <FormCard sectionRef={categorySectionRef} className="order-4" icon={faLayerGroup} eyebrow="Step 4" title="Category and location" description="Choose the most accurate category and update where the ad appears.">
                 {categoryError && (
                     <InlineError message={categoryError} onDismiss={() => setCategoryError("")} />
                 )}
 
                 <div className="grid gap-5 md:grid-cols-2">
                     <Field label="Category" icon={faLayerGroup}>
-                        <div className="flex w-full items-center justify-between gap-4 rounded-[18px] bg-slate-50 px-4 py-3 text-left ring-1 ring-slate-200">
+                        <button type="button" onClick={() => setCategoryModalOpen(true)} className="flex w-full items-center justify-between gap-4 rounded-[18px] bg-white px-4 py-3 text-left ring-1 ring-slate-200 transition hover:bg-orange-50 hover:ring-orange-100">
                             <span>
-                                <span className="block text-sm font-black text-slate-900">{selectedCategory ? getOptionLabel(selectedCategory) : "Current category"}</span>
-                                <span className="mt-0.5 block text-[10px] font-semibold text-slate-400">Category cannot be changed after posting</span>
+                                <span className="block text-sm font-black text-slate-900">{selectedCategory ? getOptionLabel(selectedCategory) : "Select category"}</span>
+                                <span className="mt-0.5 block text-[10px] font-semibold text-slate-400">Changing this refreshes photo rules and specifications</span>
                             </span>
-                            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white text-slate-500 ring-1 ring-slate-200"><FontAwesomeIcon icon={faLock} className="h-3.5 w-3.5" /></span>
-                        </div>
+                            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-orange-50 text-orange-600"><FontAwesomeIcon icon={faChevronDown} className="h-3.5 w-3.5" /></span>
+                        </button>
                     </Field>
                     <Field label="Location" icon={faLocationDot}>
                         <button type="button" onClick={() => setLocationModalOpen(true)} className="flex w-full items-center justify-between gap-4 rounded-[18px] bg-white px-4 py-3 text-left ring-1 ring-slate-200 transition hover:bg-orange-50 hover:ring-orange-100">
                             <span>
-                                <span className="block text-sm font-black text-slate-900">{selectedCity ? getOptionLabel(selectedCity) : "Select city"}</span>
+                                <span className="block text-sm font-black text-slate-900">{selectedArea ? `${getOptionLabel(selectedArea)}, ${getOptionLabel(selectedCity)}` : selectedCity ? getOptionLabel(selectedCity) : "Select city or area"}</span>
                                 {selectedCity?.region_name && <span className="mt-0.5 block text-[10px] font-semibold text-slate-400">{selectedCity.region_name}</span>}
                             </span>
                             <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-orange-50 text-orange-600"><FontAwesomeIcon icon={faLocationDot} className="h-4 w-4" /></span>
@@ -1392,6 +1456,7 @@ function EditAdForm({ id }: { id: string }) {
                         <CurrentLocationButton
                             cities={cities}
                             onSelect={selectCityValue}
+                            onSelectArea={selectAreaValue}
                             onNoMatch={(suggestion) => {
                                 setLocationSearch(suggestion);
                                 setLocationModalOpen(true);
@@ -1402,7 +1467,10 @@ function EditAdForm({ id }: { id: string }) {
             </FormCard>
 
             {category && (
-                <FormCard className="order-5 lg:col-span-2" icon={faSliders} eyebrow="Step 5" title="Category details" description="Update only the useful specifications for this category.">
+                <FormCard sectionRef={specificationsSectionRef} className="order-5 lg:col-span-2" icon={faSliders} eyebrow="Step 5" title="Category details" description="Update only the useful specifications for this category.">
+                    {specificationsError && (
+                        <InlineError message={specificationsError} onDismiss={() => setSpecificationsError("")} />
+                    )}
                     {filtersLoading ? (
                         <div className="rounded-[18px] bg-slate-50 p-4 text-sm font-bold text-slate-500 ring-1 ring-slate-100">Loading category details...</div>
                     ) : categoryFilters.length > 0 ? (
@@ -1414,14 +1482,14 @@ function EditAdForm({ id }: { id: string }) {
                                 if (isBooleanType(field.type)) {
                                     return (
                                         <label key={field.key} className="flex cursor-pointer items-center justify-between gap-4 rounded-[18px] bg-slate-50 px-4 py-3 ring-1 ring-slate-100">
-                                            <span className="text-sm font-black text-slate-800">{field.label}</span>
+                                            <span className="text-sm font-black text-slate-800">{field.label}{field.required ? " *" : ""}</span>
                                             <input type="checkbox" checked={value === "true"} onChange={(event) => updateCategoryFilter(field.key, event.target.checked ? "true" : "")} className="h-5 w-5 shrink-0 accent-orange-500" />
                                         </label>
                                     );
                                 }
 
                                 return (
-                                    <Field key={field.key} label={field.label} icon={faSliders}>
+                                    <Field key={field.key} label={`${field.label}${field.required ? " *" : ""}`} icon={faSliders}>
                                         {hasOptions ? (
                                             <SelectWrap>
                                                 <select value={value} onChange={(event) => updateCategoryFilter(field.key, event.target.value)} className={selectClass}>
@@ -1460,7 +1528,16 @@ function EditAdForm({ id }: { id: string }) {
                 </button>
             </div>
 
-            <LocationPickerModal open={locationModalOpen} onClose={() => setLocationModalOpen(false)} cities={cities} selectedValue={city} search={locationSearch} setSearch={setLocationSearch} onSelect={selectCityValue} />
+            <CategoryPickerModal
+                open={categoryModalOpen}
+                onClose={() => setCategoryModalOpen(false)}
+                categories={categories}
+                selectedValue={category}
+                search={categorySearch}
+                setSearch={setCategorySearch}
+                onSelect={selectCategoryValue}
+            />
+            <LocationPickerModal open={locationModalOpen} onClose={() => setLocationModalOpen(false)} cities={cities} selectedValue={city} selectedAreaValue={area} search={locationSearch} setSearch={setLocationSearch} onSelect={selectCityValue} onSelectArea={selectAreaValue} />
             <PhotoViewerModal
                 open={Boolean(viewerPhoto)}
                 imageUrl={viewerPhoto?.url || ""}

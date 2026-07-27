@@ -9,6 +9,7 @@ import {
     faShieldHalved,
     faTriangleExclamation,
     faUserShield,
+    faMobileScreen,
 } from "@fortawesome/free-solid-svg-icons";
 import { apiGet, buildQuery } from "@/lib/apiClient";
 import {
@@ -35,6 +36,7 @@ type ActivityRecord = {
     status_code: number;
     successful: boolean;
     ip_address?: string | null;
+    platform: string;
     payload?: Record<string, unknown>;
     created_at: string;
 };
@@ -45,6 +47,9 @@ type ActivitySummary = {
     failed: number;
     administrators: number;
     moderators: number;
+    users: number;
+    web: number;
+    android: number;
 };
 
 type ActivityResponse = {
@@ -58,6 +63,7 @@ type ActivityResponse = {
 type ActivityFilters = {
     search: string;
     role: string;
+    platform: string;
     result: string;
     date_from: string;
     date_to: string;
@@ -66,6 +72,7 @@ type ActivityFilters = {
 const emptyFilters: ActivityFilters = {
     search: "",
     role: "",
+    platform: "",
     result: "",
     date_from: "",
     date_to: "",
@@ -77,6 +84,9 @@ const emptySummary: ActivitySummary = {
     failed: 0,
     administrators: 0,
     moderators: 0,
+    users: 0,
+    web: 0,
+    android: 0,
 };
 
 function formatDate(value: string) {
@@ -166,43 +176,57 @@ export default function AdminActivityClient() {
             <AdminPageHeader
                 eyebrow="Security and accountability"
                 title="System trace"
-                description="See every state-changing task performed by QOT administrators and moderators, including unsuccessful attempts. Sensitive credentials are automatically removed from the record."
+                description="Trace meaningful state-changing actions from QOT web and Android users, administrators and moderators. Passwords, OTPs, tokens and other credentials are automatically removed."
                 action={<AdminRefreshButton onClick={() => void loadActivity()} loading={loading} />}
             />
 
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
                 <AdminStatCard label="Matching events" value={summary.total.toLocaleString()} detail="Current filter range" icon={faFingerprint} tone="slate" />
-                <AdminStatCard label="Successful" value={summary.successful.toLocaleString()} detail="Completed staff actions" icon={faCircleCheck} tone="green" />
+                <AdminStatCard label="Successful" value={summary.successful.toLocaleString()} detail="Completed actions" icon={faCircleCheck} tone="green" />
                 <AdminStatCard label="Failed attempts" value={summary.failed.toLocaleString()} detail="Rejected or unsuccessful" icon={faTriangleExclamation} tone="red" />
                 <AdminStatCard label="Staff activity" value={(summary.administrators + summary.moderators).toLocaleString()} detail={`${summary.administrators} admin · ${summary.moderators} moderator`} icon={faUserShield} tone="violet" />
+                <AdminStatCard label="User activity" value={summary.users.toLocaleString()} detail={`${summary.web} web · ${summary.android} Android`} icon={faMobileScreen} tone="orange" />
             </div>
 
             <form
                 onSubmit={applyFilters}
                 className="mt-6 rounded-[26px] bg-white p-4 shadow-sm ring-1 ring-slate-200/70 sm:p-5"
             >
-                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-[minmax(240px,1fr)_180px_180px_170px_170px_auto]">
+                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-[minmax(220px,1fr)_165px_150px_150px_160px_160px_auto]">
                     <label className="relative">
                         <span className="sr-only">Search system trace</span>
                         <FontAwesomeIcon icon={faMagnifyingGlass} className="pointer-events-none absolute left-4 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
                         <input
                             value={filters.search}
                             onChange={(event) => setFilters((current) => ({ ...current, search: event.target.value }))}
-                            placeholder="Staff, action, target…"
+                            placeholder="User, action, target…"
                             className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 pl-11 pr-4 text-sm font-semibold outline-none transition focus:border-orange-400 focus:bg-white"
                         />
                     </label>
 
                     <label>
-                        <span className="sr-only">Staff role</span>
+                        <span className="sr-only">User role</span>
                         <select
                             value={filters.role}
                             onChange={(event) => setFilters((current) => ({ ...current, role: event.target.value }))}
                             className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold text-slate-700 outline-none focus:border-orange-400"
                         >
-                            <option value="">All staff roles</option>
+                            <option value="">All roles</option>
                             <option value="admin">Administrators</option>
                             <option value="moderator">Moderators</option>
+                            <option value="user">Users / sellers</option>
+                            <option value="anonymous">Anonymous</option>
+                        </select>
+                    </label>
+
+                    <label>
+                        <span className="sr-only">Platform</span>
+                        <select value={filters.platform} onChange={(event) => setFilters((current) => ({ ...current, platform: event.target.value }))} className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold text-slate-700 outline-none focus:border-orange-400">
+                            <option value="">All platforms</option>
+                            <option value="web">Web</option>
+                            <option value="android">Android</option>
+                            <option value="ios">iOS</option>
+                            <option value="unknown">Unknown</option>
                         </select>
                     </label>
 
@@ -257,7 +281,7 @@ export default function AdminActivityClient() {
                 ) : error ? (
                     <AdminErrorState message={error} onRetry={() => void loadActivity()} />
                 ) : records.length === 0 ? (
-                    <AdminEmptyState title="No staff activity found" description="No admin or moderator changes match the selected filters." />
+                    <AdminEmptyState title="No activity found" description="No system actions match the selected filters." />
                 ) : (
                     <div className="overflow-hidden rounded-[28px] bg-white shadow-sm ring-1 ring-slate-200/70">
                         <div className="divide-y divide-slate-100">
@@ -281,7 +305,7 @@ export default function AdminActivityClient() {
                                                             </span>
                                                         </div>
                                                         <p className="mt-1 text-xs font-semibold text-slate-500">
-                                                            <span className="font-black text-slate-700">{record.actor_name || "Unknown staff member"}</span>
+                                                            <span className="font-black text-slate-700">{record.actor_name || "Unknown user"}</span>
                                                             {record.actor_role && <> · {record.actor_role}</>}
                                                             {record.actor_email && <> · {record.actor_email}</>}
                                                         </p>
@@ -295,6 +319,7 @@ export default function AdminActivityClient() {
                                                 <div className="mt-3 flex flex-wrap gap-2 text-[9px] font-black uppercase tracking-wide">
                                                     <span className="rounded-full bg-slate-100 px-2.5 py-1.5 text-slate-600">{record.method}</span>
                                                     <span className="rounded-full bg-orange-50 px-2.5 py-1.5 text-orange-700">{record.action.replaceAll("_", " ")}</span>
+                                                    <span className="rounded-full bg-cyan-50 px-2.5 py-1.5 text-cyan-700">{record.platform || "unknown"}</span>
                                                     {record.ip_address && <span className="rounded-full bg-blue-50 px-2.5 py-1.5 text-blue-700">IP {record.ip_address}</span>}
                                                     {fields.length > 0 && <span className="rounded-full bg-violet-50 px-2.5 py-1.5 text-violet-700">Fields: {fields.join(", ")}</span>}
                                                 </div>

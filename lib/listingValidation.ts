@@ -10,6 +10,9 @@ export function getAdCopyValidationError(title: string, description: string) {
     if (cleanTitle.length < AD_TITLE_MIN_LENGTH) {
         return `Ad title must be at least ${AD_TITLE_MIN_LENGTH} characters.`;
     }
+    if (cleanTitle.length > AD_TITLE_MAX_LENGTH) {
+        return `Ad title cannot exceed ${AD_TITLE_MAX_LENGTH} characters.`;
+    }
     if (!cleanDescription) return "Please enter an ad description.";
     if (cleanDescription.length < AD_DESCRIPTION_MIN_LENGTH) {
         return `Ad description must be at least ${AD_DESCRIPTION_MIN_LENGTH} characters.`;

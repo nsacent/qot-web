@@ -76,6 +76,7 @@ type CategoryFilterField = {
     type: string;
     placeholder: string;
     options: any[];
+    required: boolean;
 };
 
 type DraftPhoto = {
@@ -321,6 +322,7 @@ function normalizeCategoryFilter(field: any): CategoryFilterField | null {
         ).toLowerCase(),
         placeholder: String(field?.placeholder || ""),
         options: getFilterOptions(field),
+        required: Boolean(field?.is_required ?? field?.required),
     };
 }
 
@@ -355,6 +357,7 @@ export default function PostAdForm() {
     const [price, setPrice] = useState("");
     const [category, setCategory] = useState("");
     const [city, setCity] = useState("");
+    const [area, setArea] = useState("");
     const [condition, setCondition] = useState("used");
     const [isNegotiable, setIsNegotiable] = useState(false);
     const [photos, setPhotos] = useState<DraftPhoto[]>([]);
@@ -375,6 +378,7 @@ export default function PostAdForm() {
     const [categoryError, setCategoryError] = useState("");
     const [detailsError, setDetailsError] = useState("");
     const [pricingError, setPricingError] = useState("");
+    const [specificationsError, setSpecificationsError] = useState("");
     const [actionError, setActionError] = useState("");
     const [draftError, setDraftError] = useState("");
     const [draftReady, setDraftReady] = useState(false);
@@ -394,6 +398,7 @@ export default function PostAdForm() {
     const categorySectionRef = useRef<HTMLElement>(null);
     const detailsSectionRef = useRef<HTMLElement>(null);
     const pricingSectionRef = useRef<HTMLElement>(null);
+    const specificationsSectionRef = useRef<HTMLElement>(null);
     const draftActionsRef = useRef<HTMLDivElement>(null);
 
     const [categoryModalOpen, setCategoryModalOpen] = useState(false);
@@ -416,6 +421,10 @@ export default function PostAdForm() {
             (item: any) => String(getOptionValue(item)) === String(city)
         );
     }, [cities, city]);
+    const selectedArea = useMemo(() => {
+        const areas = Array.isArray(selectedCity?.areas) ? selectedCity.areas : [];
+        return areas.find((item: any) => String(getOptionValue(item)) === String(area));
+    }, [selectedCity, area]);
     const photoRequirements = useMemo(
         () => getCategoryPhotoRequirements(selectedCategory),
         [selectedCategory],
@@ -452,6 +461,7 @@ export default function PostAdForm() {
                     setPrice(String(draftData.price || ""));
                     setCategory(String(draftData.category || ""));
                     setCity(String(draftData.city || ""));
+                    setArea(String(draftData.area || ""));
                     setCondition(String(draftData.condition || "used"));
                     setIsNegotiable(draftData.is_negotiable === true);
                     pendingDraftFilterValues.current = Object.fromEntries(
@@ -470,6 +480,7 @@ export default function PostAdForm() {
                     setDraftMessage("Your saved draft has been restored.");
                 } else if (currentUser?.profile?.default_city) {
                     setCity(String(currentUser.profile.default_city));
+                    setArea(String(currentUser.profile.default_area || ""));
                 }
             } catch (err) {
                 console.error("Failed to load form data:", err);
@@ -563,6 +574,7 @@ export default function PostAdForm() {
     }
 
     function updateCategoryFilter(key: string, value: string) {
+        setSpecificationsError("");
         setCategoryFilterValues((current) => ({
             ...current,
             [key]: value,
@@ -606,6 +618,7 @@ export default function PostAdForm() {
                 price,
                 category,
                 city,
+                area,
                 condition,
                 is_negotiable: isNegotiable,
                 category_filter_values: categoryFilterValues,
@@ -670,6 +683,7 @@ export default function PostAdForm() {
             setPrice("");
             setCategory("");
             setCity("");
+            setArea("");
             setCondition("used");
             setIsNegotiable(false);
             setPhotos([]);
@@ -703,6 +717,7 @@ export default function PostAdForm() {
                 price,
                 category,
                 city,
+                area,
                 condition,
                 is_negotiable: isNegotiable,
                 category_filter_values: categoryFilterValues,
@@ -726,6 +741,7 @@ export default function PostAdForm() {
     }, [
         category,
         categoryFilterValues,
+        area,
         city,
         condition,
         description,
@@ -742,10 +758,15 @@ export default function PostAdForm() {
     function validateForm() {
         const copyError = getAdCopyValidationError(title, description);
         if (copyError) return copyError;
-        if (!price) return "Please enter advert price.";
+        if (!price || Number(price) <= 0) return "Please enter a valid advert price.";
         if (!category) return "Please select category.";
         if (!city) return "Please select city.";
         if (!condition) return "Please select condition.";
+        if (filtersLoading) return "Please wait for category details to finish loading.";
+        const missingSpecification = categoryFilters.find(
+            (field) => field.required && !String(categoryFilterValues[field.key] || "").trim()
+        );
+        if (missingSpecification) return `Please complete ${missingSpecification.label}.`;
         if (photos.length < photoRequirements.minimum) {
             return `${getSelectedCategoryName()} requires at least ${photoRequirements.minimum} photos.`;
         }
@@ -760,12 +781,22 @@ export default function PostAdForm() {
         setCategory(value);
         setPhotoError("");
         setCategoryError("");
+        setSpecificationsError("");
         setCategorySearch("");
         setCategoryModalOpen(false);
     }
 
     function selectCityValue(value: string) {
         setCity(value);
+        setArea("");
+        setCategoryError("");
+        setLocationSearch("");
+        setLocationModalOpen(false);
+    }
+
+    function selectAreaValue(value: string, cityValue: string) {
+        setCity(cityValue);
+        setArea(value);
         setCategoryError("");
         setLocationSearch("");
         setLocationModalOpen(false);
@@ -996,6 +1027,7 @@ export default function PostAdForm() {
         setCategoryError("");
         setDetailsError("");
         setPricingError("");
+        setSpecificationsError("");
         setPhotoError("");
 
         const validationError = validateForm();
@@ -1003,16 +1035,25 @@ export default function PostAdForm() {
         if (validationError) {
             if (
                 title.trim().length < AD_TITLE_MIN_LENGTH ||
+                title.trim().length > AD_TITLE_MAX_LENGTH ||
                 description.trim().length < AD_DESCRIPTION_MIN_LENGTH
             ) {
                 setDetailsError(validationError);
                 revealSection(detailsSectionRef);
-            } else if (!price || !condition) {
+            } else if (!price || Number(price) <= 0 || !condition) {
                 setPricingError(validationError);
                 revealSection(pricingSectionRef);
             } else if (!category || !city) {
                 setCategoryError(validationError);
                 revealSection(categorySectionRef);
+            } else if (
+                filtersLoading ||
+                categoryFilters.some(
+                    (field) => field.required && !String(categoryFilterValues[field.key] || "").trim()
+                )
+            ) {
+                setSpecificationsError(validationError);
+                revealSection(specificationsSectionRef);
             } else {
                 setPhotoError(validationError);
                 revealSection(photoSectionRef);
@@ -1023,6 +1064,7 @@ export default function PostAdForm() {
         setCategoryError("");
         setDetailsError("");
         setPricingError("");
+        setSpecificationsError("");
         setPhotoError("");
         setShowPreview(true);
         window.scrollTo({ top: 0, behavior: "smooth" });
@@ -1045,6 +1087,7 @@ export default function PostAdForm() {
             formData.append("currency", "UGX");
             formData.append("category", category);
             formData.append("city", city);
+            if (area) formData.append("area", area);
             formData.append("condition", condition);
             formData.append("is_negotiable", String(isNegotiable));
             formData.append("attributes", JSON.stringify(buildAttributes()));
@@ -1096,7 +1139,7 @@ export default function PostAdForm() {
                     title={title}
                     price={formatPrice(price)}
                     category={getSelectedCategoryName()}
-                    location={getSelectedCityName()}
+                    location={selectedArea ? `${getOptionLabel(selectedArea)}, ${getSelectedCityName()}` : getSelectedCityName()}
                     condition={condition}
                     description={description}
                     isNegotiable={isNegotiable}
@@ -1504,7 +1547,9 @@ export default function PostAdForm() {
                         >
                             <span>
                                 <span className="block text-sm font-black text-slate-900">
-                                    {selectedCity ? getOptionLabel(selectedCity) : "Select city"}
+                                    {selectedArea
+                                        ? `${getOptionLabel(selectedArea)}, ${getOptionLabel(selectedCity)}`
+                                        : selectedCity ? getOptionLabel(selectedCity) : "Select city or area"}
                                 </span>
                             </span>
 
@@ -1515,6 +1560,7 @@ export default function PostAdForm() {
                         <CurrentLocationButton
                             cities={cities}
                             onSelect={selectCityValue}
+                            onSelectArea={selectAreaValue}
                             onNoMatch={(suggestion) => {
                                 setLocationSearch(suggestion);
                                 setLocationModalOpen(true);
@@ -1538,20 +1584,26 @@ export default function PostAdForm() {
                     onClose={() => setLocationModalOpen(false)}
                     cities={cities}
                     selectedValue={city}
+                    selectedAreaValue={area}
                     search={locationSearch}
                     setSearch={setLocationSearch}
                     onSelect={selectCityValue}
+                    onSelectArea={selectAreaValue}
                 />
             </FormCard>
 
             {category && (
                 <FormCard
+                    sectionRef={specificationsSectionRef}
                     className="order-5 lg:col-span-2"
                     icon={faSliders}
                     eyebrow="Step 5"
                     title="Category details"
                     description="Add only the details that apply to this category."
                 >
+                    {specificationsError && (
+                        <InlineError message={specificationsError} onDismiss={() => setSpecificationsError("")} />
+                    )}
                     {filtersLoading ? (
                         <div className="rounded-[18px] bg-slate-50 p-4 text-sm font-bold text-slate-500 ring-1 ring-slate-100">
                             Loading category details...
@@ -1569,7 +1621,7 @@ export default function PostAdForm() {
                                             className="flex cursor-pointer items-center justify-between gap-4 rounded-[18px] bg-slate-50 px-4 py-3 ring-1 ring-slate-100"
                                         >
                                             <span className="text-sm font-black text-slate-800">
-                                                {field.label}
+                                                {field.label}{field.required ? " *" : ""}
                                             </span>
 
                                             <input
@@ -1588,7 +1640,7 @@ export default function PostAdForm() {
                                 }
 
                                 return (
-                                    <Field key={field.key} label={field.label} icon={faSliders}>
+                                    <Field key={field.key} label={`${field.label}${field.required ? " *" : ""}`} icon={faSliders}>
                                         {hasOptions ? (
                                             <SelectWrap>
                                                 <select

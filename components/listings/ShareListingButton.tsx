@@ -24,11 +24,24 @@ function getShareText(listing: any, url: string) {
 export default function ShareListingButton({ listing }: ShareListingButtonProps) {
     const [copied, setCopied] = useState(false);
 
+    async function trackShare() {
+        try {
+            await fetch(`/api/proxy/listings/${listing.id}/share/`, {
+                method: "POST",
+                credentials: "include",
+                keepalive: true,
+            });
+        } catch {
+            // Do not interrupt a successful share if analytics is unavailable.
+        }
+    }
+
     async function copyLink() {
         const url = getListingUrl(listing.id);
 
         try {
             await navigator.clipboard.writeText(url);
+            void trackShare();
             setCopied(true);
 
             setTimeout(() => {
@@ -50,6 +63,7 @@ export default function ShareListingButton({ listing }: ShareListingButtonProps)
                     text,
                     url,
                 });
+                void trackShare();
             } catch {
                 // User cancelled share; no need to alert.
             }
@@ -66,6 +80,7 @@ export default function ShareListingButton({ listing }: ShareListingButtonProps)
         const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(text)}`;
 
         window.open(whatsappUrl, "_blank");
+        void trackShare();
     }
 
     return (

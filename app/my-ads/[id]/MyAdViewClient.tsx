@@ -9,6 +9,7 @@ import {
     faHeart,
     faLocationDot,
     faPenToSquare,
+    faShareNodes,
     faStore,
     faTag,
     faTrash,
@@ -385,6 +386,7 @@ function MyAdViewContent({ id }: { id: string }) {
     const updatedValue = ad?.updated_at || ad?.modified_at || ad?.created_at;
     const viewCount = ad?.views_count ?? ad?.view_count ?? ad?.views ?? 0;
     const savedCount = ad?.favorites_count ?? ad?.favourites_count ?? ad?.saved_count ?? 0;
+    const shareCount = ad?.shares_count ?? ad?.share_count ?? 0;
     const isNegotiable = Boolean(ad?.is_negotiable ?? ad?.negotiable);
     const expiryValue = getListingExpiryValue(ad);
     const canRenew = listingCanBeRenewed(ad);
@@ -488,7 +490,7 @@ function MyAdViewContent({ id }: { id: string }) {
                                         Edit and resubmit
                                     </a>
                                     <a
-                                        href="mailto:info@qot.ug"
+                                        href="mailto:support@qot.ug"
                                         className="inline-flex items-center rounded-xl bg-white px-4 py-2.5 text-xs font-black text-red-700 ring-1 ring-red-200 transition hover:bg-red-100"
                                     >
                                         Contact QOT support
@@ -499,7 +501,7 @@ function MyAdViewContent({ id }: { id: string }) {
                     </div>
                 )}
 
-                <div className="grid divide-y divide-slate-100 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+                <div className="grid grid-cols-2 divide-x divide-y divide-slate-100 sm:grid-cols-4 sm:divide-y-0">
                     <div className="flex items-center gap-3 px-5 py-4 sm:px-6">
                         <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
                             <FontAwesomeIcon icon={faEye} className="h-4 w-4" />
@@ -507,6 +509,15 @@ function MyAdViewContent({ id }: { id: string }) {
                         <div>
                             <p className="text-xl font-black text-slate-950">{formatCount(viewCount)}</p>
                             <p className="text-[10px] font-black uppercase tracking-wide text-slate-400">Views</p>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-3 px-5 py-4 sm:px-6">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-orange-50 text-orange-600">
+                            <FontAwesomeIcon icon={faShareNodes} className="h-4 w-4" />
+                        </div>
+                        <div>
+                            <p className="text-xl font-black text-slate-950">{formatCount(shareCount)}</p>
+                            <p className="text-[10px] font-black uppercase tracking-wide text-slate-400">Shares</p>
                         </div>
                     </div>
                     <div className="flex items-center gap-3 px-5 py-4 sm:px-6">

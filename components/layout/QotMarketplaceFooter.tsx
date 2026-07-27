@@ -46,7 +46,7 @@ const footerGroups = [
             { label: "Safety center", href: "/safety/report" },
             { label: "Privacy Policy", href: "/privacy" },
             { label: "Terms of Service", href: "/terms" },
-            { label: "Contact QOT", href: "mailto:info@qot.ug" },
+            { label: "Help & support", href: "mailto:support@qot.ug" },
         ],
     },
 ];

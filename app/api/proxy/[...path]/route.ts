@@ -23,6 +23,9 @@ async function getRequestBodyAndHeaders(request: NextRequest, method: string) {
 
     if (contentType) headers.set("Content-Type", contentType);
     if (accept) headers.set("Accept", accept);
+    headers.set("X-QOT-Platform", "web");
+    const userAgent = request.headers.get("user-agent");
+    if (userAgent) headers.set("User-Agent", userAgent);
 
     if (method === "GET" || method === "HEAD") {
         return {

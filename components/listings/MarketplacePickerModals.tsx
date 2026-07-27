@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
+    faArrowLeft,
     faArrowRight,
     faCheck,
     faLayerGroup,
@@ -25,6 +26,12 @@ type PickerCity = {
     regionKey: string;
     regionName: string;
     count?: number;
+    areas: PickerArea[];
+};
+
+type PickerArea = {
+    value: string;
+    label: string;
 };
 
 type RegionGroup = {
@@ -116,7 +123,15 @@ function normalizeCity(value: unknown, valueMode: "id" | "slug"): PickerCity | n
         ? record.listings_count
         : undefined;
 
-    return { value: normalizedValue, label, regionKey, regionName, count };
+    const areas = (Array.isArray(record.areas) ? record.areas : [])
+        .map((area) => {
+            const areaValue = optionValue(area, valueMode);
+            const areaLabel = optionLabel(area);
+            return areaValue && areaLabel ? { value: areaValue, label: areaLabel } : null;
+        })
+        .filter((area): area is PickerArea => Boolean(area));
+
+    return { value: normalizedValue, label, regionKey, regionName, count, areas };
 }
 
 function categoryContainsSelection(category: PickerCategory, selectedValue: string) {
@@ -433,7 +448,9 @@ export function LocationPickerModal({
     onSelect,
     valueMode = "id",
     selectedRegionValue = "",
+    selectedAreaValue = "",
     onSelectRegion,
+    onSelectArea,
     onSelectAll,
     allLabel = "All Uganda",
     multiple = false,
@@ -447,12 +464,15 @@ export function LocationPickerModal({
     onSelect: (value: string) => void;
     valueMode?: "id" | "slug";
     selectedRegionValue?: string;
+    selectedAreaValue?: string;
     onSelectRegion?: (value: string) => void;
+    onSelectArea?: (value: string, cityValue: string) => void;
     onSelectAll?: () => void;
     allLabel?: string;
     multiple?: boolean;
 }) {
     const [activeRegionKey, setActiveRegionKey] = useState("");
+    const [activeCityValue, setActiveCityValue] = useState("");
     const regionGroups = useMemo(() => {
         const groups = new Map<string, RegionGroup>();
 
@@ -479,6 +499,7 @@ export function LocationPickerModal({
             const regionMatches = group.name.toLowerCase().includes(normalizedSearch);
             const matchingCities = group.cities.filter((city) =>
                 city.label.toLowerCase().includes(normalizedSearch)
+                || city.areas.some((area) => area.label.toLowerCase().includes(normalizedSearch))
             );
 
             if (!normalizedSearch || regionMatches) return group;
@@ -487,8 +508,12 @@ export function LocationPickerModal({
         })
         .filter((group): group is RegionGroup => Boolean(group));
     const selectedValues = selectedValue.split(",").filter(Boolean);
+    const selectedAreaValues = selectedAreaValue.split(",").filter(Boolean);
     const selectedRegion = filteredGroups.find((group) =>
-        group.cities.some((city) => selectedValues.includes(city.value))
+        group.cities.some((city) => (
+            selectedValues.includes(city.value)
+            || city.areas.some((area) => selectedAreaValues.includes(area.value))
+        ))
     );
     const selectedRegionGroup = filteredGroups.find(
         (group) =>
@@ -499,6 +524,36 @@ export function LocationPickerModal({
         selectedRegion ||
         selectedRegionGroup ||
         filteredGroups[0];
+    const selectedCity = regionGroups
+        .flatMap((group) => group.cities)
+        .find((city) => (
+            selectedValues.includes(city.value)
+            || city.areas.some((area) => selectedAreaValues.includes(area.value))
+        ));
+    const activeCity = activeRegion?.cities.find(
+        (city) => city.value === activeCityValue
+    ) || null;
+
+    useEffect(() => {
+        if (!open) return;
+
+        const selectedGroup = regionGroups.find((group) =>
+            selectedCity
+                ? group.cities.some((city) => city.value === selectedCity.value)
+                : group.name.toLowerCase().replace(/\s+/g, "-") === selectedRegionValue
+        );
+
+        setActiveRegionKey(selectedGroup?.key || regionGroups[0]?.key || "");
+        setActiveCityValue(
+            selectedAreaValues.length > 0 && selectedCity ? selectedCity.value : ""
+        );
+    }, [
+        open,
+        regionGroups,
+        selectedAreaValue,
+        selectedRegionValue,
+        selectedValue,
+    ]);
 
     function close() {
         setSearch("");
@@ -507,6 +562,12 @@ export function LocationPickerModal({
 
     function select(value: string) {
         onSelect(value);
+        setActiveCityValue("");
+        if (!multiple) close();
+    }
+
+    function selectArea(value: string, cityValue: string) {
+        onSelectArea?.(value, cityValue);
         if (!multiple) close();
     }
 
@@ -514,11 +575,11 @@ export function LocationPickerModal({
         <PickerModalShell
             open={open}
             eyebrow="Uganda marketplace coverage"
-            title="Choose a region and city"
-            description="Select the region first, then choose the city where the item is available."
+            title="Choose a region, city or area"
+            description="Select a region, then narrow the location to a city, division or area."
             search={search}
             setSearch={setSearch}
-            searchPlaceholder="Search a city or region…"
+            searchPlaceholder="Search a region, city or area…"
             icon={faMap}
             onClose={close}
         >
@@ -561,13 +622,17 @@ export function LocationPickerModal({
                                 const active = activeRegion?.key === group.key;
                                 const hasSelection = group.cities.some(
                                     (city) => selectedValues.includes(city.value)
+                                        || city.areas.some((area) => selectedAreaValues.includes(area.value))
                                 ) || group.name.toLowerCase().replace(/\s+/g, "-") === selectedRegionValue;
 
                                 return (
                                     <button
                                         key={group.key}
                                         type="button"
-                                        onClick={() => setActiveRegionKey(group.key)}
+                                        onClick={() => {
+                                            setActiveRegionKey(group.key);
+                                            setActiveCityValue("");
+                                        }}
                                         className={`flex min-w-52 items-center justify-between gap-3 rounded-2xl px-4 py-3 text-left transition md:min-w-0 ${
                                             active
                                                 ? "bg-slate-950 text-white shadow-lg"
@@ -587,23 +652,30 @@ export function LocationPickerModal({
                         </div>
                     </aside>
 
-                    <main className="h-full min-h-0 overflow-y-auto overscroll-contain p-4 sm:p-6 md:max-h-[54vh]">
-                        {activeRegion && (
+                    <main className="h-full min-h-0 overflow-y-auto overscroll-contain bg-white p-4 sm:p-6 md:max-h-[54vh]">
+                        {activeRegion && !activeCity && (
                             <>
                                 <div className="flex items-end justify-between gap-4">
                                     <div>
-                                        <p className="text-[9px] font-black uppercase tracking-[0.18em] text-orange-600">Cities in</p>
-                                        <h3 className="mt-1 text-xl font-black tracking-tight text-slate-950">{activeRegion.name}</h3>
+                                        <p className="text-[9px] font-black uppercase tracking-[0.18em] text-orange-600">
+                                            Step 2 · Choose a city or district
+                                        </p>
+                                        <h3 className="mt-1 text-xl font-black tracking-tight text-slate-950">
+                                            {activeRegion.name}
+                                        </h3>
+                                        <p className="mt-1 text-xs font-semibold text-slate-500">
+                                            Pick a location to see its available areas.
+                                        </p>
                                     </div>
-                                    <p className="hidden text-xs font-semibold text-slate-400 sm:block">
-                                        {activeRegion.cities.length} available
-                                    </p>
+                                    <span className="hidden rounded-full bg-slate-100 px-3 py-1.5 text-[10px] font-black text-slate-500 sm:inline-flex">
+                                        {activeRegion.cities.length} locations
+                                    </span>
                                 </div>
 
                                 <div className="mt-5 grid gap-3 sm:grid-cols-2">
                                     {onSelectRegion && (
                                         <PickerChoice
-                                            title={`All in ${activeRegion.name}`}
+                                            title={`Anywhere in ${activeRegion.name}`}
                                             description="Use the whole region"
                                             selected={selectedRegionValue === activeRegion.name.toLowerCase().replace(/\s+/g, "-") && !selectedValue}
                                             icon={faMap}
@@ -613,27 +685,112 @@ export function LocationPickerModal({
                                             }}
                                         />
                                     )}
-                                    {activeRegion.cities.map((city) => (
-                                        <PickerChoice
-                                            key={city.value}
-                                            title={city.label}
-                                            description={`${city.regionName}${city.count !== undefined ? ` · ${city.count} ads` : ""}`}
-                                            selected={selectedValues.includes(city.value)}
-                                            icon={faLocationDot}
-                                            onClick={() => select(city.value)}
-                                        />
-                                    ))}
+                                    {activeRegion.cities.map((city) => {
+                                        const cityHasSelectedArea = city.areas.some((area) =>
+                                            selectedAreaValues.includes(area.value)
+                                        );
+                                        const canChooseArea = Boolean(onSelectArea && city.areas.length);
+
+                                        return (
+                                            <PickerChoice
+                                                key={city.value}
+                                                title={city.label}
+                                                description={canChooseArea
+                                                    ? `${city.areas.length} area${city.areas.length === 1 ? "" : "s"} available`
+                                                    : `${city.regionName}${city.count !== undefined ? ` · ${city.count} ads` : ""}`}
+                                                selected={cityHasSelectedArea || (selectedValues.includes(city.value) && !cityHasSelectedArea)}
+                                                icon={canChooseArea ? faArrowRight : faLocationDot}
+                                                onClick={() => {
+                                                    if (canChooseArea) {
+                                                        setActiveCityValue(city.value);
+                                                        return;
+                                                    }
+                                                    select(city.value);
+                                                }}
+                                            />
+                                        );
+                                    })}
                                 </div>
-                                {multiple && (
-                                    <button
-                                        type="button"
-                                        onClick={close}
-                                        className="sticky bottom-0 mt-5 h-12 w-full rounded-2xl bg-orange-500 text-sm font-black text-white shadow-lg shadow-orange-100"
-                                    >
-                                        Done{selectedValues.length ? ` · ${selectedValues.length} selected` : ""}
-                                    </button>
-                                )}
                             </>
+                        )}
+
+                        {activeRegion && activeCity && (
+                            <>
+                                <button
+                                    type="button"
+                                    onClick={() => setActiveCityValue("")}
+                                    className="inline-flex h-9 items-center gap-2 rounded-xl bg-slate-100 px-3 text-[11px] font-black text-slate-700 transition hover:bg-slate-200"
+                                >
+                                    <FontAwesomeIcon icon={faArrowLeft} className="h-3 w-3" />
+                                    Back to {activeRegion.name}
+                                </button>
+
+                                <div className="mt-5 rounded-[22px] bg-gradient-to-br from-slate-950 to-slate-800 p-5 text-white shadow-lg shadow-slate-200">
+                                    <p className="text-[9px] font-black uppercase tracking-[0.18em] text-orange-300">
+                                        Step 3 · Choose an area
+                                    </p>
+                                    <div className="mt-1 flex items-end justify-between gap-4">
+                                        <div>
+                                            <h3 className="text-xl font-black tracking-tight">{activeCity.label}</h3>
+                                            <p className="mt-1 text-xs font-semibold text-slate-400">
+                                                {activeCity.regionName} · {activeCity.areas.length} available
+                                            </p>
+                                        </div>
+                                        <FontAwesomeIcon icon={faLocationDot} className="h-5 w-5 text-orange-400" />
+                                    </div>
+                                </div>
+
+                                <button
+                                    type="button"
+                                    onClick={() => select(activeCity.value)}
+                                    className={`mt-4 flex min-h-14 w-full items-center justify-between gap-3 rounded-2xl px-4 py-3 text-left transition ${
+                                        selectedValues.includes(activeCity.value) && !activeCity.areas.some((area) => selectedAreaValues.includes(area.value))
+                                            ? "bg-orange-500 text-white shadow-lg shadow-orange-100"
+                                            : "bg-orange-50 text-orange-800 ring-1 ring-orange-100 hover:bg-orange-100"
+                                    }`}
+                                >
+                                    <span>
+                                        <span className="block text-sm font-black">Use all of {activeCity.label}</span>
+                                        <span className="mt-0.5 block text-[10px] font-semibold opacity-70">Don&apos;t narrow down to a specific area</span>
+                                    </span>
+                                    <FontAwesomeIcon icon={faArrowRight} className="h-3.5 w-3.5" />
+                                </button>
+
+                                <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                                    {activeCity.areas.map((area) => {
+                                        const selected = selectedAreaValues.includes(area.value);
+                                        return (
+                                            <button
+                                                key={area.value}
+                                                type="button"
+                                                onClick={() => selectArea(area.value, activeCity.value)}
+                                                className={`flex min-h-14 items-center justify-between gap-3 rounded-2xl px-4 py-3 text-left transition ${
+                                                    selected
+                                                        ? "bg-orange-500 text-white shadow-lg shadow-orange-100 ring-1 ring-orange-500"
+                                                        : "bg-white text-slate-800 ring-1 ring-slate-200 hover:ring-orange-300 hover:shadow-sm"
+                                                }`}
+                                            >
+                                                <span className="min-w-0 truncate text-xs font-black">{area.label}</span>
+                                                <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${selected ? "bg-white/20" : "bg-orange-50 text-orange-600"}`}>
+                                                    <FontAwesomeIcon icon={selected ? faCheck : faArrowRight} className="h-3 w-3" />
+                                                </span>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </>
+                        )}
+
+                        {multiple && (
+                            <button
+                                type="button"
+                                onClick={close}
+                                className="sticky bottom-0 mt-5 h-12 w-full rounded-2xl bg-orange-500 text-sm font-black text-white shadow-lg shadow-orange-100"
+                            >
+                                Done{selectedValues.length || selectedAreaValues.length
+                                    ? ` · ${selectedValues.length + selectedAreaValues.length} selected`
+                                    : ""}
+                            </button>
                         )}
                     </main>
                 </div>

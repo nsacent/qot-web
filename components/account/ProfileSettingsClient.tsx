@@ -77,6 +77,7 @@ export default function ProfileSettingsClient() {
     const [businessName, setBusinessName] = useState("");
     const [bio, setBio] = useState("");
     const [defaultCity, setDefaultCity] = useState("");
+    const [defaultArea, setDefaultArea] = useState("");
     const [selectedTimezone, setSelectedTimezone] = useState(DEFAULT_TIME_ZONE);
     const [avatarFile, setAvatarFile] = useState<File | null>(null);
     const [coverFile, setCoverFile] = useState<File | null>(null);
@@ -99,6 +100,10 @@ export default function ProfileSettingsClient() {
         () => cities.find((city) => getCityValue(city) === String(defaultCity)),
         [cities, defaultCity]
     );
+    const selectedArea = useMemo(() => {
+        const areas = Array.isArray(selectedCity?.areas) ? selectedCity.areas : [];
+        return areas.find((area: any) => getCityValue(area) === String(defaultArea));
+    }, [selectedCity, defaultArea]);
     const phoneVerified =
         user?.phone_verified === true || Boolean(user?.phone_verified_at);
     const emailVerified =
@@ -119,6 +124,7 @@ export default function ProfileSettingsClient() {
         setBusinessName(currentUser?.profile?.business_name || "");
         setBio(currentUser?.profile?.bio || "");
         setDefaultCity(String(currentUser?.profile?.default_city || ""));
+        setDefaultArea(String(currentUser?.profile?.default_area || ""));
         setSelectedTimezone(currentUser?.profile?.timezone || DEFAULT_TIME_ZONE);
     }
 
@@ -175,6 +181,7 @@ export default function ProfileSettingsClient() {
             formData.append("business_name", businessName.trim());
             formData.append("bio", bio.trim());
             if (defaultCity) formData.append("default_city", defaultCity);
+            formData.append("default_area", defaultArea);
             formData.append("timezone", selectedTimezone);
             if (avatarFile) formData.append("avatar", avatarFile);
             if (coverFile) formData.append("cover_photo", coverFile);
@@ -396,7 +403,7 @@ export default function ProfileSettingsClient() {
                         <p className="mb-2 text-sm font-black text-slate-700">Default ad location</p>
                         <button type="button" onClick={() => setLocationModalOpen(true)} className="flex w-full items-center justify-between rounded-2xl bg-slate-50 px-4 py-3 text-left ring-1 ring-slate-100 hover:bg-orange-50">
                             <span>
-                                <span className="block text-sm font-black text-slate-900">{selectedCity ? getCityLabel(selectedCity) : "Choose a city"}</span>
+                                <span className="block text-sm font-black text-slate-900">{selectedArea ? `${getCityLabel(selectedArea)}, ${getCityLabel(selectedCity)}` : selectedCity ? getCityLabel(selectedCity) : "Choose a city or area"}</span>
                                 <span className="text-xs font-semibold text-slate-500">Used automatically when posting an ad</span>
                             </span>
                             <FontAwesomeIcon icon={faLocationDot} className="h-4 w-4 text-orange-500" />
@@ -532,10 +539,18 @@ export default function ProfileSettingsClient() {
                 onClose={() => setLocationModalOpen(false)}
                 cities={cities}
                 selectedValue={defaultCity}
+                selectedAreaValue={defaultArea}
                 search={locationSearch}
                 setSearch={setLocationSearch}
                 onSelect={(value) => {
                     setDefaultCity(value);
+                    setDefaultArea("");
+                    setLocationSearch("");
+                    setLocationModalOpen(false);
+                }}
+                onSelectArea={(value, cityValue) => {
+                    setDefaultCity(cityValue);
+                    setDefaultArea(value);
                     setLocationSearch("");
                     setLocationModalOpen(false);
                 }}

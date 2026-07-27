@@ -191,8 +191,12 @@ export default function ReportModerationClient() {
     async function confirmReportModal() {
         if (!modal) return;
 
-        if (modal.type === "reject" && !modalValues.reason?.trim()) {
-            setModalError("Please enter a rejection reason.");
+        if ((modalValues.reason?.trim().length || 0) < 10) {
+            setModalError(
+                modal.type === "delete"
+                    ? "Enter a clear removal reason of at least 10 characters. The seller will receive it."
+                    : "Enter a clear rejection reason of at least 10 characters."
+            );
             return;
         }
 
@@ -207,8 +211,10 @@ export default function ReportModerationClient() {
                 });
                 setSuccess("Ad rejected successfully.");
             } else {
-                await apiPost(`/moderation/reports/${modal.id}/delete-listing/`);
-                setSuccess("Ad deleted successfully.");
+                await apiPost(`/moderation/reports/${modal.id}/delete-listing/`, {
+                    deletion_reason: modalValues.reason.trim(),
+                });
+                setSuccess("Ad deleted and the seller was notified with the reason.");
             }
 
             setModal(null);
@@ -231,13 +237,18 @@ export default function ReportModerationClient() {
     const pendingCount = reports.filter((report) => !isResolved(report)).length;
     const resolvedCount = reports.filter(isResolved).length;
     const modalFields: AdminModalField[] =
-        modal?.type === "reject"
+        modal
             ? [
                 {
                     key: "reason",
-                    label: "Rejection reason",
+                    label: modal.type === "delete" ? "Removal reason sent to seller" : "Rejection reason",
                     type: "textarea",
-                    placeholder: "Explain why the advert is being rejected…",
+                    placeholder: modal.type === "delete"
+                        ? "Clearly explain why this ad is being removed…"
+                        : "Explain why the advert is being rejected…",
+                    helper: modal.type === "delete"
+                        ? "The seller will receive this exact reason in their notifications."
+                        : undefined,
                     required: true,
                 },
             ]
@@ -385,7 +396,7 @@ export default function ReportModerationClient() {
                     description={
                         modal.type === "reject"
                             ? `Add a clear moderation reason before rejecting “${modal.title}”.`
-                            : `“${modal.title}” will be removed from QOT. This is a serious moderation action.`
+                            : `“${modal.title}” will be removed from QOT and the seller will receive your reason.`
                     }
                     confirmLabel={modal.type === "reject" ? "Reject ad" : "Delete ad"}
                     tone="red"

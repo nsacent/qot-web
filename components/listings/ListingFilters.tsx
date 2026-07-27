@@ -57,7 +57,7 @@ type Props = {
 };
 
 const CORE_KEYS = [
-    "category", "region", "city", "min_price", "max_price", "condition",
+    "category", "region", "city", "area", "min_price", "max_price", "condition",
     "is_negotiable", "verified_seller", "posted_within",
 ];
 const MULTI_FIELDS = new Set(["brand", "make", "model", "property_type", "item_type"]);
@@ -171,6 +171,7 @@ export default function ListingFilters({
     const [category, setCategory] = useState(fromUrl("category"));
     const [region, setRegion] = useState(fromUrl("region"));
     const [city, setCity] = useState(fromUrl("city"));
+    const [area, setArea] = useState(fromUrl("area"));
     const [minPrice, setMinPrice] = useState(fromUrl("min_price"));
     const [maxPrice, setMaxPrice] = useState(fromUrl("max_price"));
     const [condition, setCondition] = useState(fromUrl("condition"));
@@ -199,7 +200,15 @@ export default function ListingFilters({
     const allCategories = useMemo(() => flattenCategories(categories), [categories]);
     const selectedCategory = allCategories.find((item) => valueOf(item) === category);
     const selectedCities = split(city);
-    const cityLabel = selectedCities.length > 1
+    const selectedAreas = split(area);
+    const selectedAreaLabels = cities.flatMap((item) => Array.isArray(item?.areas) ? item.areas : [])
+        .filter((item) => selectedAreas.includes(valueOf(item)))
+        .map(labelOf);
+    const cityLabel = selectedAreaLabels.length > 1
+        ? `${selectedAreaLabels.length} areas selected`
+        : selectedAreaLabels.length === 1
+            ? selectedAreaLabels[0]
+        : selectedCities.length > 1
         ? `${selectedCities.length} cities selected`
         : cities.find((item) => valueOf(item) === selectedCities[0])
             ? labelOf(cities.find((item) => valueOf(item) === selectedCities[0]))
@@ -260,6 +269,7 @@ export default function ListingFilters({
         setOrDelete("category", category);
         setOrDelete("region", region);
         setOrDelete("city", city);
+        setOrDelete("area", area);
         setOrDelete("min_price", digits(minPrice));
         setOrDelete("max_price", digits(maxPrice));
         setOrDelete("condition", condition);
@@ -285,7 +295,7 @@ export default function ListingFilters({
         return () => window.clearTimeout(timer);
         // buildParams deliberately tracks the draft controls below.
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [category, region, city, minPrice, maxPrice, condition, negotiable, verified, postedWithin, fieldValues, fields]);
+    }, [category, region, city, area, minPrice, maxPrice, condition, negotiable, verified, postedWithin, fieldValues, fields]);
 
     function apply(event?: React.FormEvent) {
         event?.preventDefault();
@@ -298,6 +308,7 @@ export default function ListingFilters({
         setCategory("");
         setRegion("");
         setCity("");
+        setArea("");
         setMinPrice("");
         setMaxPrice("");
         setCondition("");
@@ -316,7 +327,7 @@ export default function ListingFilters({
     }
 
     const activeCount = [
-        category, region, city, minPrice, maxPrice, condition,
+        category, region, city, area, minPrice, maxPrice, condition,
         negotiable ? "yes" : "", verified ? "yes" : "", postedWithin,
         ...Object.values(fieldValues),
     ].filter(Boolean).length;
@@ -557,13 +568,15 @@ export default function ListingFilters({
                 cities={citiesWithCounts}
                 valueMode="slug"
                 selectedValue={city}
+                selectedAreaValue={area}
                 selectedRegionValue={region}
                 search={locationSearch}
                 setSearch={setLocationSearch}
                 multiple
-                onSelect={(value) => { setRegion(""); setCity(toggleCsv(city, value)); }}
-                onSelectRegion={(value) => { setRegion(value); setCity(""); }}
-                onSelectAll={() => { setRegion(""); setCity(""); }}
+                onSelect={(value) => { setRegion(""); setArea(""); setCity(toggleCsv(city, value)); }}
+                onSelectArea={(value, cityValue) => { setRegion(""); setCity(cityValue); setArea(toggleCsv(area, value)); }}
+                onSelectRegion={(value) => { setRegion(value); setCity(""); setArea(""); }}
+                onSelectAll={() => { setRegion(""); setCity(""); setArea(""); }}
             />
         </>
     );

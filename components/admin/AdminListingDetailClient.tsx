@@ -18,6 +18,7 @@ import {
     faMoneyBillWave,
     faPenToSquare,
     faShieldHalved,
+    faShareNodes,
     faStore,
     faTag,
     faTrashCan,
@@ -93,6 +94,7 @@ type AdminListingDetail = {
     featured_until: string | null;
     views_count: number;
     favorites_count: number;
+    shares_count: number;
     rejection_reason: string | null;
     primary_image: string | null;
     images: ListingImage[];
@@ -288,8 +290,15 @@ export default function AdminListingDetailClient({
     async function confirmModal() {
         if (!listing || !modal) return;
 
-        if (modal.type === "reject" && !modalValues.reason?.trim()) {
-            setModalError("Enter a clear reason for rejecting this ad.");
+        if (
+            (modal.type === "reject" || modal.type === "delete")
+            && (modalValues.reason?.trim().length || 0) < 10
+        ) {
+            setModalError(
+                modal.type === "delete"
+                    ? "Enter a clear removal reason of at least 10 characters. The seller will receive it."
+                    : "Enter a clear reason of at least 10 characters for rejecting this ad."
+            );
             return;
         }
 
@@ -320,8 +329,10 @@ export default function AdminListingDetailClient({
                 await apiPost(`/admin-panel/listings/${listing.id}/unfeature/`);
                 setSuccess("Featured placement removed from this ad.");
             } else {
-                await apiPost(`/admin-panel/listings/${listing.id}/delete/`);
-                setSuccess("Ad removed from the marketplace.");
+                await apiPost(`/admin-panel/listings/${listing.id}/delete/`, {
+                    deletion_reason: modalValues.reason.trim(),
+                });
+                setSuccess("Ad removed and the seller was notified with your reason.");
             }
 
             setModal(null);
@@ -397,9 +408,19 @@ export default function AdminListingDetailClient({
         modalTone = "red";
     } else if (modal?.type === "delete") {
         modalTitle = "Remove this ad?";
-        modalDescription = `“${listing.title}” will be hidden from the marketplace. This moderation action does not erase its audit record.`;
+        modalDescription = `“${listing.title}” will be hidden from the marketplace. The seller will be notified with the exact reason you provide.`;
         modalConfirmLabel = "Remove ad";
         modalTone = "red";
+        modalFields = [
+            {
+                key: "reason",
+                label: "Removal reason sent to seller",
+                type: "textarea",
+                placeholder: "Clearly explain why this ad is being removed…",
+                helper: "Use at least 10 characters. This message will appear in the seller's notifications.",
+                required: true,
+            },
+        ];
     }
 
     return (
@@ -578,9 +599,10 @@ export default function AdminListingDetailClient({
                         )}
                     </section>
 
-                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
                         <AdminStatCard label="Views" value={listing.views_count.toLocaleString()} icon={faChartLine} tone="blue" />
                         <AdminStatCard label="Saves" value={listing.favorites_count.toLocaleString()} icon={faHeart} tone="red" />
+                        <AdminStatCard label="Shares" value={(listing.shares_count || 0).toLocaleString()} icon={faShareNodes} tone="orange" />
                         <AdminStatCard label="Reports" value={listing.reports_count.toLocaleString()} detail={`${listing.open_reports_count} still open`} icon={faFlag} tone={listing.open_reports_count ? "red" : "green"} />
                         <AdminStatCard label="Images" value={listing.image_count.toLocaleString()} icon={faImages} tone="violet" />
                     </div>

@@ -36,11 +36,24 @@ export default function ListingShareActions({
         return `${window.location.origin}/ads/${id}`;
     }, [id]);
 
+    async function trackShare() {
+        try {
+            await fetch(`/api/proxy/listings/${id}/share/`, {
+                method: "POST",
+                credentials: "include",
+                keepalive: true,
+            });
+        } catch {
+            // Sharing should still succeed if analytics is temporarily unavailable.
+        }
+    }
+
     async function handleCopyLink() {
         if (!shareUrl) return;
 
         try {
             await navigator.clipboard.writeText(shareUrl);
+            void trackShare();
             setCopied(true);
 
             window.setTimeout(() => {
@@ -61,6 +74,7 @@ export default function ListingShareActions({
                     text: `Check this ad on QOT: ${shareTitle}`,
                     url: shareUrl,
                 });
+                void trackShare();
 
                 return;
             } catch {

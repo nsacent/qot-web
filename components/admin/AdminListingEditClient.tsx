@@ -60,6 +60,8 @@ type AdminListing = {
     category_name: string;
     city: number;
     city_name: string;
+    area: number | null;
+    area_name: string | null;
     description: string;
     price: string | number;
     currency: string;
@@ -91,6 +93,7 @@ type City = {
     id: number;
     name: string;
     region_name?: string;
+    areas?: Array<{ id: number; name: string }>;
 };
 
 type FilterOption = {
@@ -115,6 +118,7 @@ type ListingForm = {
     currency: string;
     category: string;
     city: string;
+    area: string;
     condition: string;
     isNegotiable: boolean;
 };
@@ -126,6 +130,7 @@ const emptyForm: ListingForm = {
     currency: "UGX",
     category: "",
     city: "",
+    area: "",
     condition: "used",
     isNegotiable: false,
 };
@@ -254,6 +259,7 @@ function formFromListing(listing: AdminListing): ListingForm {
         currency: listing.currency || "UGX",
         category: String(listing.category || ""),
         city: String(listing.city || ""),
+        area: String(listing.area || ""),
         condition: listing.condition || "used",
         isNegotiable: Boolean(listing.is_negotiable),
     };
@@ -309,6 +315,10 @@ export default function AdminListingEditClient({
     const selectedCity = useMemo(
         () => cities.find((city) => String(city.id) === form.city),
         [cities, form.city]
+    );
+    const selectedArea = useMemo(
+        () => (selectedCity?.areas || []).find((area) => String(area.id) === form.area),
+        [selectedCity, form.area]
     );
 
     function revealSection(sectionRef: { readonly current: HTMLElement | null }) {
@@ -523,6 +533,7 @@ export default function AdminListingEditClient({
                     currency: form.currency.trim().toUpperCase() || "UGX",
                     category: Number(form.category),
                     city: Number(form.city),
+                    area: form.area ? Number(form.area) : null,
                     condition: form.condition,
                     is_negotiable: form.isNegotiable,
                     attributes: buildAttributes(),
@@ -817,7 +828,7 @@ export default function AdminListingEditClient({
                             </div>
 
                             <div>
-                                <FieldLabel label="Region and city" required />
+                                <FieldLabel label="Region, city and area" required />
                                 <button
                                     type="button"
                                     onClick={() => setLocationModalOpen(true)}
@@ -829,7 +840,7 @@ export default function AdminListingEditClient({
                                         </span>
                                         <span className="min-w-0">
                                             <span className="block truncate text-sm font-black text-slate-900">
-                                                {selectedCity?.name || "Choose city"}
+                                                {selectedArea ? `${selectedArea.name}, ${selectedCity?.name}` : selectedCity?.name || "Choose city or area"}
                                             </span>
                                             <span className="mt-0.5 block truncate text-[10px] font-semibold text-slate-400">
                                                 {selectedCity?.region_name || "Browse Uganda’s regions"}
@@ -855,9 +866,11 @@ export default function AdminListingEditClient({
                                 onClose={() => setLocationModalOpen(false)}
                                 cities={cities}
                                 selectedValue={form.city}
+                                selectedAreaValue={form.area}
                                 search={locationSearch}
                                 setSearch={setLocationSearch}
-                                onSelect={(value) => updateForm("city", value)}
+                                onSelect={(value) => setForm((current) => ({ ...current, city: value, area: "" }))}
+                                onSelectArea={(value, cityValue) => setForm((current) => ({ ...current, city: cityValue, area: value }))}
                             />
 
                             <label className="block">

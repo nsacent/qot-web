@@ -102,6 +102,7 @@ type ListingsPageProps = {
         search?: string;
         category?: string;
         city?: string;
+        area?: string;
         region?: string;
         min_price?: string;
         max_price?: string;
@@ -178,6 +179,7 @@ function buildListingsQuery(params: any) {
     if (searchTerm) query.set("q", searchTerm);
     if (params.category) query.set("category", params.category);
     if (params.city) query.set("city", params.city);
+    if (params.area) query.set("area", params.area);
     if (params.region) query.set("region", params.region);
     if (params.min_price) query.set("min_price", params.min_price);
     if (params.max_price) query.set("max_price", params.max_price);

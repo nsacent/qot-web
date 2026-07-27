@@ -39,6 +39,7 @@ type City = {
     slug?: string;
     region?: string | number;
     region_name?: string;
+    areas?: Array<{ id?: string | number; name?: string; slug?: string }>;
 };
 
 type NavCounts = {
@@ -139,6 +140,7 @@ function getNotificationMessage(notification: any) {
 }
 
 function getNotificationLink(notification: any) {
+    if (notification?.notification_type === "listing_deleted") return "/account/notifications";
     if (notification?.chat_thread) return `/account/messages/${notification.chat_thread}`;
     if (notification?.listing) return `/ads/${notification.listing}`;
 
@@ -333,6 +335,7 @@ export default function QotMarketplaceNav({
     const [searchLoading, setSearchLoading] = useState(false);
 
     const [selectedCity, setSelectedCity] = useState<City | null>(null);
+    const [selectedArea, setSelectedArea] = useState<{ name?: string; slug?: string } | null>(null);
     const [selectedRegion, setSelectedRegion] = useState("");
     const [selectedCategory, setSelectedCategory] = useState<Category | null>(
         null
@@ -496,6 +499,9 @@ export default function QotMarketplaceNav({
                 if (selectedCity) {
                     params.set("city", getCitySlug(selectedCity));
                 }
+                if (selectedArea?.slug) {
+                    params.set("area", selectedArea.slug);
+                }
 
                 if (selectedRegion && !selectedCity) {
                     params.set("region", selectedRegion);
@@ -528,7 +534,7 @@ export default function QotMarketplaceNav({
         return () => {
             window.clearTimeout(timer);
         };
-    }, [query, selectedCity, selectedRegion, selectedCategory]);
+    }, [query, selectedCity, selectedArea, selectedRegion, selectedCategory]);
 
     function buildListingUrl(extra?: {
         query?: string;
@@ -548,6 +554,7 @@ export default function QotMarketplaceNav({
 
         if (city) {
             params.set("city", getCitySlug(city));
+            if (selectedArea?.slug) params.set("area", selectedArea.slug);
         } else if (region) {
             params.set("region", region);
         }
@@ -568,6 +575,7 @@ export default function QotMarketplaceNav({
 
     function selectCity(city: City | null) {
         setSelectedCity(city);
+        setSelectedArea(null);
         setSelectedRegion("");
         setLocationModalOpen(false);
     }
@@ -575,6 +583,7 @@ export default function QotMarketplaceNav({
     function selectRegion(region: string) {
         setSelectedRegion(region);
         setSelectedCity(null);
+        setSelectedArea(null);
         setLocationModalOpen(false);
     }
 
@@ -584,7 +593,7 @@ export default function QotMarketplaceNav({
     }
 
     const locationLabel =
-        selectedCity?.name || selectedRegion || "Uganda";
+        selectedArea?.name || selectedCity?.name || selectedRegion || "Uganda";
 
     const categoryLabel = selectedCategory?.name || "All Categories";
 
@@ -1049,6 +1058,7 @@ export default function QotMarketplaceNav({
                 cities={availableCities}
                 valueMode="slug"
                 selectedValue={selectedCity ? getCitySlug(selectedCity) : ""}
+                selectedAreaValue={selectedArea?.slug || ""}
                 selectedRegionValue={selectedRegion}
                 search={locationSearch}
                 setSearch={setLocationSearch}
@@ -1057,6 +1067,16 @@ export default function QotMarketplaceNav({
                         (item) => getCitySlug(item) === value
                     );
                     if (city) selectCity(city);
+                }}
+                onSelectArea={(value, cityValue) => {
+                    const city = availableCities.find((item) => getCitySlug(item) === cityValue);
+                    const area = city?.areas?.find((item) => String(item.slug || item.id || "") === value);
+                    if (city && area) {
+                        setSelectedCity(city);
+                        setSelectedArea(area);
+                        setSelectedRegion("");
+                        setLocationModalOpen(false);
+                    }
                 }}
                 onSelectRegion={selectRegion}
                 onSelectAll={() => selectCity(null)}

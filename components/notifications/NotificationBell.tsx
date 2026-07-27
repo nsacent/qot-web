@@ -45,6 +45,7 @@ function getMessage(notification: any) {
 }
 
 function getLink(notification: any) {
+    if (notification.notification_type === "listing_deleted") return "/account/notifications";
     if (notification.chat_thread) return `/account/messages/${notification.chat_thread}`;
     if (notification.listing) return `/ads/${notification.listing}`;
 

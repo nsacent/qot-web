@@ -37,6 +37,7 @@ type City = {
     slug?: string;
     region?: string | number;
     region_name?: string;
+    areas?: Array<{ id?: string | number; name?: string; slug?: string }>;
 };
 
 type HomeFloatingSearchProps = {
@@ -237,6 +238,7 @@ export default function HomeFloatingSearch({
     const [searchLoading, setSearchLoading] = useState(false);
 
     const [selectedCity, setSelectedCity] = useState<City | null>(null);
+    const [selectedArea, setSelectedArea] = useState<{ name?: string; slug?: string } | null>(null);
     const [selectedRegion, setSelectedRegion] = useState("");
     const [selectedCategory, setSelectedCategory] = useState<Category | null>(
         null
@@ -302,6 +304,7 @@ export default function HomeFloatingSearch({
                 if (selectedCity) {
                     params.set("city", getCitySlug(selectedCity));
                 }
+                if (selectedArea?.slug) params.set("area", selectedArea.slug);
 
                 if (selectedRegion && !selectedCity) {
                     params.set("region", selectedRegion);
@@ -334,7 +337,7 @@ export default function HomeFloatingSearch({
         return () => {
             window.clearTimeout(timer);
         };
-    }, [query, selectedCity, selectedRegion, selectedCategory]);
+    }, [query, selectedCity, selectedArea, selectedRegion, selectedCategory]);
 
     function buildListingUrl() {
         const params = new URLSearchParams();
@@ -343,6 +346,7 @@ export default function HomeFloatingSearch({
 
         if (selectedCity) {
             params.set("city", getCitySlug(selectedCity));
+            if (selectedArea?.slug) params.set("area", selectedArea.slug);
         } else if (selectedRegion) {
             params.set("region", selectedRegion);
         }
@@ -363,6 +367,7 @@ export default function HomeFloatingSearch({
 
     function selectCity(city: City | null) {
         setSelectedCity(city);
+        setSelectedArea(null);
         setSelectedRegion("");
         setLocationModalOpen(false);
         setShowSuggestions(true);
@@ -371,6 +376,7 @@ export default function HomeFloatingSearch({
     function selectRegion(region: string) {
         setSelectedRegion(region);
         setSelectedCity(null);
+        setSelectedArea(null);
         setLocationModalOpen(false);
         setShowSuggestions(true);
     }
@@ -381,7 +387,7 @@ export default function HomeFloatingSearch({
         setShowSuggestions(true);
     }
 
-    const locationLabel = selectedCity?.name || selectedRegion || "All Uganda";
+    const locationLabel = selectedArea?.name || selectedCity?.name || selectedRegion || "All Uganda";
     const categoryLabel = selectedCategory?.name || "All Categories";
 
     return (
@@ -568,21 +574,27 @@ export default function HomeFloatingSearch({
 
                             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
                                 {(citiesByRegion[region] || []).map((city) => (
-                                    <button
-                                        key={city.id || city.slug || city.name}
-                                        type="button"
-                                        onClick={() => selectCity(city)}
-                                        className="flex items-center gap-3 rounded-2xl bg-slate-50 px-3 py-3 text-left text-sm font-bold text-slate-700 hover:bg-orange-50 hover:text-orange-600"
-                                    >
-                                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-white text-orange-500 shadow-sm">
-                                            <FontAwesomeIcon
-                                                icon={faLocationDot}
-                                                className="h-3.5 w-3.5"
-                                            />
-                                        </span>
-
-                                        <span className="truncate">{getCityName(city)}</span>
-                                    </button>
+                                    <div key={city.id || city.slug || city.name} className="rounded-2xl bg-slate-50 p-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => selectCity(city)}
+                                            className="flex w-full items-center gap-2 rounded-xl px-2 py-2 text-left text-sm font-bold text-slate-700 hover:bg-orange-50 hover:text-orange-600"
+                                        >
+                                            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-white text-orange-500 shadow-sm">
+                                                <FontAwesomeIcon icon={faLocationDot} className="h-3.5 w-3.5" />
+                                            </span>
+                                            <span className="truncate">{getCityName(city)}</span>
+                                        </button>
+                                        {!!city.areas?.length && (
+                                            <div className="mt-1 flex flex-wrap gap-1 px-1 pb-1">
+                                                {city.areas.map((area) => (
+                                                    <button key={area.id || area.slug || area.name} type="button" onClick={() => { setSelectedCity(city); setSelectedArea(area); setSelectedRegion(""); setLocationModalOpen(false); }} className="rounded-full bg-white px-2 py-1 text-[9px] font-black text-slate-500 ring-1 ring-slate-200 hover:text-orange-600">
+                                                        {area.name}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
                                 ))}
                             </div>
                         </div>

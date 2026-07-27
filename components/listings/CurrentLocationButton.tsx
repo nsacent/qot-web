@@ -10,6 +10,7 @@ import {
 type CurrentLocationButtonProps = {
     cities: CityOption[];
     onSelect: (value: string) => void;
+    onSelectArea?: (value: string, cityValue: string) => void;
     onNoMatch: (suggestion: string) => void;
 };
 
@@ -21,6 +22,8 @@ type CityOption = {
     title?: string;
     label?: string;
     region_name?: string;
+    region?: { name?: string } | string | number;
+    areas?: CityOption[];
 };
 
 type LocationResult = {
@@ -56,6 +59,7 @@ function candidateNames(result: LocationResult) {
     const values = [
         result.locality,
         result.city,
+        result.principalSubdivision,
         ...(result.localities || []).map((item) => item?.name),
         ...(result.localityInfo?.administrative || []).flatMap((item) => [
             item?.name,
@@ -95,6 +99,46 @@ function findMatchingCity(cities: CityOption[], candidates: string[]) {
     return bestMatch?.city || null;
 }
 
+function findMatchingArea(cities: CityOption[], candidates: string[]) {
+    const normalizedCandidates = candidates.map(normalizeLocationName).filter(Boolean);
+    let bestMatch: { city: CityOption; area: CityOption; score: number } | null = null;
+
+    for (const city of cities) {
+        const normalizedCity = normalizeLocationName(cityName(city));
+        const region = typeof city.region === "object"
+            ? city.region?.name
+            : city.region_name;
+        const normalizedRegion = normalizeLocationName(region);
+        const parentScore = normalizedCandidates.reduce((best, candidate, index) => {
+            if (candidate === normalizedCity) return Math.max(best, 55 - index);
+            if (candidate === normalizedRegion) return Math.max(best, 25 - index);
+            if (
+                normalizedCity
+                && Math.min(candidate.length, normalizedCity.length) >= 4
+                && (candidate.includes(normalizedCity) || normalizedCity.includes(candidate))
+            ) return Math.max(best, 35 - index);
+            return best;
+        }, 0);
+
+        for (const area of city.areas || []) {
+            const normalizedArea = normalizeLocationName(cityName(area));
+            if (!normalizedArea) continue;
+
+            for (const [index, candidate] of normalizedCandidates.entries()) {
+                let score = 0;
+                if (candidate === normalizedArea) score = 120 - index + parentScore;
+                else if (
+                    Math.min(candidate.length, normalizedArea.length) >= 4
+                    && (candidate.includes(normalizedArea) || normalizedArea.includes(candidate))
+                ) score = 90 - index + parentScore;
+                if (score > (bestMatch?.score || 0)) bestMatch = { city, area, score };
+            }
+        }
+    }
+
+    return bestMatch;
+}
+
 function getBrowserPosition() {
     return new Promise<GeolocationPosition>((resolve, reject) => {
         if (!navigator.geolocation) {
@@ -130,6 +174,7 @@ function locationErrorMessage(error: unknown) {
 export default function CurrentLocationButton({
     cities,
     onSelect,
+    onSelectArea,
     onNoMatch,
 }: CurrentLocationButtonProps) {
     const [locating, setLocating] = useState(false);
@@ -161,6 +206,23 @@ export default function CurrentLocationButton({
             }
 
             const candidates = candidateNames(result);
+            const areaMatch = findMatchingArea(cities, candidates);
+            if (areaMatch && cityValue(areaMatch.city) && cityValue(areaMatch.area)) {
+                onSelectArea?.(cityValue(areaMatch.area), cityValue(areaMatch.city));
+                if (onSelectArea) {
+                    const region = typeof areaMatch.city.region === "object"
+                        ? areaMatch.city.region?.name
+                        : areaMatch.city.region_name;
+                    setMessage(
+                        `Current location set to ${[
+                            cityName(areaMatch.area),
+                            cityName(areaMatch.city),
+                            region,
+                        ].filter(Boolean).join(", ")}.`
+                    );
+                    return;
+                }
+            }
             const match = findMatchingCity(cities, candidates);
 
             if (!match || !cityValue(match)) {
@@ -176,7 +238,10 @@ export default function CurrentLocationButton({
             }
 
             onSelect(cityValue(match));
-            setMessage(`Current location set to ${cityName(match)}.`);
+            const region = typeof match.region === "object"
+                ? match.region?.name
+                : match.region_name;
+            setMessage(`Current location set to ${[cityName(match), region].filter(Boolean).join(", ")}.`);
         } catch (error) {
             setMessage(locationErrorMessage(error));
             setIsError(true);
@@ -197,7 +262,7 @@ export default function CurrentLocationButton({
                     icon={locating ? faSpinner : faLocationCrosshairs}
                     className={`h-3.5 w-3.5 ${locating ? "animate-spin" : ""}`}
                 />
-                {locating ? "Finding your city…" : "Use your current location instead"}
+                {locating ? "Finding your area…" : "Use your current location instead"}
             </button>
 
             {message && (
@@ -206,7 +271,7 @@ export default function CurrentLocationButton({
                 </p>
             )}
             <p className="mt-1 text-[9px] font-semibold leading-4 text-slate-400">
-                QOT saves only the selected city, not your exact coordinates.
+                QOT saves only the selected area or city, not your exact coordinates.
             </p>
         </div>
     );

@@ -262,8 +262,8 @@ function ResetPasswordForm() {
 
                                     <p className="text-center text-xs font-semibold leading-5 text-slate-500">
                                         If you no longer have access to this email, contact QOT at{" "}
-                                        <a href="mailto:info@qot.ug" className="font-black text-orange-600 hover:text-orange-700">
-                                            info@qot.ug
+                                        <a href="mailto:support@qot.ug" className="font-black text-orange-600 hover:text-orange-700">
+                                            support@qot.ug
                                         </a>.
                                     </p>
                                 </form>

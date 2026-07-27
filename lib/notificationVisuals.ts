@@ -6,6 +6,7 @@ import {
     faHeart,
     faShieldHalved,
     faUser,
+    faTrash,
 } from "@/lib/faIcons";
 
 type NotificationLike = {
@@ -34,6 +35,12 @@ export function getNotificationVisual(notification: NotificationLike | null | un
                 icon: faShieldHalved,
                 tone: "bg-rose-50 text-rose-600 ring-rose-100",
                 label: "Needs attention",
+            };
+        case "listing_deleted":
+            return {
+                icon: faTrash,
+                tone: "bg-red-50 text-red-700 ring-red-100",
+                label: "Ad removed",
             };
         case "listing_expired":
             return {

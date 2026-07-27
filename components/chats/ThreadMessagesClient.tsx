@@ -9,6 +9,7 @@ import {
     faEllipsisVertical,
     faFileLines,
     faCircleCheck,
+    faMoneyBillWave,
     faPhone,
     faPaperclip,
     faPaperPlane,
@@ -120,6 +121,10 @@ export default function ThreadMessagesClient({ threadId }: { threadId: string })
     const [actionError, setActionError] = useState("");
     const [actionLoading, setActionLoading] = useState(false);
     const [offerActionId, setOfferActionId] = useState<string | null>(null);
+    const [offerOpen, setOfferOpen] = useState(false);
+    const [offerAmount, setOfferAmount] = useState("");
+    const [offerError, setOfferError] = useState("");
+    const [offerSending, setOfferSending] = useState(false);
     const [attachments, setAttachments] = useState<File[]>([]);
     const [otherUserOnline, setOtherUserOnline] = useState(false);
     const [otherUserLastSeen, setOtherUserLastSeen] = useState<string | null>(null);
@@ -570,6 +575,57 @@ export default function ThreadMessagesClient({ threadId }: { threadId: string })
         }
     }
 
+    async function sendOffer() {
+        const amount = Number(offerAmount);
+        const price = Number(thread?.listing?.price || 0);
+        const minimum = price * 0.5;
+
+        if (!Number.isFinite(amount) || amount <= 0) {
+            setOfferError("Enter a valid offer amount.");
+            return;
+        }
+        if (price > 0 && amount < minimum) {
+            setOfferError(`Your offer must be at least UGX ${minimum.toLocaleString("en-UG", { maximumFractionDigits: 0 })}.`);
+            return;
+        }
+
+        setOfferSending(true);
+        setOfferError("");
+        try {
+            const response = await fetch(`/api/proxy/chats/threads/${threadId}/messages/`, {
+                method: "POST",
+                credentials: "include",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    message_type: "offer",
+                    offer_amount: amount,
+                }),
+            });
+            if (response.status === 401) {
+                window.location.assign(`/login?next=/account/messages/${threadId}`);
+                return;
+            }
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok) {
+                throw new Error(
+                    data?.offer_amount?.[0]
+                    || data?.message_type?.[0]
+                    || data?.detail
+                    || "Failed to send this offer."
+                );
+            }
+
+            setMessages((current) => mergeMessage(current, data));
+            setOfferAmount("");
+            setOfferOpen(false);
+            window.dispatchEvent(new Event("qot_messages_updated"));
+        } catch (requestError: any) {
+            setOfferError(requestError?.message || "Failed to send this offer.");
+        } finally {
+            setOfferSending(false);
+        }
+    }
+
     function chooseAttachments(event: React.ChangeEvent<HTMLInputElement>) {
         const selectedFiles = Array.from(event.target.files || []);
         if (selectedFiles.length === 0) return;
@@ -632,6 +688,11 @@ export default function ThreadMessagesClient({ threadId }: { threadId: string })
     const listingTitle = thread?.listing?.title || "Marketplace ad";
     const listingImage = getListingImage(thread);
     const listingId = thread?.listing?.id;
+    const listingPrice = Number(thread?.listing?.price || 0);
+    const canMakeOffer = String(currentUser?.id) === String(thread?.buyer) && listingPrice > 0;
+    const offerSuggestions = [0.5, 0.75, 0.9].map((ratio) => (
+        Math.max(1, Math.round((listingPrice * ratio) / 1000) * 1000)
+    ));
 
     return (
         <section className="overflow-hidden rounded-[28px] bg-white shadow-[0_20px_65px_rgba(15,23,42,0.11)] ring-1 ring-black/5">
@@ -880,7 +941,25 @@ export default function ThreadMessagesClient({ threadId }: { threadId: string })
                 <div className="flex items-end gap-2 rounded-[20px] bg-slate-100 p-2 ring-1 ring-slate-200 focus-within:bg-white focus-within:ring-2 focus-within:ring-orange-200 sm:gap-3">
                     <input ref={fileInputRef} type="file" multiple accept="image/jpeg,image/png,image/webp,image/gif,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv" onChange={chooseAttachments} className="hidden" />
                     <button type="button" onClick={() => fileInputRef.current?.click()} disabled={sending || attachments.length >= 5} aria-label="Attach files" title="Attach up to 5 files, 10 MB each" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[15px] bg-white text-slate-500 ring-1 ring-slate-200 transition hover:text-orange-600 disabled:opacity-40"><FontAwesomeIcon icon={faPaperclip} className="h-4 w-4" /></button>
-                    <textarea ref={composerRef} value={body} onChange={(event) => updateComposer(event.target.value)} onBlur={stopTyping} placeholder="Write a message..." rows={1} maxLength={1000} className="max-h-28 min-h-11 min-w-0 flex-1 resize-none bg-transparent px-2 py-3 text-sm font-semibold text-slate-900 outline-none placeholder:text-slate-400 sm:px-3" />
+                    {canMakeOffer && (
+                        <button type="button" onClick={() => { setOfferOpen(true); setOfferError(""); }} disabled={sending} aria-label="Make an offer" title="Make an offer" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[15px] bg-orange-50 text-orange-600 ring-1 ring-orange-100 transition hover:bg-orange-100 disabled:opacity-40"><FontAwesomeIcon icon={faMoneyBillWave} className="h-4 w-4" /></button>
+                    )}
+                    <textarea
+                        ref={composerRef}
+                        value={body}
+                        onChange={(event) => updateComposer(event.target.value)}
+                        onBlur={stopTyping}
+                        onKeyDown={(event) => {
+                            if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
+                                event.preventDefault();
+                                event.currentTarget.form?.requestSubmit();
+                            }
+                        }}
+                        placeholder="Write a message..."
+                        rows={1}
+                        maxLength={1000}
+                        className="max-h-28 min-h-11 min-w-0 flex-1 resize-none bg-transparent px-2 py-3 text-sm font-semibold text-slate-900 outline-none placeholder:text-slate-400 sm:px-3"
+                    />
                     <button type="submit" disabled={sending || (!body.trim() && attachments.length === 0)} aria-label="Send message" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[15px] bg-orange-500 text-white shadow-[0_8px_18px_rgba(249,115,22,0.20)] transition hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-45 sm:w-auto sm:px-5">
                         {sending ? <span className="text-xs font-black">...</span> : <><FontAwesomeIcon icon={faPaperPlane} className="h-4 w-4" /><span className="ml-2 hidden text-sm font-black sm:inline">Send</span></>}
                     </button>
@@ -890,6 +969,29 @@ export default function ThreadMessagesClient({ threadId }: { threadId: string })
             <AdActionModal open={spamModalOpen} title="Report this chat as spam?" description={`This moves the conversation with ${participantName} to Spam and sends a report to QOT moderation. You can restore it later.`} confirmLabel="Report spam" destructive loading={actionLoading} error={actionError} onClose={() => { if (actionLoading) return; setSpamModalOpen(false); setActionError(""); }} onConfirm={() => void confirmSpam()} />
             <AdActionModal open={deleteThreadOpen} title="Delete this conversation?" description={`This removes the conversation with ${participantName} from your inbox. It will remain available to the other participant and can return if they send a new message.`} confirmLabel="Delete conversation" destructive loading={deleteLoading} error={deleteError} onClose={() => { if (deleteLoading) return; setDeleteThreadOpen(false); setDeleteError(""); }} onConfirm={() => void deleteThread()} />
             <AdActionModal open={Boolean(deleteMessageTarget)} title="Delete this message?" description="This message will be permanently removed from the conversation for both participants." confirmLabel="Delete message" destructive loading={deleteLoading} error={deleteError} onClose={() => { if (deleteLoading) return; setDeleteMessageTarget(null); setDeleteError(""); }} onConfirm={() => void deleteMessage()} />
+
+            {offerOpen && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="chat-offer-title">
+                    <button type="button" aria-label="Close offer dialog" onClick={offerSending ? undefined : () => setOfferOpen(false)} className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm" />
+                    <div className="relative z-10 w-full max-w-sm rounded-[26px] bg-white p-5 shadow-[0_30px_90px_rgba(15,23,42,0.35)] sm:p-6">
+                        <div className="flex items-start justify-between gap-4">
+                            <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-orange-50 text-orange-600"><FontAwesomeIcon icon={faMoneyBillWave} className="h-5 w-5" /></span>
+                            <button type="button" onClick={() => setOfferOpen(false)} disabled={offerSending} aria-label="Close" className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-100 text-slate-500"><FontAwesomeIcon icon={faXmark} className="h-3.5 w-3.5" /></button>
+                        </div>
+                        <h2 id="chat-offer-title" className="mt-4 text-xl font-black text-slate-950">Make an offer</h2>
+                        <p className="mt-1 text-xs font-semibold leading-5 text-slate-500">Ad price: UGX {listingPrice.toLocaleString("en-UG", { maximumFractionDigits: 0 })}. Offers must be at least 50% of the price.</p>
+                        <label className="mt-5 block text-xs font-black text-slate-700">
+                            Your offer (UGX)
+                            <input autoFocus inputMode="numeric" value={offerAmount} onChange={(event) => { setOfferAmount(event.target.value.replace(/\D/g, "")); setOfferError(""); }} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); void sendOffer(); } }} placeholder="Enter amount" className="mt-2 h-14 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-lg font-black text-slate-950 outline-none focus:border-orange-400 focus:bg-white focus:ring-4 focus:ring-orange-50" />
+                        </label>
+                        <div className="mt-3 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                            {offerSuggestions.map((amount) => <button key={amount} type="button" onClick={() => { setOfferAmount(String(amount)); setOfferError(""); }} className="shrink-0 rounded-full bg-orange-50 px-3 py-2 text-[10px] font-black text-orange-700">UGX {amount.toLocaleString("en-UG")}</button>)}
+                        </div>
+                        {offerError && <InlineError message={offerError} onDismiss={() => setOfferError("")} className="mt-3" />}
+                        <button type="button" onClick={() => void sendOffer()} disabled={offerSending || !offerAmount} className="mt-5 h-12 w-full rounded-2xl bg-orange-500 text-sm font-black text-white transition hover:bg-orange-600 disabled:opacity-50">{offerSending ? "Sending offer…" : "Send offer"}</button>
+                    </div>
+                </div>
+            )}
 
             {previewAttachment && (
                 <div role="dialog" aria-modal="true" aria-label={previewAttachment.name} onMouseDown={(event) => { if (event.target === event.currentTarget) setPreviewAttachment(null); }} className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/90 p-4 sm:p-8">
