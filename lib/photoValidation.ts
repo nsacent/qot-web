@@ -4,8 +4,8 @@ export type PhotoDimensions = {
 };
 
 export const MAX_PHOTO_BYTES = 8 * 1024 * 1024;
-export const SUPPORTED_PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"];
-export const PHOTO_INPUT_ACCEPT = "image/jpeg,image/png,image/webp,image/heic,image/heif,.jpg,.jpeg,.png,.webp,.heic,.heif";
+export const SUPPORTED_PHOTO_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
+export const PHOTO_INPUT_ACCEPT = "image/jpeg,image/jpg,image/png,image/webp,image/heic,image/heif,.jpg,.jpeg,.png,.webp,.heic,.heif";
 export const CAMERA_PHOTO_ACCEPT = "image/*,.heic,.heif";
 
 const SUPPORTED_PHOTO_EXTENSIONS = ["jpg", "jpeg", "png", "webp"];
@@ -84,7 +84,7 @@ export async function getPhotoValidationError(file: File) {
     const type = file.type.toLowerCase();
     const extension = photoExtension(file);
     if (!SUPPORTED_PHOTO_TYPES.includes(type) && !SUPPORTED_PHOTO_EXTENSIONS.includes(extension)) {
-        return `${file.name} is not a supported photo. Use HEIC, HEIF, JPG, PNG, or WEBP.`;
+        return `${file.name} is not a supported photo. Use JPEG/JPG, HEIC, HEIF, PNG, or WEBP.`;
     }
 
     if (file.size > MAX_PHOTO_BYTES) {

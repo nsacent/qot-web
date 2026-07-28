@@ -1264,7 +1264,7 @@ export default function PostAdForm() {
                                         : "Choose photos from gallery"}
                             </span>
                             <span className="mt-0.5 block text-xs font-semibold text-slate-500">
-                                HEIC, HEIF, JPG, PNG or WEBP · 8MB maximum each · optimized automatically
+                                JPEG/JPG, HEIC or HEIF, PNG or WEBP · 8MB maximum each · optimized automatically
                             </span>
                         </span>
                         <span className="hidden rounded-full bg-orange-500 px-3 py-1.5 text-xs font-black text-white sm:inline-flex">
