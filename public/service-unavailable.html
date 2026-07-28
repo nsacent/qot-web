@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#fffaf5">
+  <title>QOT — We’ll be back shortly</title>
+  <style>
+    :root {
+      color-scheme: light;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #fffaf5;
+      color: #172033;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      min-height: 100vh;
+      min-height: 100dvh;
+      margin: 0;
+      overflow-x: hidden;
+      background:
+        radial-gradient(circle at 12% 12%, rgba(249, 115, 22, .12), transparent 30rem),
+        radial-gradient(circle at 88% 88%, rgba(251, 146, 60, .11), transparent 28rem),
+        #fffaf5;
+    }
+
+    main {
+      position: relative;
+      display: grid;
+      min-height: 100vh;
+      min-height: 100dvh;
+      place-items: center;
+      padding: max(24px, env(safe-area-inset-top)) 20px max(24px, env(safe-area-inset-bottom));
+    }
+
+    .shape {
+      position: fixed;
+      width: 300px;
+      height: 300px;
+      border: 1px solid rgba(249, 115, 22, .12);
+      border-radius: 50%;
+      pointer-events: none;
+    }
+
+    .shape-one { top: -190px; right: -110px; }
+    .shape-two { bottom: -220px; left: -80px; width: 360px; height: 360px; }
+
+    .card {
+      position: relative;
+      width: min(100%, 590px);
+      padding: clamp(28px, 7vw, 54px);
+      overflow: hidden;
+      text-align: center;
+      background: rgba(255, 255, 255, .91);
+      border: 1px solid rgba(249, 115, 22, .14);
+      border-radius: 30px;
+      box-shadow: 0 24px 70px rgba(105, 48, 8, .10);
+      backdrop-filter: blur(12px);
+    }
+
+    .logo {
+      display: block;
+      width: 132px;
+      height: auto;
+      margin: 0 auto 30px;
+    }
+
+    .status {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      min-height: 34px;
+      padding: 7px 13px;
+      color: #b54708;
+      font-size: 12px;
+      font-weight: 750;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+      background: #fff3e8;
+      border-radius: 999px;
+    }
+
+    .status::before {
+      width: 8px;
+      height: 8px;
+      content: "";
+      background: #f97316;
+      border-radius: 50%;
+      box-shadow: 0 0 0 5px rgba(249, 115, 22, .12);
+    }
+
+    h1 {
+      max-width: 460px;
+      margin: 22px auto 12px;
+      font-size: clamp(30px, 7vw, 46px);
+      line-height: 1.08;
+      letter-spacing: -.045em;
+    }
+
+    p {
+      max-width: 465px;
+      margin: 0 auto;
+      color: #667085;
+      font-size: clamp(15px, 3.8vw, 17px);
+      line-height: 1.7;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 11px;
+      margin-top: 28px;
+    }
+
+    .button {
+      display: inline-flex;
+      min-height: 48px;
+      align-items: center;
+      justify-content: center;
+      padding: 12px 22px;
+      color: #fff;
+      font-size: 14px;
+      font-weight: 750;
+      text-decoration: none;
+      background: #f97316;
+      border: 0;
+      border-radius: 14px;
+      box-shadow: 0 10px 24px rgba(249, 115, 22, .20);
+      cursor: pointer;
+    }
+
+    .button:focus-visible, .support:focus-visible {
+      outline: 3px solid rgba(249, 115, 22, .28);
+      outline-offset: 3px;
+    }
+
+    .support {
+      display: inline-flex;
+      min-height: 48px;
+      align-items: center;
+      justify-content: center;
+      padding: 12px 18px;
+      color: #475467;
+      font-size: 14px;
+      font-weight: 700;
+      text-decoration: none;
+      background: #fff;
+      border: 1px solid #e7e9ee;
+      border-radius: 14px;
+    }
+
+    .note {
+      margin-top: 22px;
+      color: #98a2b3;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    @media (max-width: 480px) {
+      .card { padding: 30px 22px; border-radius: 24px; }
+      .logo { width: 112px; margin-bottom: 25px; }
+      .actions { flex-direction: column; }
+      .button, .support { width: 100%; }
+    }
+
+    @media (prefers-reduced-motion: no-preference) {
+      .status::before { animation: pulse 1.8s ease-in-out infinite; }
+      @keyframes pulse {
+        50% { opacity: .45; transform: scale(.82); }
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <span class="shape shape-one" aria-hidden="true"></span>
+    <span class="shape shape-two" aria-hidden="true"></span>
+
+    <section class="card" aria-labelledby="page-title">
+      <svg class="logo" viewBox="0 0 240 100" role="img" aria-label="QOT">
+        <circle cx="40" cy="42" r="29" fill="none" stroke="#F97316" stroke-width="18"/>
+        <path d="M58.5 60.5L81.5 83.5" fill="none" stroke="#F97316" stroke-width="18" stroke-linecap="square"/>
+        <circle cx="124" cy="42" r="29" fill="none" stroke="#F97316" stroke-width="18"/>
+        <path d="M178 12L196 3V24H226V43H196V68C196 76 200 80 208 80H224V98H208C188 98 178 88 178 68V12Z" fill="#F97316"/>
+      </svg>
+
+      <div class="status">Brief maintenance</div>
+      <h1 id="page-title">We’ll be back shortly.</h1>
+      <p>QOT is briefly unavailable while we complete an update. Your account and ads are safe—please try again in a moment.</p>
+
+      <div class="actions">
+        <button class="button" type="button" onclick="window.location.reload()">Try again</button>
+        <a class="support" href="mailto:support@qot.ug">Contact support</a>
+      </div>
+
+      <div class="note">Thanks for your patience while we make QOT better.</div>
+    </section>
+  </main>
+</body>
+</html>
