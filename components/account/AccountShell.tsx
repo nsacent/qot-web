@@ -15,7 +15,6 @@ import {
     faArrowLeft,
     faCircleCheck,
     faHouse,
-    faRightFromBracket,
     faShieldHalved,
 } from "@/lib/faIcons";
 import QotLoader from "@/components/common/QotLoader";
@@ -232,14 +231,6 @@ export default function AccountShell({ children }: { children: ReactNode }) {
                         ))}
                     </nav>
 
-                    <button
-                        type="button"
-                        onClick={handleLogout}
-                        className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-red-50 px-4 py-3 text-xs font-black text-red-600 transition hover:bg-red-100"
-                    >
-                        <FontAwesomeIcon icon={faRightFromBracket} className="h-4 w-4" />
-                        Log out
-                    </button>
                 </aside>
 
                 <div className="min-w-0">

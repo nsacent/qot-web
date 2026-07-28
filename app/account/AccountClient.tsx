@@ -10,7 +10,6 @@ import {
 import {
     faChevronDown,
     faCircleCheck,
-    faRightFromBracket,
     faShieldHalved,
 } from "@/lib/faIcons";
 import UserAvatar from "@/components/account/UserAvatar";
@@ -50,7 +49,7 @@ function getCoverPhoto(user: any) {
 }
 
 export default function AccountClient() {
-    const { user, logout } = useAccountShell();
+    const { user } = useAccountShell();
     const [dashboard, setDashboard] = useState<any>(null);
 
     useEffect(() => {
@@ -271,14 +270,6 @@ export default function AccountClient() {
                     </details>
                 ))}
 
-                <button
-                    type="button"
-                    onClick={logout}
-                    className="flex w-full items-center justify-center gap-2 rounded-[20px] bg-red-50 px-4 py-3.5 text-sm font-black text-red-600 ring-1 ring-red-100"
-                >
-                    <FontAwesomeIcon icon={faRightFromBracket} className="h-4 w-4" />
-                    Log out
-                </button>
             </div>
 
             <div className="hidden items-center justify-between gap-5 overflow-hidden rounded-[26px] bg-slate-950 p-6 text-white lg:flex">

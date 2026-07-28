@@ -11,13 +11,12 @@ import {
     faHeartRegular,
     faList,
     faLock,
-    faRightFromBracket,
     faShieldHalved,
     faStore,
     faUserRegular,
 } from "@/lib/faIcons";
 import { isAdminOrModerator } from "@/lib/auth";
-import { getOptionalCurrentUser, logoutUser } from "@/lib/sessionClient";
+import { getOptionalCurrentUser } from "@/lib/sessionClient";
 import UserAvatar from "@/components/account/UserAvatar";
 
 type CurrentUser = {
@@ -159,17 +158,6 @@ export default function UserProfileTab() {
         };
     }, []);
 
-    async function handleLogout() {
-        try {
-            await logoutUser();
-        } catch {
-            // The server session may already be gone; continue to the homepage.
-        }
-
-        window.dispatchEvent(new Event("qot_session_updated"));
-        window.location.href = "/";
-    }
-
     if (checking) {
         return (
             <div className="h-9 w-9 animate-pulse rounded-[13px] bg-slate-100" />
@@ -308,21 +296,6 @@ export default function UserProfileTab() {
                                 </Link>
                             ))}
                         </div>
-                    </div>
-
-                    <div className="flex items-center justify-between border-t border-slate-100 bg-slate-50 px-4 py-3">
-                        <p className="text-[9px] font-bold text-slate-400">
-                            Secure cookie session
-                        </p>
-                        <button
-                            type="button"
-                            role="menuitem"
-                            onClick={handleLogout}
-                            className="inline-flex items-center gap-2 rounded-xl px-3 py-2 text-[11px] font-black text-red-600 transition hover:bg-red-50"
-                        >
-                            <FontAwesomeIcon icon={faRightFromBracket} className="h-3.5 w-3.5" />
-                            Sign out
-                        </button>
                     </div>
                 </div>
             )}

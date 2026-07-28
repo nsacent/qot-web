@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import {
-    clearAuthStorage,
     getStoredUser,
     getUserDisplayName,
     getUserRole,
@@ -51,11 +50,6 @@ export default function AccountClient() {
         setUser(storedUser);
         setMounted(true);
     }, []);
-
-    function logout() {
-        clearAuthStorage();
-        window.location.href = "/";
-    }
 
     if (!mounted || !user) {
         return (
@@ -211,13 +205,6 @@ export default function AccountClient() {
                         </div>
                     </div>
 
-                    <button
-                        type="button"
-                        onClick={logout}
-                        className="mt-6 w-full rounded-xl border border-red-200 bg-red-50 px-5 py-3 font-semibold text-red-700 hover:bg-red-100"
-                    >
-                        Logout
-                    </button>
                 </aside>
 
                 <div>
