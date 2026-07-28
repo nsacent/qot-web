@@ -5,6 +5,51 @@ export type PhotoDimensions = {
 
 export const MAX_PHOTO_BYTES = 8 * 1024 * 1024;
 export const SUPPORTED_PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"];
+export const PHOTO_INPUT_ACCEPT = "image/jpeg,image/png,image/webp,image/heic,image/heif,.jpg,.jpeg,.png,.webp,.heic,.heif";
+export const CAMERA_PHOTO_ACCEPT = "image/*,.heic,.heif";
+
+const SUPPORTED_PHOTO_EXTENSIONS = ["jpg", "jpeg", "png", "webp"];
+const HEIF_PHOTO_TYPES = [
+    "image/heic",
+    "image/heif",
+    "image/heic-sequence",
+    "image/heif-sequence",
+];
+
+function photoExtension(file: File) {
+    return file.name.split(".").pop()?.toLowerCase() || "";
+}
+
+export function isHeifPhoto(file: File) {
+    const type = file.type.toLowerCase();
+    const extension = photoExtension(file);
+
+    return HEIF_PHOTO_TYPES.includes(type) || extension === "heic" || extension === "heif";
+}
+
+export async function preparePhotoForUpload(file: File) {
+    if (!isHeifPhoto(file)) return file;
+
+    try {
+        const { default: heic2any } = await import("heic2any");
+        const converted = await heic2any({
+            blob: file,
+            toType: "image/jpeg",
+            quality: 0.86,
+        });
+        const jpeg = Array.isArray(converted) ? converted[0] : converted;
+
+        if (!jpeg) throw new Error("No image was produced.");
+
+        const baseName = file.name.replace(/\.(heic|heif)$/i, "") || "iphone-photo";
+        return new File([jpeg], `${baseName}.jpg`, {
+            type: "image/jpeg",
+            lastModified: file.lastModified || Date.now(),
+        });
+    } catch {
+        throw new Error(`${file.name} could not be converted from HEIC/HEIF. Try choosing Most Compatible in iPhone Camera settings or select another photo.`);
+    }
+}
 
 export function getPhotoDimensions(file: File): Promise<PhotoDimensions> {
     return new Promise((resolve, reject) => {
@@ -36,8 +81,10 @@ export async function findLowResolutionPhoto(files: File[]) {
 }
 
 export async function getPhotoValidationError(file: File) {
-    if (!SUPPORTED_PHOTO_TYPES.includes(file.type)) {
-        return `${file.name} is not a supported photo. Use JPG, PNG, or WEBP.`;
+    const type = file.type.toLowerCase();
+    const extension = photoExtension(file);
+    if (!SUPPORTED_PHOTO_TYPES.includes(type) && !SUPPORTED_PHOTO_EXTENSIONS.includes(extension)) {
+        return `${file.name} is not a supported photo. Use HEIC, HEIF, JPG, PNG, or WEBP.`;
     }
 
     if (file.size > MAX_PHOTO_BYTES) {

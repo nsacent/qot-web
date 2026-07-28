@@ -52,8 +52,11 @@ import {
     normalizeCategoryFilterValue,
 } from "@/lib/categoryFilterValues";
 import {
+    CAMERA_PHOTO_ACCEPT,
     getPhotoFingerprint,
     getPhotoValidationError,
+    PHOTO_INPUT_ACCEPT,
+    preparePhotoForUpload,
 } from "@/lib/photoValidation";
 import {
     getCategoryPhotoRequirements,
@@ -818,7 +821,19 @@ export default function PostAdForm() {
         const seenHashes = new Set<string>();
         const availableSlots = Math.max(0, photoRequirements.maximum - photos.length);
 
-        for (const file of selectedFiles) {
+        for (const originalFile of selectedFiles) {
+            let file: File;
+            try {
+                file = await preparePhotoForUpload(originalFile);
+            } catch (conversionError) {
+                rejectedFiles.push(
+                    conversionError instanceof Error
+                        ? conversionError.message
+                        : `${originalFile.name} could not be prepared for upload.`
+                );
+                continue;
+            }
+
             const validationError = await getPhotoValidationError(file);
             if (validationError) {
                 rejectedFiles.push(validationError);
@@ -1249,7 +1264,7 @@ export default function PostAdForm() {
                                         : "Choose photos from gallery"}
                             </span>
                             <span className="mt-0.5 block text-xs font-semibold text-slate-500">
-                                JPG, PNG or WEBP · 8MB maximum each · optimized automatically
+                                HEIC, HEIF, JPG, PNG or WEBP · 8MB maximum each · optimized automatically
                             </span>
                         </span>
                         <span className="hidden rounded-full bg-orange-500 px-3 py-1.5 text-xs font-black text-white sm:inline-flex">
@@ -1257,7 +1272,7 @@ export default function PostAdForm() {
                         </span>
                         <input
                             type="file"
-                            accept="image/jpeg,image/png,image/webp"
+                            accept={PHOTO_INPUT_ACCEPT}
                             multiple
                             onChange={handlePhotoSelection}
                             disabled={photosUploading || !category}
@@ -1265,18 +1280,26 @@ export default function PostAdForm() {
                         />
                     </label>
 
-                    <label className={`mt-2 flex min-h-12 items-center justify-center gap-2 rounded-[12px] bg-white px-3 text-xs font-black text-orange-600 ring-1 ring-orange-200 sm:hidden ${category ? "cursor-pointer" : "cursor-not-allowed opacity-60"}`}>
-                        <FontAwesomeIcon icon={faCamera} className="h-4 w-4" />
-                        Take a photo
+                    <label className={`mt-2 flex min-h-14 items-center justify-center gap-3 rounded-[14px] bg-white px-3 text-left text-orange-600 shadow-sm ring-1 ring-orange-200 sm:hidden ${category ? "cursor-pointer active:bg-orange-50" : "cursor-not-allowed opacity-60"}`}>
+                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-orange-50">
+                            <FontAwesomeIcon icon={faCamera} className="h-4 w-4" />
+                        </span>
+                        <span>
+                            <span className="block text-xs font-black">Take a new photo</span>
+                            <span className="mt-0.5 block text-[9px] font-semibold text-slate-500">Uses the rear camera · tap Allow if asked</span>
+                        </span>
                         <input
                             type="file"
-                            accept="image/*"
+                            accept={CAMERA_PHOTO_ACCEPT}
                             capture="environment"
                             onChange={handlePhotoSelection}
                             disabled={photosUploading || !category}
                             className="sr-only"
                         />
                     </label>
+                    <p className="mt-2 text-[9px] font-semibold leading-4 text-slate-500 sm:hidden">
+                        If camera access was denied on iPhone: open Safari’s page menu, choose Website Settings, set Camera to Allow, then try again.
+                    </p>
 
                     {(photos.length > 0 || uploadingPhotos.length > 0) && (
                         <div className="mt-3 border-t border-orange-200/70 pt-3">

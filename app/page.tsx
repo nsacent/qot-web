@@ -140,6 +140,12 @@ export default async function HomePage() {
       : fallbackCategories;
 
   const latestAds = getArray<Record<string, unknown>>(adsData).slice(0, 24);
+  const latestAdsHasMore = isRecord(adsData)
+    ? Boolean(adsData.next)
+    : latestAds.length === 24;
+  const latestAdsTotal = isRecord(adsData) && Number.isFinite(Number(adsData.count))
+    ? Number(adsData.count)
+    : undefined;
   const featuredAds = isRecord(homeData)
     ? getArray<Record<string, unknown>>(homeData.featured_listings).slice(0, 10)
     : [];
@@ -155,7 +161,11 @@ export default async function HomePage() {
         <HomeCategoryScroller categories={categories} />
         <HomeFeaturedAds ads={featuredAds} />
 
-        <HomeLatestAds ads={latestAds} />
+        <HomeLatestAds
+          ads={latestAds}
+          initialHasMore={latestAdsHasMore}
+          totalAvailable={latestAdsTotal}
+        />
       </div>
       <QotMarketplaceFooter />
     </main>

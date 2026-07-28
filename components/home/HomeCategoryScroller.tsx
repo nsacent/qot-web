@@ -13,6 +13,7 @@ import {
     faMobileScreen,
     faPaw,
     faShirt,
+    faShapes,
     faStore,
     faToolbox,
     faWrench,
@@ -89,6 +90,15 @@ export default function HomeCategoryScroller({ categories = [] }: HomeCategorySc
             </div>
 
             <div className="flex snap-x snap-mandatory gap-2.5 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                <Link href="/categories" className="relative flex min-h-[116px] min-w-[112px] snap-start flex-col rounded-[18px] bg-gradient-to-br from-orange-50 to-amber-50 p-3 text-left ring-1 ring-orange-100 transition hover:-translate-y-0.5 hover:shadow-md sm:min-w-[120px]">
+                    <span className="flex h-10 w-10 items-center justify-center rounded-[13px] bg-gradient-to-br from-orange-500 to-orange-600 text-white shadow-sm">
+                        <FontAwesomeIcon icon={faShapes} className="h-4 w-4" />
+                    </span>
+                    <span className="mt-2 line-clamp-2 text-xs font-black leading-4 text-slate-950">All Categories</span>
+                    <span className="mt-auto pt-1.5 text-[8px] font-black uppercase tracking-wide text-orange-600">
+                        Browse every department
+                    </span>
+                </Link>
                 {categories.map((category, index) => {
                     const name = getCategoryName(category);
                     const slug = String(getCategorySlug(category));

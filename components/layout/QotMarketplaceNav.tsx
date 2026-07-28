@@ -21,6 +21,7 @@ import {
     faLocationDot,
     faMagnifyingGlass,
     faPlus,
+    faShapes,
 } from "@/lib/faIcons";
 
 const API_BASE_URL =
@@ -649,6 +650,7 @@ export default function QotMarketplaceNav({
                             onClick={() => setCategoryModalOpen(true)}
                             className={`hidden h-7 max-w-[180px] shrink-0 items-center gap-2.5 border-l border-slate-200 px-3 text-xs font-black transition lg:inline-flex ${selectedCategory ? "text-orange-700" : "text-slate-700 hover:text-orange-600"}`}
                         >
+                            <FontAwesomeIcon icon={faShapes} className="h-3.5 w-3.5 shrink-0 text-orange-500" />
                             <span className="truncate">{categoryLabel}</span>
                             <FontAwesomeIcon icon={faChevronDown} className="h-3 w-3 shrink-0 text-slate-400" />
                         </button>

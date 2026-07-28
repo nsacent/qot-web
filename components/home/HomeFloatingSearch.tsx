@@ -15,6 +15,7 @@ import {
     faMobileScreen,
     faPaw,
     faShirt,
+    faShapes,
     faStore,
     faTag,
     faToolbox,
@@ -445,7 +446,7 @@ export default function HomeFloatingSearch({
                                     icon={
                                         selectedCategory
                                             ? getCategoryIcon(selectedCategory)
-                                            : faTag
+                                            : faShapes
                                     }
                                     className="h-4 w-4"
                                 />
@@ -614,7 +615,7 @@ export default function HomeFloatingSearch({
                         className="flex w-full items-center gap-3 rounded-2xl bg-orange-500 px-4 py-3 text-left text-sm font-black text-white hover:bg-orange-600"
                     >
                         <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/20">
-                            <FontAwesomeIcon icon={faTag} className="h-4 w-4" />
+                            <FontAwesomeIcon icon={faShapes} className="h-4 w-4" />
                         </span>
 
                         <span>All Categories</span>

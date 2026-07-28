@@ -349,7 +349,10 @@ export function CategoryPickerModal({
                                             : "bg-white text-slate-700 ring-1 ring-slate-200 hover:text-orange-600"
                                     }`}
                                 >
-                                    <span>
+                                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-current/10">
+                                        <FontAwesomeIcon icon={faLayerGroup} className="h-4 w-4" />
+                                    </span>
+                                    <span className="min-w-0 flex-1">
                                         <span className="block text-xs font-black">{allLabel}</span>
                                         <span className={`mt-0.5 block text-[10px] font-semibold ${!selectedValue ? "text-white/70" : "text-slate-400"}`}>
                                             Browse every department

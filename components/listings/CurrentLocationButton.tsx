@@ -141,6 +141,11 @@ function findMatchingArea(cities: CityOption[], candidates: string[]) {
 
 function getBrowserPosition() {
     return new Promise<GeolocationPosition>((resolve, reject) => {
+        if (!window.isSecureContext) {
+            reject(new Error("Location access requires a secure HTTPS connection."));
+            return;
+        }
+
         if (!navigator.geolocation) {
             reject(new Error("Location detection is not supported by this browser."));
             return;
@@ -154,12 +159,24 @@ function getBrowserPosition() {
     });
 }
 
+async function getLocationPermissionState() {
+    if (!navigator.permissions?.query) return "prompt" as PermissionState;
+
+    try {
+        const result = await navigator.permissions.query({ name: "geolocation" });
+        return result.state;
+    } catch {
+        // Older Safari versions do not expose geolocation through Permissions API.
+        return "prompt" as PermissionState;
+    }
+}
+
 function locationErrorMessage(error: unknown) {
     const geolocationError = error as { code?: number; message?: string };
 
     if (typeof geolocationError?.code === "number") {
         if (geolocationError.code === 1) {
-            return "Location access was denied. Allow it in your browser settings or choose a city.";
+            return "Location access is blocked. Allow Location for qot.ug in Safari, then tap this button again.";
         }
         if (geolocationError.code === 3) {
             return "Your location took too long to detect. Try again or choose a city.";
@@ -180,13 +197,21 @@ export default function CurrentLocationButton({
     const [locating, setLocating] = useState(false);
     const [message, setMessage] = useState("");
     const [isError, setIsError] = useState(false);
+    const [permissionBlocked, setPermissionBlocked] = useState(false);
 
     async function useCurrentLocation() {
         setLocating(true);
         setMessage("");
         setIsError(false);
+        setPermissionBlocked(false);
 
         try {
+            const permissionState = await getLocationPermissionState();
+            if (permissionState === "denied") {
+                setPermissionBlocked(true);
+                throw new Error("Location access is blocked. Allow Location for qot.ug in Safari, then tap this button again.");
+            }
+
             const position = await getBrowserPosition();
             const params = new URLSearchParams({
                 latitude: String(position.coords.latitude),
@@ -243,6 +268,8 @@ export default function CurrentLocationButton({
                 : match.region_name;
             setMessage(`Current location set to ${[cityName(match), region].filter(Boolean).join(", ")}.`);
         } catch (error) {
+            const geolocationError = error as { code?: number };
+            if (geolocationError?.code === 1) setPermissionBlocked(true);
             setMessage(locationErrorMessage(error));
             setIsError(true);
         } finally {
@@ -262,13 +289,19 @@ export default function CurrentLocationButton({
                     icon={locating ? faSpinner : faLocationCrosshairs}
                     className={`h-3.5 w-3.5 ${locating ? "animate-spin" : ""}`}
                 />
-                {locating ? "Finding your area…" : "Use your current location instead"}
+                {locating ? "Finding your area…" : "Allow location & use current area"}
             </button>
 
             {message && (
                 <p className={`mt-2 text-[10px] font-bold leading-4 ${isError ? "text-red-600" : "text-emerald-600"}`}>
                     {message}
                 </p>
+            )}
+            {permissionBlocked && (
+                <div className="mt-2 rounded-xl bg-red-50 px-3 py-2 text-[9px] font-semibold leading-4 text-red-700 ring-1 ring-red-100">
+                    <span className="block font-black">Enable location on iPhone</span>
+                    Open Safari’s page menu (aA) → Website Settings → Location → Allow, then reload this page. If that option is unavailable, use Settings → Privacy &amp; Security → Location Services → Safari Websites.
+                </div>
             )}
             <p className="mt-1 text-[9px] font-semibold leading-4 text-slate-400">
                 QOT saves only the selected area or city, not your exact coordinates.
