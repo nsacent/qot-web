@@ -41,8 +41,8 @@ const preferenceItems = [
     },
     {
         key: "messages",
-        title: "Chat Messages",
-        description: "Receive alerts when buyers or sellers message you.",
+        title: "Messages & Offers",
+        description: "Receive alerts for chats, price offers, and offer decisions.",
         icon: faEnvelope,
         iconTone: "bg-blue-100 text-blue-600",
     },

@@ -7,7 +7,6 @@ import { faEnvelope, faLock, faMobileScreen, faShieldHalved, faStore, faTag } fr
 import { getCurrentUser, loginUser } from "@/lib/sessionClient";
 import QotLoader from "@/components/common/QotLoader";
 import GoogleSignInButton from "@/components/auth/GoogleSignInButton";
-import FacebookSignInButton from "@/components/auth/FacebookSignInButton";
 import QotLogo from "@/components/brand/QotLogo";
 import {
     getUgandanNationalNumber,
@@ -214,10 +213,6 @@ function LoginForm() {
 
                         <div className="mt-5 space-y-3">
                             <GoogleSignInButton
-                                keepSignedIn={keepSignedIn}
-                                nextUrl={nextUrl}
-                            />
-                            <FacebookSignInButton
                                 keepSignedIn={keepSignedIn}
                                 nextUrl={nextUrl}
                             />

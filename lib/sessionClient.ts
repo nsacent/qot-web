@@ -63,17 +63,65 @@ async function readResponse(response: Response) {
     return data;
 }
 
+function webDeviceMetadata() {
+    if (typeof window === "undefined") return undefined;
+
+    const storageKey = "qot_device_id";
+    let deviceId = "";
+    try {
+        deviceId = localStorage.getItem(storageKey) || "";
+    } catch {
+        // Privacy-restricted browsers can still sign in without persistent storage.
+    }
+    if (!deviceId) {
+        deviceId = typeof globalThis.crypto?.randomUUID === "function"
+            ? globalThis.crypto.randomUUID()
+            : `qot-web-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
+        try {
+            localStorage.setItem(storageKey, deviceId);
+        } catch {
+            // The generated identifier remains valid for this sign-in.
+        }
+    }
+
+    const agent = navigator.userAgent || "";
+    const browser = /Edg\//.test(agent) ? "Microsoft Edge"
+        : /Chrome\//.test(agent) ? "Google Chrome"
+            : /Firefox\//.test(agent) ? "Firefox"
+                : /Safari\//.test(agent) ? "Safari"
+                    : "Web browser";
+    const os = /Android/.test(agent) ? "Android"
+        : /iPhone|iPad/.test(agent) ? "iOS"
+            : /Mac OS X/.test(agent) ? "macOS"
+                : /Windows/.test(agent) ? "Windows"
+                    : /Linux/.test(agent) ? "Linux"
+                        : "Web";
+
+    return {
+        id: deviceId,
+        platform: "web",
+        device_name: `${browser} on ${os}`,
+        device_model: browser,
+        os_name: os,
+        os_version: "",
+        app_version: "web",
+    };
+}
+
 export async function sessionPost(path: string, body?: any) {
     let response: Response;
 
     try {
+        const requestBody = ["/login", "/register", "/google"].includes(path)
+            ? { ...(body || {}), device: body?.device || webDeviceMetadata() }
+            : body;
         response = await fetch(`/api/auth${path}`, {
             method: "POST",
             credentials: "include",
             headers: {
                 "Content-Type": "application/json",
             },
-            body: body ? JSON.stringify(body) : undefined,
+            body: requestBody ? JSON.stringify(requestBody) : undefined,
         });
     } catch {
         throw new Error(
@@ -120,13 +168,6 @@ export async function loginWithGoogle(body: {
     keep_signed_in?: boolean;
 }) {
     return sessionPost("/google", body);
-}
-
-export async function loginWithFacebook(body: {
-    access_token: string;
-    keep_signed_in?: boolean;
-}) {
-    return sessionPost("/facebook", body);
 }
 
 export async function registerUser(body: {

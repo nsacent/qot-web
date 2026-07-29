@@ -110,53 +110,10 @@ async function handleAuthRequest(
                         ? payload.credential
                         : "",
                 keep_signed_in: keepSignedIn,
-            }),
-        });
-
-        if (!result.ok) {
-            return json(result.data, result.status);
-        }
-
-        const access = extractAccessToken(result.data);
-        const refresh = extractRefreshToken(result.data);
-
-        if (access || refresh) {
-            await setAuthCookies(access, refresh, keepSignedIn);
-        }
-
-        return json(stripTokens(result.data), result.status);
-    }
-
-    if (authKey === "facebook") {
-        if (!hasTrustedOrigin(request)) {
-            return json({ detail: "Invalid Facebook sign-in origin." }, 403);
-        }
-
-        let payload: Record<string, unknown> = {};
-
-        try {
-            const parsed = bodyText ? JSON.parse(bodyText) : {};
-
-            payload =
-                parsed && typeof parsed === "object" && !Array.isArray(parsed)
-                    ? (parsed as Record<string, unknown>)
-                    : {};
-        } catch {
-            payload = {};
-        }
-
-        const keepSignedIn =
-            payload.keep_signed_in === true || payload.keepSignedIn === true;
-        const result = await backendJson("/auth/facebook/", {
-            method: "POST",
-            body: JSON.stringify({
-                access_token:
-                    typeof payload.access_token === "string"
-                        ? payload.access_token
-                        : typeof payload.accessToken === "string"
-                            ? payload.accessToken
-                            : "",
-                keep_signed_in: keepSignedIn,
+                device:
+                    payload.device && typeof payload.device === "object"
+                        ? payload.device
+                        : undefined,
             }),
         });
 
@@ -226,6 +183,10 @@ async function handleAuthRequest(
                 identifier,
                 password,
                 keep_signed_in: keepSignedIn,
+                device:
+                    payload.device && typeof payload.device === "object"
+                        ? payload.device
+                        : undefined,
             }),
         });
 

@@ -19,7 +19,6 @@ import {
 } from "@/lib/sessionClient";
 import QotLoader from "@/components/common/QotLoader";
 import GoogleSignInButton from "@/components/auth/GoogleSignInButton";
-import FacebookSignInButton from "@/components/auth/FacebookSignInButton";
 import QotLogo from "@/components/brand/QotLogo";
 import {
     getUgandanNationalNumber,
@@ -236,11 +235,6 @@ function RegisterForm() {
 
                         <div className="mt-6 space-y-3">
                             <GoogleSignInButton
-                                keepSignedIn={false}
-                                nextUrl={nextUrl}
-                                mode="sign-up"
-                            />
-                            <FacebookSignInButton
                                 keepSignedIn={false}
                                 nextUrl={nextUrl}
                                 mode="sign-up"

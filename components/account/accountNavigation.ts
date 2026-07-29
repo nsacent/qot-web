@@ -149,8 +149,8 @@ export const accountNavigationSections: AccountNavigationSection[] = [
             },
             {
                 href: "/account/settings",
-                label: "Preferences",
-                description: "Notification settings",
+                label: "Notification Preferences",
+                description: "Alerts and notification settings",
                 icon: faPenToSquare,
             },
             {
