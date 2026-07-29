@@ -21,6 +21,7 @@ import { getCurrentUser } from "@/lib/sessionClient";
 import { fetchAllProxyPages } from "@/lib/marketplaceCatalog";
 import {
     getUgandanNationalNumber,
+    isValidUgandanMobile,
     toUgandanPhone,
 } from "@/lib/ugandanPhone";
 import { DEFAULT_TIME_ZONE, TIME_ZONE_OPTIONS } from "@/lib/dateTime";
@@ -74,6 +75,7 @@ export default function ProfileSettingsClient() {
 
     const [fullName, setFullName] = useState("");
     const [phone, setPhone] = useState("");
+    const [alternativePhone, setAlternativePhone] = useState("");
     const [businessName, setBusinessName] = useState("");
     const [bio, setBio] = useState("");
     const [defaultCity, setDefaultCity] = useState("");
@@ -121,6 +123,7 @@ export default function ProfileSettingsClient() {
         setUser(currentUser);
         setFullName(currentUser?.full_name || "");
         setPhone(currentUser?.phone || "");
+        setAlternativePhone(currentUser?.profile?.alternative_phone || "");
         setBusinessName(currentUser?.profile?.business_name || "");
         setBio(currentUser?.profile?.bio || "");
         setDefaultCity(String(currentUser?.profile?.default_city || ""));
@@ -170,14 +173,31 @@ export default function ProfileSettingsClient() {
 
     async function handleSave(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
-        setSaving(true);
         setSaveError("");
         setMessage("");
+
+        const normalizedAlternativePhone = toUgandanPhone(alternativePhone);
+
+        if (alternativePhone && !isValidUgandanMobile(alternativePhone)) {
+            setSaveError("Enter a valid alternative Uganda mobile number, for example +256 700 000 001.");
+            return;
+        }
+
+        if (
+            normalizedAlternativePhone &&
+            normalizedAlternativePhone === toUgandanPhone(phone)
+        ) {
+            setSaveError("Your alternative number must be different from your primary phone number.");
+            return;
+        }
+
+        setSaving(true);
 
         try {
             const formData = new FormData();
             formData.append("full_name", fullName.trim());
             formData.append("phone", phone.trim());
+            formData.append("alternative_phone", normalizedAlternativePhone);
             formData.append("business_name", businessName.trim());
             formData.append("bio", bio.trim());
             if (defaultCity) formData.append("default_city", defaultCity);
@@ -203,7 +223,7 @@ export default function ProfileSettingsClient() {
             localStorage.setItem("qot_user", JSON.stringify(currentUser));
             window.dispatchEvent(new Event("storage"));
             window.dispatchEvent(new Event("qot_session_updated"));
-            setMessage("Profile, default location, and timezone saved.");
+            setMessage("Profile, phone numbers, default location, and timezone saved.");
         } catch (err: any) {
             setSaveError(err.message || "Failed to update your profile.");
         } finally {
@@ -261,7 +281,7 @@ export default function ProfileSettingsClient() {
                 </label>
             </div>
 
-            <form onSubmit={handleSave} className="p-4 pb-24 sm:p-7">
+            <form onSubmit={handleSave} className="p-4 pb-44 sm:p-7 sm:pb-44 md:pb-7">
                 <div className="mb-6 flex items-end gap-3 sm:mb-8 sm:gap-4">
                     <div className="relative -mt-14 h-24 w-24 shrink-0 overflow-hidden rounded-[24px] border-4 border-white bg-orange-500 shadow-xl sm:-mt-20 sm:h-32 sm:w-32 sm:rounded-[30px]">
                         {avatarPreview ? (
@@ -371,6 +391,27 @@ export default function ProfileSettingsClient() {
                         ) : null}
                     </div>
                     <div>
+                        <ProfileField label="Alternative phone (optional)" icon={faPhone}>
+                            <span className="border-r border-slate-200 pr-3 text-sm font-black text-slate-700">
+                                +256
+                            </span>
+                            <input
+                                type="tel"
+                                inputMode="numeric"
+                                autoComplete="tel-national"
+                                value={getUgandanNationalNumber(alternativePhone)}
+                                onChange={(event) => setAlternativePhone(toUgandanPhone(event.target.value))}
+                                placeholder="700 000 002"
+                                pattern="[0-9]{9}"
+                                maxLength={16}
+                                className="w-full bg-transparent text-sm font-bold outline-none"
+                            />
+                        </ProfileField>
+                        <p className="mt-2 text-xs font-semibold leading-5 text-slate-500">
+                            Buyers may use this number to contact you. It is not verified and cannot be used to sign in.
+                        </p>
+                    </div>
+                    <div>
                         <ProfileField label="Email address" icon={faEnvelope}>
                             <input
                                 type="email"
@@ -442,7 +483,7 @@ export default function ProfileSettingsClient() {
                     <textarea value={bio} onChange={(event) => setBio(event.target.value)} rows={4} placeholder="Tell buyers a little about you..." className="w-full rounded-2xl bg-slate-50 px-4 py-3 text-sm font-bold outline-none ring-1 ring-slate-100 focus:bg-white focus:ring-orange-200" />
                 </label>
 
-                <div className="fixed inset-x-0 bottom-[68px] z-[80] mt-6 border-t border-slate-100 bg-white/95 px-4 py-3 shadow-[0_-10px_30px_rgba(15,23,42,0.08)] backdrop-blur sm:static sm:mx-0 sm:border-0 sm:bg-transparent sm:p-0 sm:shadow-none">
+                <div className="fixed inset-x-0 bottom-[calc(88px+env(safe-area-inset-bottom))] z-40 mt-6 border-t border-slate-100 bg-white/95 px-4 py-3 shadow-[0_-10px_30px_rgba(15,23,42,0.08)] backdrop-blur md:static md:mx-0 md:border-0 md:bg-transparent md:p-0 md:shadow-none">
                     {saveError && (
                         <InlineError
                             message={saveError}

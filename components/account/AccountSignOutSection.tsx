@@ -8,7 +8,7 @@ export default function AccountSignOutSection() {
     const { logout } = useAccountShell();
 
     return (
-        <section className="rounded-[24px] bg-white p-4 shadow-sm ring-1 ring-black/5 sm:p-5">
+        <section className="mb-28 rounded-[24px] bg-white p-4 shadow-sm ring-1 ring-red-100 sm:p-5 md:mb-0">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                     <p className="text-sm font-black text-slate-950">Sign out of QOT</p>
