@@ -1,16 +1,19 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import Image from "next/image";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
     faBell,
     faBullhorn,
     faCheck,
     faClockRotateLeft,
+    faImage,
     faMagnifyingGlass,
     faMobileScreen,
     faPaperPlane,
     faTriangleExclamation,
+    faTrashCan,
     faUsers,
     faXmark,
 } from "@fortawesome/free-solid-svg-icons";
@@ -40,6 +43,7 @@ type Broadcast = {
     delivery_type: DeliveryType;
     delivery_type_label: string;
     action_url: string;
+    image_url?: string;
     created_by_name: string;
     matched_users: number;
     targeted_devices: number;
@@ -108,6 +112,9 @@ export default function AdminPushNotificationsClient() {
     const [userResults, setUserResults] = useState<AdminUser[]>([]);
     const [selectedUsers, setSelectedUsers] = useState<AdminUser[]>([]);
     const [searchingUsers, setSearchingUsers] = useState(false);
+    const [imageFile, setImageFile] = useState<File | null>(null);
+    const [imagePreview, setImagePreview] = useState("");
+    const imageInputRef = useRef<HTMLInputElement>(null);
 
     async function loadDashboard() {
         setLoading(true);
@@ -157,6 +164,35 @@ export default function AdminPushNotificationsClient() {
         return () => window.clearTimeout(timeout);
     }, [audience, userSearch, selectedUsers]);
 
+    useEffect(() => () => {
+        if (imagePreview.startsWith("blob:")) URL.revokeObjectURL(imagePreview);
+    }, [imagePreview]);
+
+    function selectImage(file?: File) {
+        setError("");
+        if (!file) return;
+
+        if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+            setError("Choose a JPEG, PNG, or WebP image.");
+            if (imageInputRef.current) imageInputRef.current.value = "";
+            return;
+        }
+        if (file.size > 5 * 1024 * 1024) {
+            setError("Choose an image no larger than 5 MB.");
+            if (imageInputRef.current) imageInputRef.current.value = "";
+            return;
+        }
+
+        setImageFile(file);
+        setImagePreview(URL.createObjectURL(file));
+    }
+
+    function removeImage() {
+        setImageFile(null);
+        setImagePreview("");
+        if (imageInputRef.current) imageInputRef.current.value = "";
+    }
+
     const actionUrl = useMemo(() => {
         if (destination === "ad" && destinationId.trim()) {
             return `qot://ads/${destinationId.trim()}`;
@@ -194,16 +230,18 @@ export default function AdminPushNotificationsClient() {
         setSending(true);
         setError("");
         try {
+            const payload = new FormData();
+            payload.append("title", title.trim());
+            payload.append("message", message.trim());
+            payload.append("audience", audience);
+            payload.append("delivery_type", deliveryType);
+            payload.append("action_url", actionUrl);
+            selectedUsers.forEach((user, index) => payload.append(`user_ids[${index}]`, String(user.id)));
+            if (imageFile) payload.append("image", imageFile);
+
             const sent = await apiPost<Broadcast>(
                 "/admin-panel/push-notifications/",
-                {
-                    title: title.trim(),
-                    message: message.trim(),
-                    audience,
-                    delivery_type: deliveryType,
-                    action_url: actionUrl,
-                    user_ids: selectedUsers.map((user) => user.id),
-                }
+                payload
             );
             setHistory((current) => [sent, ...current].slice(0, 30));
             setSuccess(
@@ -215,6 +253,7 @@ export default function AdminPushNotificationsClient() {
             setDestination("notifications");
             setDestinationId("");
             setSelectedUsers([]);
+            removeImage();
             setConfirmOpen(false);
             await loadDashboard();
         } catch (sendError: unknown) {
@@ -317,6 +356,42 @@ export default function AdminPushNotificationsClient() {
                     </div>
                     {destination !== "notifications" && <input inputMode="numeric" value={destinationId} onChange={(event) => setDestinationId(event.target.value.replace(/\D/g, ""))} placeholder={destination === "ad" ? "Ad ID" : "Conversation ID"} className="mt-3 h-12 w-full rounded-xl border border-slate-200 px-4 text-sm font-semibold outline-none focus:border-orange-400" />}
 
+                    <div className="mt-5">
+                        <div className="flex items-end justify-between gap-3">
+                            <div>
+                                <p className="text-xs font-black uppercase tracking-wider text-slate-500">Notification image <span className="normal-case tracking-normal text-slate-400">(optional)</span></p>
+                                <p className="mt-1 text-xs font-semibold text-slate-400">A wide 2:1 image works best. JPEG, PNG or WebP, up to 5 MB; QOT optimizes it for reliable delivery.</p>
+                            </div>
+                            {imagePreview && (
+                                <button type="button" onClick={removeImage} className="inline-flex h-9 shrink-0 items-center gap-2 rounded-xl bg-red-50 px-3 text-xs font-black text-red-600 hover:bg-red-100">
+                                    <FontAwesomeIcon icon={faTrashCan} className="h-3 w-3" />Remove
+                                </button>
+                            )}
+                        </div>
+                        <input
+                            ref={imageInputRef}
+                            type="file"
+                            accept="image/jpeg,image/png,image/webp"
+                            className="sr-only"
+                            onChange={(event) => selectImage(event.target.files?.[0])}
+                        />
+                        <button
+                            type="button"
+                            onClick={() => imageInputRef.current?.click()}
+                            className={`relative mt-3 flex min-h-36 w-full overflow-hidden rounded-2xl border-2 border-dashed transition ${imagePreview ? "border-slate-200 bg-slate-100" : "items-center justify-center border-slate-300 bg-slate-50 hover:border-orange-400 hover:bg-orange-50"}`}
+                        >
+                            {imagePreview ? (
+                                <Image src={imagePreview} alt="Notification preview" fill unoptimized className="object-cover" />
+                            ) : (
+                                <span className="flex flex-col items-center px-5 py-6 text-center">
+                                    <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-orange-600 shadow-sm"><FontAwesomeIcon icon={faImage} className="h-4 w-4" /></span>
+                                    <span className="mt-3 text-sm font-black text-slate-800">Choose notification image</span>
+                                    <span className="mt-1 text-xs font-semibold text-slate-400">The image appears in supported push notifications.</span>
+                                </span>
+                            )}
+                        </button>
+                    </div>
+
                     <label className="mt-5 block"><span className="flex justify-between text-xs font-black uppercase tracking-wider text-slate-500"><span>Title</span><span>{title.length}/150</span></span><input maxLength={150} value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Short, clear headline" className="mt-2 h-12 w-full rounded-xl border border-slate-200 px-4 text-sm font-semibold outline-none focus:border-orange-400" /></label>
                     <label className="mt-4 block"><span className="flex justify-between text-xs font-black uppercase tracking-wider text-slate-500"><span>Message</span><span>{message.length}/500</span></span><textarea maxLength={500} rows={5} value={message} onChange={(event) => setMessage(event.target.value)} placeholder="Tell members what changed and what they should do next." className="mt-2 w-full resize-none rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold leading-6 outline-none focus:border-orange-400" /></label>
 
@@ -329,8 +404,9 @@ export default function AdminPushNotificationsClient() {
                         <div className="mt-5 rounded-[24px] bg-slate-100 p-4 text-slate-950">
                             <div className="flex items-start gap-3 rounded-2xl bg-white p-4 shadow-sm">
                                 <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-orange-500 text-white"><FontAwesomeIcon icon={faBell} className="h-4 w-4" /></span>
-                                <span className="min-w-0"><span className="block text-xs font-black text-slate-400">QOT • now</span><span className="mt-1 block break-words text-sm font-black text-slate-950">{title.trim() || "Your notification title"}</span><span className="mt-1 block break-words text-xs font-semibold leading-5 text-slate-600">{message.trim() || "Your message will appear here before you send it."}</span></span>
+                                <span className="min-w-0 flex-1"><span className="block text-xs font-black text-slate-400">QOT • now</span><span className="mt-1 block break-words text-sm font-black text-slate-950">{title.trim() || "Your notification title"}</span><span className="mt-1 block break-words text-xs font-semibold leading-5 text-slate-600">{message.trim() || "Your message will appear here before you send it."}</span></span>
                             </div>
+                            {imagePreview && <Image src={imagePreview} alt="Rich notification preview" width={640} height={320} unoptimized className="mt-2 aspect-[2/1] w-full rounded-2xl object-cover" />}
                         </div>
                         <div className="mt-5 flex items-center gap-2 text-xs font-bold text-slate-300"><FontAwesomeIcon icon={faUsers} className="h-3.5 w-3.5 text-orange-400" />{audienceOptions.find((option) => option.value === audience)?.label}{audience === "selected" ? ` • ${selectedUsers.length} selected` : ""}</div>
                         <div className="mt-2 flex items-center gap-2 text-xs font-bold text-slate-300"><FontAwesomeIcon icon={deliveryType === "marketing" ? faBullhorn : faBell} className="h-3.5 w-3.5 text-orange-400" />{deliveryType === "marketing" ? "Only marketing opt-ins" : "Important service update"}</div>
@@ -343,7 +419,7 @@ export default function AdminPushNotificationsClient() {
                 <div className="mt-5 grid gap-3">
                     {history.length === 0 ? <p className="rounded-2xl border border-dashed border-slate-300 p-8 text-center text-sm font-bold text-slate-500">No push notifications have been sent yet.</p> : history.map((item) => (
                         <article key={item.id} className="rounded-2xl border border-slate-200 p-4 sm:p-5">
-                            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"><div><div className="flex flex-wrap gap-2"><span className="rounded-full bg-orange-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-orange-700">{item.audience_label}</span><span className="rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-slate-600">{item.delivery_type_label}</span></div><h4 className="mt-3 text-sm font-black text-slate-950">{item.title}</h4><p className="mt-1 max-w-3xl text-xs font-semibold leading-5 text-slate-600">{item.message}</p></div><p className="shrink-0 text-[11px] font-bold text-slate-400">{formatDate(item.created_at)}</p></div>
+                            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"><div className="min-w-0 flex-1"><div className="flex flex-wrap gap-2"><span className="rounded-full bg-orange-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-orange-700">{item.audience_label}</span><span className="rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-slate-600">{item.delivery_type_label}</span></div><h4 className="mt-3 text-sm font-black text-slate-950">{item.title}</h4><p className="mt-1 max-w-3xl text-xs font-semibold leading-5 text-slate-600">{item.message}</p>{item.image_url && <Image src={item.image_url} alt="" width={480} height={240} unoptimized className="mt-3 aspect-[2/1] w-full max-w-sm rounded-xl object-cover" />}</div><p className="shrink-0 text-[11px] font-bold text-slate-400">{formatDate(item.created_at)}</p></div>
                             <div className="mt-4 grid grid-cols-3 gap-2 border-t border-slate-100 pt-4 text-center"><span><strong className="block text-base font-black text-slate-950">{item.matched_users}</strong><small className="text-[10px] font-bold uppercase text-slate-400">Users</small></span><span><strong className="block text-base font-black text-emerald-600">{item.accepted_devices}</strong><small className="text-[10px] font-bold uppercase text-slate-400">Accepted</small></span><span><strong className="block text-base font-black text-red-500">{item.rejected_devices}</strong><small className="text-[10px] font-bold uppercase text-slate-400">Rejected</small></span></div>
                             <p className="mt-3 text-[10px] font-bold text-slate-400">Sent by {item.created_by_name || "QOT admin"}</p>
                         </article>
@@ -357,7 +433,7 @@ export default function AdminPushNotificationsClient() {
                         <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-orange-50 text-orange-600"><FontAwesomeIcon icon={faPaperPlane} className="h-5 w-5" /></span>
                         <h3 id="push-confirm-title" className="mt-5 text-xl font-black text-slate-950">Send this notification?</h3>
                         <p className="mt-2 text-sm font-semibold leading-6 text-slate-500">This immediately creates an in-app alert and sends push notifications to the selected audience.</p>
-                        <div className="mt-5 rounded-2xl bg-slate-50 p-4"><p className="text-sm font-black text-slate-950">{title}</p><p className="mt-1 text-xs font-semibold leading-5 text-slate-600">{message}</p></div>
+                        <div className="mt-5 overflow-hidden rounded-2xl bg-slate-50"><div className="p-4"><p className="text-sm font-black text-slate-950">{title}</p><p className="mt-1 text-xs font-semibold leading-5 text-slate-600">{message}</p></div>{imagePreview && <Image src={imagePreview} alt="" width={640} height={320} unoptimized className="aspect-[2/1] w-full object-cover" />}</div>
                         <div className="mt-6 grid grid-cols-2 gap-3"><button type="button" disabled={sending} onClick={() => setConfirmOpen(false)} className="min-h-12 rounded-2xl border border-slate-200 text-sm font-black text-slate-700 disabled:opacity-50">Cancel</button><button type="button" disabled={sending} onClick={sendBroadcast} className="min-h-12 rounded-2xl bg-orange-500 text-sm font-black text-white disabled:opacity-60">{sending ? "Sending…" : "Send now"}</button></div>
                     </div>
                 </div>
