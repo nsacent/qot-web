@@ -10,6 +10,9 @@ import {
     faUserRegular,
 } from "@/lib/faIcons";
 import { apiGet } from "@/lib/apiClient";
+import PaginationControls from "@/components/common/PaginationControls";
+
+const PAGE_SIZE = 12;
 
 function getArray(data: any): any[] {
     if (Array.isArray(data)) return data;
@@ -91,14 +94,19 @@ export default function MyReviewsClient() {
     const [reviews, setReviews] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
+    const [page, setPage] = useState(1);
+    const [totalCount, setTotalCount] = useState(0);
 
-    async function loadReviews() {
+    async function loadReviews(pageNumber = page) {
         setLoading(true);
         setError("");
 
         try {
-            const data = await apiGet("/reviews/me/");
-            setReviews(getArray(data));
+            const data: any = await apiGet(`/reviews/me/?page=${pageNumber}&page_size=${PAGE_SIZE}`);
+            const rows = getArray(data);
+            setReviews(rows);
+            setTotalCount(Number.isFinite(Number(data?.count)) ? Number(data.count) : rows.length);
+            setPage(pageNumber);
         } catch (error: any) {
             setReviews([]);
             setError(cleanErrorMessage(error));
@@ -108,8 +116,14 @@ export default function MyReviewsClient() {
     }
 
     useEffect(() => {
-        loadReviews();
+        void loadReviews(1);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
+
+    function changePage(nextPage: number) {
+        void loadReviews(nextPage);
+        window.scrollTo({ top: 0, behavior: "smooth" });
+    }
 
     return (
         <section className="py-0 md:py-6">
@@ -134,9 +148,9 @@ export default function MyReviewsClient() {
                     </div>
 
                     <div className="flex items-center gap-3 rounded-2xl bg-white/10 px-4 py-3 ring-1 ring-white/15">
-                        <span className="text-3xl font-black text-white">{loading ? "—" : reviews.length}</span>
+                        <span className="text-3xl font-black text-white">{loading ? "—" : totalCount}</span>
                         <span className="text-[10px] font-black uppercase leading-4 tracking-wider text-slate-300">
-                            Review{reviews.length === 1 ? "" : "s"}<br />submitted
+                            Review{totalCount === 1 ? "" : "s"}<br />submitted
                         </span>
                     </div>
                 </div>
@@ -178,7 +192,7 @@ export default function MyReviewsClient() {
                         <p className="mt-2 max-w-md text-sm font-bold leading-6 text-red-700">{error}</p>
                         <button
                             type="button"
-                            onClick={loadReviews}
+                            onClick={() => void loadReviews()}
                             className="mt-5 rounded-2xl bg-slate-950 px-5 py-3 text-sm font-black text-white hover:bg-slate-800"
                         >
                             Try Again
@@ -202,8 +216,9 @@ export default function MyReviewsClient() {
                         </a>
                     </div>
                 ) : (
-                    <div className="mt-6 grid gap-4">
-                        {reviews.map((review) => {
+                    <>
+                        <div className="mt-6 grid gap-4">
+                            {reviews.map((review) => {
                             const sellerId = getSellerId(review);
                             const listingId = getListingId(review);
                             const rating = Number(review.rating || 0);
@@ -276,8 +291,17 @@ export default function MyReviewsClient() {
                                     </div>
                                 </article>
                             );
-                        })}
-                    </div>
+                            })}
+                        </div>
+                        <PaginationControls
+                            currentPage={page}
+                            pageSize={PAGE_SIZE}
+                            totalCount={totalCount}
+                            itemLabel="reviews"
+                            loading={loading}
+                            onPageChange={changePage}
+                        />
+                    </>
                 )}
             </div>
         </section>

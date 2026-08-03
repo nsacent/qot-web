@@ -20,6 +20,9 @@ import {
     AdminRefreshButton,
     AdminStatCard,
 } from "@/components/admin/AdminUi";
+import PaginationControls from "@/components/common/PaginationControls";
+
+const PAGE_SIZE = 20;
 
 type ActivityRecord = {
     id: number;
@@ -119,8 +122,7 @@ export default function AdminActivityClient() {
     const [filters, setFilters] = useState<ActivityFilters>(emptyFilters);
     const [appliedFilters, setAppliedFilters] = useState<ActivityFilters>(emptyFilters);
     const [page, setPage] = useState(1);
-    const [nextPage, setNextPage] = useState(false);
-    const [previousPage, setPreviousPage] = useState(false);
+    const [totalCount, setTotalCount] = useState(0);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
 
@@ -133,13 +135,17 @@ export default function AdminActivityClient() {
                 `/admin-panel/activity/${buildQuery({
                     ...appliedFilters,
                     page,
-                    page_size: 20,
+                    page_size: PAGE_SIZE,
                 })}`
             );
-            setRecords(Array.isArray(data?.results) ? data.results : []);
+            const rows = Array.isArray(data?.results) ? data.results : [];
+            setRecords(rows);
             setSummary(data?.summary || emptySummary);
-            setNextPage(Boolean(data?.next));
-            setPreviousPage(Boolean(data?.previous));
+            setTotalCount(
+                Number.isFinite(Number(data?.count))
+                    ? Number(data.count)
+                    : rows.length
+            );
         } catch (requestError: unknown) {
             setError(
                 requestError instanceof Error
@@ -283,6 +289,7 @@ export default function AdminActivityClient() {
                 ) : records.length === 0 ? (
                     <AdminEmptyState title="No activity found" description="No system actions match the selected filters." />
                 ) : (
+                    <>
                     <div className="overflow-hidden rounded-[28px] bg-white shadow-sm ring-1 ring-slate-200/70">
                         <div className="divide-y divide-slate-100">
                             {records.map((record) => {
@@ -334,28 +341,20 @@ export default function AdminActivityClient() {
                             })}
                         </div>
 
-                        <div className="flex items-center justify-between gap-3 border-t border-slate-100 bg-slate-50/70 px-4 py-4 sm:px-5">
-                            <p className="text-xs font-bold text-slate-500">Page {page}</p>
-                            <div className="flex gap-2">
-                                <button
-                                    type="button"
-                                    disabled={!previousPage || loading}
-                                    onClick={() => setPage((current) => Math.max(1, current - 1))}
-                                    className="rounded-xl bg-white px-4 py-2.5 text-xs font-black text-slate-700 ring-1 ring-slate-200 disabled:cursor-not-allowed disabled:opacity-40"
-                                >
-                                    Previous
-                                </button>
-                                <button
-                                    type="button"
-                                    disabled={!nextPage || loading}
-                                    onClick={() => setPage((current) => current + 1)}
-                                    className="rounded-xl bg-slate-950 px-4 py-2.5 text-xs font-black text-white disabled:cursor-not-allowed disabled:opacity-40"
-                                >
-                                    Next
-                                </button>
-                            </div>
-                        </div>
                     </div>
+
+                    <PaginationControls
+                        currentPage={page}
+                        pageSize={PAGE_SIZE}
+                        totalCount={totalCount}
+                        itemLabel="activity records"
+                        loading={loading}
+                        onPageChange={(nextPage) => {
+                            setPage(nextPage);
+                            window.scrollTo({ top: 0, behavior: "smooth" });
+                        }}
+                    />
+                    </>
                 )}
             </div>
 

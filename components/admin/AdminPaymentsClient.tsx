@@ -25,6 +25,27 @@ import {
     AdminRefreshButton,
     AdminStatCard,
 } from "@/components/admin/AdminUi";
+import PaginationControls from "@/components/common/PaginationControls";
+
+const PAGE_SIZE = 20;
+
+type PaymentFilters = {
+    search: string;
+    status: string;
+    purpose: string;
+    method: string;
+    dateFrom: string;
+    dateTo: string;
+};
+
+const DEFAULT_FILTERS: PaymentFilters = {
+    search: "",
+    status: "",
+    purpose: "",
+    method: "",
+    dateFrom: "",
+    dateTo: "",
+};
 
 type PaymentModal =
     | {
@@ -94,30 +115,42 @@ export default function AdminPaymentsClient() {
     const [modal, setModal] = useState<PaymentModal>(null);
     const [modalValues, setModalValues] = useState<Record<string, string>>({});
     const [modalError, setModalError] = useState("");
+    const [page, setPage] = useState(1);
+    const [totalCount, setTotalCount] = useState(0);
 
-    function buildEndpoint() {
-        const params = new URLSearchParams();
-        if (search.trim()) params.set("search", search.trim());
-        if (status) params.set("status", status);
-        if (purpose) params.set("purpose", purpose);
-        if (method) params.set("payment_method", method);
-        if (dateFrom) params.set("date_from", dateFrom);
-        if (dateTo) params.set("date_to", dateTo);
-
-        const query = params.toString();
-        return query
-            ? `/admin-panel/payments/?${query}`
-            : "/admin-panel/payments/";
+    function currentFilters(): PaymentFilters {
+        return { search, status, purpose, method, dateFrom, dateTo };
     }
 
-    async function loadPayments(preserveSuccess = false) {
+    function buildEndpoint(pageNumber: number, values: PaymentFilters) {
+        const params = new URLSearchParams();
+        if (values.search.trim()) params.set("search", values.search.trim());
+        if (values.status) params.set("status", values.status);
+        if (values.purpose) params.set("purpose", values.purpose);
+        if (values.method) params.set("payment_method", values.method);
+        if (values.dateFrom) params.set("date_from", values.dateFrom);
+        if (values.dateTo) params.set("date_to", values.dateTo);
+        params.set("page", String(pageNumber));
+        params.set("page_size", String(PAGE_SIZE));
+
+        return `/admin-panel/payments/?${params.toString()}`;
+    }
+
+    async function loadPayments(
+        preserveSuccess = false,
+        pageNumber = page,
+        values = currentFilters()
+    ) {
         setLoading(true);
         setError("");
         if (!preserveSuccess) setSuccess("");
 
         try {
-            const data = await apiGet(buildEndpoint());
-            setPayments(getArray(data));
+            const data: any = await apiGet(buildEndpoint(pageNumber, values));
+            const rows = getArray(data);
+            setPayments(rows);
+            setTotalCount(Number.isFinite(Number(data?.count)) ? Number(data.count) : rows.length);
+            setPage(pageNumber);
         } catch (error: any) {
             setError(error.message || "Failed to load payments.");
         } finally {
@@ -126,7 +159,7 @@ export default function AdminPaymentsClient() {
     }
 
     useEffect(() => {
-        loadPayments();
+        void loadPayments(false, 1, DEFAULT_FILTERS);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
@@ -173,7 +206,7 @@ export default function AdminPaymentsClient() {
             }
 
             setModal(null);
-            await loadPayments(true);
+            await loadPayments(true, payments.length === 1 && page > 1 ? page - 1 : page);
         } catch (error: any) {
             setModalError(error.message || "The payment action failed.");
         } finally {
@@ -188,7 +221,12 @@ export default function AdminPaymentsClient() {
         setMethod("");
         setDateFrom("");
         setDateTo("");
-        window.setTimeout(() => loadPayments(), 0);
+        void loadPayments(false, 1, DEFAULT_FILTERS);
+    }
+
+    function changePage(nextPage: number) {
+        void loadPayments(false, nextPage);
+        window.scrollTo({ top: 0, behavior: "smooth" });
     }
 
     const paid = payments.filter((payment) => payment.status === "paid");
@@ -248,7 +286,7 @@ export default function AdminPaymentsClient() {
 
             {!loading && !error && (
                 <div className="mb-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                    <AdminStatCard label="Loaded payments" value={payments.length.toLocaleString()} detail="Current result set" icon={faReceipt} tone="slate" />
+                    <AdminStatCard label="Total payments" value={totalCount.toLocaleString()} detail="Matching current filters" icon={faReceipt} tone="slate" />
                     <AdminStatCard label="Paid value" value={money(paidValue)} detail={`${paid.length} successful payments`} icon={faMoneyBillTrendUp} tone="green" />
                     <AdminStatCard label="Pending" value={pending.length.toLocaleString()} detail="Awaiting confirmation" icon={faCreditCard} tone="orange" />
                     <AdminStatCard label="Failed" value={failed.length.toLocaleString()} detail="Needs reconciliation" icon={faTriangleExclamation} tone="red" />
@@ -258,7 +296,7 @@ export default function AdminPaymentsClient() {
             <form
                 onSubmit={(event) => {
                     event.preventDefault();
-                    loadPayments();
+                    void loadPayments(false, 1);
                 }}
                 className="mb-6 rounded-[28px] bg-white p-5 shadow-sm ring-1 ring-slate-200/70"
             >
@@ -311,8 +349,9 @@ export default function AdminPaymentsClient() {
             ) : payments.length === 0 ? (
                 <AdminEmptyState title="No payments found" description="There are no payment records matching the selected filters." />
             ) : (
-                <div className="grid gap-3">
-                    {payments.map((payment) => {
+                <>
+                    <div className="grid gap-3">
+                        {payments.map((payment) => {
                         const pendingPayment = payment.status === "pending";
                         const failedPayment = payment.status === "failed";
 
@@ -383,8 +422,17 @@ export default function AdminPaymentsClient() {
                                 </div>
                             </article>
                         );
-                    })}
-                </div>
+                        })}
+                    </div>
+                    <PaginationControls
+                        currentPage={page}
+                        pageSize={PAGE_SIZE}
+                        totalCount={totalCount}
+                        itemLabel="payments"
+                        loading={loading}
+                        onPageChange={changePage}
+                    />
+                </>
             )}
 
             {modal && (

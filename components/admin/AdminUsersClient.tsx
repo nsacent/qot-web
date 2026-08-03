@@ -28,8 +28,24 @@ import {
     AdminStatCard,
 } from "@/components/admin/AdminUi";
 import UserAvatar from "@/components/account/UserAvatar";
+import PaginationControls from "@/components/common/PaginationControls";
 
 const USERS_ENDPOINT = "/admin-panel/users/";
+const PAGE_SIZE = 20;
+
+type UserFilters = {
+    search: string;
+    role: string;
+    isBanned: string;
+    isVerified: string;
+};
+
+const DEFAULT_FILTERS: UserFilters = {
+    search: "",
+    role: "",
+    isBanned: "",
+    isVerified: "",
+};
 
 type UserModal =
     | {
@@ -108,25 +124,39 @@ export default function AdminUsersClient() {
     const [modal, setModal] = useState<UserModal>(null);
     const [modalValues, setModalValues] = useState<Record<string, string>>({});
     const [modalError, setModalError] = useState("");
+    const [page, setPage] = useState(1);
+    const [totalCount, setTotalCount] = useState(0);
 
-    function buildEndpoint() {
-        const params = new URLSearchParams();
-        if (search.trim()) params.set("search", search.trim());
-        if (role) params.set("role", role);
-        if (isBanned) params.set("is_banned", isBanned);
-        if (isVerified) params.set("is_verified", isVerified);
-
-        const query = params.toString();
-        return query ? `${USERS_ENDPOINT}?${query}` : USERS_ENDPOINT;
+    function currentFilters(): UserFilters {
+        return { search, role, isBanned, isVerified };
     }
 
-    async function loadUsers(endpoint = buildEndpoint()) {
+    function buildEndpoint(pageNumber: number, values: UserFilters) {
+        const params = new URLSearchParams();
+        if (values.search.trim()) params.set("search", values.search.trim());
+        if (values.role) params.set("role", values.role);
+        if (values.isBanned) params.set("is_banned", values.isBanned);
+        if (values.isVerified) params.set("is_verified", values.isVerified);
+        params.set("page", String(pageNumber));
+        params.set("page_size", String(PAGE_SIZE));
+
+        return `${USERS_ENDPOINT}?${params.toString()}`;
+    }
+
+    async function loadUsers(pageNumber = page, values = currentFilters()) {
         setLoading(true);
         setError("");
 
         try {
-            const data = await apiGet<unknown>(endpoint);
-            setUsers(getArray(data));
+            const data = await apiGet<unknown>(buildEndpoint(pageNumber, values));
+            const rows = getArray(data);
+            setUsers(rows);
+            setTotalCount(
+                isRecord(data) && Number.isFinite(Number(data.count))
+                    ? Number(data.count)
+                    : rows.length
+            );
+            setPage(pageNumber);
         } catch (error: unknown) {
             setError(getErrorMessage(error, "Failed to load users."));
         } finally {
@@ -136,7 +166,7 @@ export default function AdminUsersClient() {
 
     useEffect(() => {
         // eslint-disable-next-line react-hooks/set-state-in-effect
-        void loadUsers();
+        void loadUsers(1, DEFAULT_FILTERS);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
@@ -172,7 +202,7 @@ export default function AdminUsersClient() {
             }
 
             setModal(null);
-            await loadUsers();
+            await loadUsers(users.length === 1 && page > 1 ? page - 1 : page);
         } catch (error: unknown) {
             setModalError(getErrorMessage(error, "The account action failed."));
         } finally {
@@ -185,7 +215,12 @@ export default function AdminUsersClient() {
         setRole("");
         setIsBanned("");
         setIsVerified("");
-        void loadUsers(USERS_ENDPOINT);
+        void loadUsers(1, DEFAULT_FILTERS);
+    }
+
+    function changePage(nextPage: number) {
+        void loadUsers(nextPage);
+        window.scrollTo({ top: 0, behavior: "smooth" });
     }
 
     const verifiedCount = users.filter((user) => user?.is_verified).length;
@@ -219,7 +254,7 @@ export default function AdminUsersClient() {
 
             {!loading && !error && (
                 <div className="mb-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                    <AdminStatCard label="Loaded users" value={users.length.toLocaleString()} detail="Current result set" icon={faUsers} tone="blue" />
+                    <AdminStatCard label="Total users" value={totalCount.toLocaleString()} detail="Matching current filters" icon={faUsers} tone="blue" />
                     <AdminStatCard label="Verified" value={verifiedCount.toLocaleString()} detail="Trusted accounts" icon={faUserCheck} tone="green" />
                     <AdminStatCard label="Banned" value={bannedCount.toLocaleString()} detail="Access restricted" icon={faBan} tone="red" />
                     <AdminStatCard label="Staff" value={staffCount.toLocaleString()} detail="Admins and moderators" icon={faShieldHalved} tone="violet" />
@@ -229,7 +264,7 @@ export default function AdminUsersClient() {
             <form
                 onSubmit={(event) => {
                     event.preventDefault();
-                    void loadUsers();
+                    void loadUsers(1);
                 }}
                 className="mb-6 rounded-[28px] bg-white p-5 shadow-sm ring-1 ring-slate-200/70"
             >
@@ -280,8 +315,9 @@ export default function AdminUsersClient() {
             ) : users.length === 0 ? (
                 <AdminEmptyState title="No users found" description="Try a broader search or clear the selected status filters." />
             ) : (
-                <div className="grid gap-3">
-                    {users.map((user) => {
+                <>
+                    <div className="grid gap-3">
+                        {users.map((user) => {
                         const name = getUserName(user);
                         const banned = Boolean(user?.is_banned);
                         const verified = Boolean(user?.is_verified);
@@ -375,8 +411,17 @@ export default function AdminUsersClient() {
                                 </div>
                             </article>
                         );
-                    })}
-                </div>
+                        })}
+                    </div>
+                    <PaginationControls
+                        currentPage={page}
+                        pageSize={PAGE_SIZE}
+                        totalCount={totalCount}
+                        itemLabel="users"
+                        loading={loading}
+                        onPageChange={changePage}
+                    />
+                </>
             )}
 
             {modal && (

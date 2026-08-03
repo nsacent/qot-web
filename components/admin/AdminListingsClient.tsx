@@ -25,6 +25,7 @@ import {
     AdminRefreshButton,
 } from "@/components/admin/AdminUi";
 import ListingExpiryCountdown from "@/components/listings/ListingExpiryCountdown";
+import PaginationControls from "@/components/common/PaginationControls";
 import {
     getListingExpiryValue,
     getListingFeaturedUntil,
@@ -33,6 +34,29 @@ import {
 
 const LISTINGS_ENDPOINT = "/admin-panel/listings/";
 const PENDING_LISTINGS_ENDPOINT = "/admin-panel/listings/pending/";
+const PAGE_SIZE = 12;
+
+type ListingFilters = {
+    search: string;
+    status: string;
+    seller: string;
+    category: string;
+    city: string;
+    featured: string;
+    dateFrom: string;
+    dateTo: string;
+};
+
+const DEFAULT_FILTERS: ListingFilters = {
+    search: "",
+    status: "pending_only",
+    seller: "",
+    category: "",
+    city: "",
+    featured: "",
+    dateFrom: "",
+    dateTo: "",
+};
 
 type ListingModal =
     | {
@@ -110,35 +134,46 @@ export default function AdminListingsClient() {
     const [modal, setModal] = useState<ListingModal>(null);
     const [modalValues, setModalValues] = useState<Record<string, string>>({});
     const [modalError, setModalError] = useState("");
+    const [page, setPage] = useState(1);
+    const [totalCount, setTotalCount] = useState(0);
 
-    function buildEndpoint() {
-        const params = new URLSearchParams();
-
-        if (search.trim()) params.set("search", search.trim());
-        if (status && status !== "all" && status !== "pending_only") {
-            params.set("status", status);
-        }
-        if (seller.trim()) params.set("seller", seller.trim());
-        if (category.trim()) params.set("category", category.trim());
-        if (city.trim()) params.set("city", city.trim());
-        if (featured) params.set("is_featured", featured);
-        if (dateFrom) params.set("date_from", dateFrom);
-        if (dateTo) params.set("date_to", dateTo);
-
-        const base =
-            status === "pending_only" ? PENDING_LISTINGS_ENDPOINT : LISTINGS_ENDPOINT;
-        const query = params.toString();
-
-        return query ? `${base}?${query}` : base;
+    function currentFilters(): ListingFilters {
+        return { search, status, seller, category, city, featured, dateFrom, dateTo };
     }
 
-    async function loadListings() {
+    function buildEndpoint(pageNumber: number, values: ListingFilters) {
+        const params = new URLSearchParams();
+
+        if (values.search.trim()) params.set("search", values.search.trim());
+        if (values.status && values.status !== "all" && values.status !== "pending_only") {
+            params.set("status", values.status);
+        }
+        if (values.seller.trim()) params.set("seller", values.seller.trim());
+        if (values.category.trim()) params.set("category", values.category.trim());
+        if (values.city.trim()) params.set("city", values.city.trim());
+        if (values.featured) params.set("is_featured", values.featured);
+        if (values.dateFrom) params.set("date_from", values.dateFrom);
+        if (values.dateTo) params.set("date_to", values.dateTo);
+        params.set("page", String(pageNumber));
+        params.set("page_size", String(PAGE_SIZE));
+
+        const base =
+            values.status === "pending_only" ? PENDING_LISTINGS_ENDPOINT : LISTINGS_ENDPOINT;
+        const query = params.toString();
+
+        return `${base}?${query}`;
+    }
+
+    async function loadListings(pageNumber = page, values = currentFilters()) {
         setLoading(true);
         setError("");
 
         try {
-            const data = await apiGet(buildEndpoint());
-            setListings(getArray(data));
+            const data: any = await apiGet(buildEndpoint(pageNumber, values));
+            const rows = getArray(data);
+            setListings(rows);
+            setTotalCount(Number.isFinite(Number(data?.count)) ? Number(data.count) : rows.length);
+            setPage(pageNumber);
         } catch (error: any) {
             setError(error.message || "Failed to load ads.");
         } finally {
@@ -147,7 +182,7 @@ export default function AdminListingsClient() {
     }
 
     useEffect(() => {
-        loadListings();
+        void loadListings(1, DEFAULT_FILTERS);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
@@ -158,7 +193,7 @@ export default function AdminListingsClient() {
 
         try {
             await callback();
-            await loadListings();
+            await loadListings(listings.length === 1 && page > 1 ? page - 1 : page);
         } catch (error: any) {
             setActionError(error.message || "The ad action failed.");
         } finally {
@@ -224,7 +259,7 @@ export default function AdminListingsClient() {
             }
 
             setModal(null);
-            await loadListings();
+            await loadListings(listings.length === 1 && page > 1 ? page - 1 : page);
         } catch (error: any) {
             setModalError(error.message || "The ad action failed.");
         } finally {
@@ -241,7 +276,12 @@ export default function AdminListingsClient() {
         setFeatured("");
         setDateFrom("");
         setDateTo("");
-        window.setTimeout(loadListings, 0);
+        void loadListings(1, DEFAULT_FILTERS);
+    }
+
+    function changePage(nextPage: number) {
+        void loadListings(nextPage);
+        window.scrollTo({ top: 0, behavior: "smooth" });
     }
 
     let modalFields: AdminModalField[] = [];
@@ -292,13 +332,13 @@ export default function AdminListingsClient() {
                 eyebrow="Marketplace moderation"
                 title="Ads"
                 description="Review new adverts, search the catalogue, and manage approval or featured status without leaving the queue."
-                action={<AdminRefreshButton onClick={loadListings} loading={loading} />}
+                action={<AdminRefreshButton onClick={() => void loadListings()} loading={loading} />}
             />
 
             <form
                 onSubmit={(event) => {
                     event.preventDefault();
-                    loadListings();
+                    void loadListings(1);
                 }}
                 className="mb-6 rounded-[28px] bg-white p-5 shadow-sm ring-1 ring-slate-200/70"
             >
@@ -410,7 +450,7 @@ export default function AdminListingsClient() {
             {loading ? (
                 <AdminLoadingState label="Loading ads" />
             ) : error ? (
-                <AdminErrorState message={error} onRetry={loadListings} />
+                <AdminErrorState message={error} onRetry={() => void loadListings()} />
             ) : listings.length === 0 ? (
                 <AdminEmptyState
                     title="No ads found"
@@ -420,7 +460,7 @@ export default function AdminListingsClient() {
                 <>
                     <div className="mb-4 flex items-center justify-between gap-4">
                         <p className="text-sm font-black text-slate-700">
-                            {listings.length.toLocaleString()} listing{listings.length === 1 ? "" : "s"}
+                            {totalCount.toLocaleString()} ad{totalCount === 1 ? "" : "s"}
                         </p>
                         <p className="text-xs font-semibold text-slate-400">Newest first</p>
                     </div>
@@ -569,6 +609,15 @@ export default function AdminListingsClient() {
                             );
                         })}
                     </div>
+
+                    <PaginationControls
+                        currentPage={page}
+                        pageSize={PAGE_SIZE}
+                        totalCount={totalCount}
+                        itemLabel="ads"
+                        loading={loading}
+                        onPageChange={changePage}
+                    />
                 </>
             )}
 

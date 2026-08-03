@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
     faBell,
@@ -8,6 +8,9 @@ import {
 } from "@/lib/faIcons";
 import { formatDateTime, formatRelativeTime } from "@/lib/dateTime";
 import { getNotificationVisual } from "@/lib/notificationVisuals";
+import PaginationControls from "@/components/common/PaginationControls";
+
+const PAGE_SIZE = 20;
 
 function getArray(data: any): any[] {
     if (Array.isArray(data)) return data;
@@ -65,14 +68,43 @@ export default function NotificationsClient() {
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState<string | null>(null);
     const [error, setError] = useState("");
+    const [page, setPage] = useState(1);
+    const [totalCount, setTotalCount] = useState(0);
+    const [allCount, setAllCount] = useState(0);
+    const [unreadCount, setUnreadCount] = useState(0);
 
-    const loadNotifications = useCallback(async (showLoader = false) => {
+    const loadNotifications = useCallback(async (
+        showLoader = false,
+        pageNumber = page,
+        selectedFilter = filter
+    ) => {
         if (showLoader) setLoading(true);
         setError("");
 
         try {
-            const data = await notificationRequest("/notifications/");
-            setNotifications(getArray(data));
+            const filterQuery = selectedFilter === "unread" ? "&is_read=false" : "";
+            const summaryQuery = selectedFilter === "unread" ? "" : "&is_read=false";
+            const [data, summaryData] = await Promise.all([
+                notificationRequest(`/notifications/?page=${pageNumber}&page_size=${PAGE_SIZE}${filterQuery}`),
+                notificationRequest(`/notifications/?page=1&page_size=1${summaryQuery}`),
+            ]);
+            const rows = getArray(data);
+            const currentTotal = Number.isFinite(Number(data?.count)) ? Number(data.count) : rows.length;
+            const summaryTotal = Number.isFinite(Number(summaryData?.count))
+                ? Number(summaryData.count)
+                : getArray(summaryData).length;
+
+            setNotifications(rows);
+            setTotalCount(currentTotal);
+            setPage(pageNumber);
+
+            if (selectedFilter === "unread") {
+                setUnreadCount(currentTotal);
+                setAllCount(summaryTotal);
+            } else {
+                setAllCount(currentTotal);
+                setUnreadCount(summaryTotal);
+            }
         } catch (requestError: any) {
             if (requestError?.message !== "Login required.") {
                 setError(requestError?.message || "Failed to load notifications.");
@@ -80,7 +112,7 @@ export default function NotificationsClient() {
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [filter, page]);
 
     useEffect(() => {
         loadNotifications(true);
@@ -98,16 +130,6 @@ export default function NotificationsClient() {
         };
     }, [loadNotifications]);
 
-    const unreadCount = useMemo(
-        () => notifications.filter(isUnread).length,
-        [notifications]
-    );
-
-    const visibleNotifications = useMemo(
-        () => filter === "unread" ? notifications.filter(isUnread) : notifications,
-        [filter, notifications]
-    );
-
     async function markRead(notification: any, openAfter = false) {
         const link = getLink(notification);
 
@@ -119,10 +141,16 @@ export default function NotificationsClient() {
                     method: "POST",
                 });
                 setNotifications((current) =>
-                    current.map((item) =>
-                        item.id === notification.id ? { ...item, is_read: true } : item
-                    )
+                    filter === "unread"
+                        ? current.filter((item) => item.id !== notification.id)
+                        : current.map((item) =>
+                            item.id === notification.id ? { ...item, is_read: true } : item
+                        )
                 );
+                setUnreadCount((current) => Math.max(0, current - 1));
+                if (filter === "unread") {
+                    setTotalCount((current) => Math.max(0, current - 1));
+                }
                 window.dispatchEvent(new Event("qot_notifications_updated"));
             } catch (requestError: any) {
                 setError(requestError?.message || "Failed to mark notification as read.");
@@ -144,8 +172,12 @@ export default function NotificationsClient() {
                 method: "POST",
             });
             setNotifications((current) =>
-                current.map((notification) => ({ ...notification, is_read: true }))
+                filter === "unread"
+                    ? []
+                    : current.map((notification) => ({ ...notification, is_read: true }))
             );
+            setUnreadCount(0);
+            if (filter === "unread") setTotalCount(0);
             window.dispatchEvent(new Event("qot_notifications_updated"));
         } catch (requestError: any) {
             setError(requestError?.message || "Failed to mark notifications as read.");
@@ -172,7 +204,7 @@ export default function NotificationsClient() {
 
                     <div className="grid grid-cols-2 gap-2">
                         <div className="rounded-[17px] bg-white/10 px-4 py-3 ring-1 ring-white/10">
-                            <p className="text-xl font-black">{notifications.length}</p>
+                            <p className="text-xl font-black">{allCount}</p>
                             <p className="mt-0.5 text-[9px] font-black uppercase tracking-wider text-slate-400">All updates</p>
                         </div>
                         <div className="rounded-[17px] bg-orange-500 px-4 py-3 shadow-lg">
@@ -190,7 +222,12 @@ export default function NotificationsClient() {
                             <button
                                 key={option}
                                 type="button"
-                                onClick={() => setFilter(option)}
+                                onClick={() => {
+                                    if (option !== filter) {
+                                        setPage(1);
+                                        setFilter(option);
+                                    }
+                                }}
                                 className={`rounded-[11px] px-4 py-2 text-xs font-black capitalize transition ${
                                     filter === option ? "bg-white text-slate-950 shadow-sm" : "text-slate-500"
                                 }`}
@@ -238,9 +275,9 @@ export default function NotificationsClient() {
                             </div>
                         ))}
                     </div>
-                ) : visibleNotifications.length > 0 ? (
+                ) : notifications.length > 0 ? (
                     <div className="mt-5 space-y-3">
-                        {visibleNotifications.map((notification) => {
+                        {notifications.map((notification) => {
                             const unread = isUnread(notification);
                             const visual = getNotificationVisual(notification);
                             const link = getLink(notification);
@@ -331,6 +368,21 @@ export default function NotificationsClient() {
                                 : "Messages and marketplace updates will appear here as they arrive."}
                         </p>
                     </div>
+                )}
+
+                {!loading && !error && notifications.length > 0 && (
+                    <PaginationControls
+                        currentPage={page}
+                        pageSize={PAGE_SIZE}
+                        totalCount={totalCount}
+                        itemLabel={filter === "unread" ? "unread notifications" : "notifications"}
+                        loading={loading}
+                        onPageChange={(nextPage) => {
+                            setLoading(true);
+                            setPage(nextPage);
+                            window.scrollTo({ top: 0, behavior: "smooth" });
+                        }}
+                    />
                 )}
             </div>
         </section>

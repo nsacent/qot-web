@@ -6,6 +6,9 @@ import { faHeart, faMagnifyingGlass } from "@/lib/faIcons";
 import QotLoader from "@/components/common/QotLoader";
 import HomeAdCard from "@/components/home/HomeAdCard";
 import { getCurrentUser } from "@/lib/sessionClient";
+import PaginationControls from "@/components/common/PaginationControls";
+
+const PAGE_SIZE = 20;
 
 function getArray(data: any) {
     if (Array.isArray(data)) return data;
@@ -32,6 +35,8 @@ function SavedAdsContent() {
     const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
 
     const [error, setError] = useState("");
+    const [page, setPage] = useState(1);
+    const [totalCount, setTotalCount] = useState(0);
 
     async function checkSession() {
         try {
@@ -42,12 +47,12 @@ function SavedAdsContent() {
         }
     }
 
-    async function loadSavedAds() {
+    async function loadSavedAds(pageNumber = page) {
         setLoading(true);
         setError("");
 
         try {
-            const response = await fetch("/api/proxy/favorites/", {
+            const response = await fetch(`/api/proxy/favorites/?page=${pageNumber}&page_size=${PAGE_SIZE}`, {
                 credentials: "include",
                 cache: "no-store",
             });
@@ -80,6 +85,8 @@ function SavedAdsContent() {
 
             setAds(normalizedAds);
             setFavoriteIds(ids);
+            setTotalCount(Number.isFinite(Number(data?.count)) ? Number(data.count) : normalizedAds.length);
+            setPage(pageNumber);
         } catch (err: any) {
             setError(err.message || "Failed to load saved ads.");
             setAds([]);
@@ -95,13 +102,13 @@ function SavedAdsContent() {
 
     useEffect(() => {
         if (!checkingSession) {
-            loadSavedAds();
+            void loadSavedAds();
         }
     }, [checkingSession]);
 
     useEffect(() => {
         function handleFavoritesUpdated() {
-            loadSavedAds();
+            void loadSavedAds(page);
         }
 
         window.addEventListener("qot_favorites_updated", handleFavoritesUpdated);
@@ -109,10 +116,15 @@ function SavedAdsContent() {
         return () => {
             window.removeEventListener("qot_favorites_updated", handleFavoritesUpdated);
         };
-    }, []);
+    }, [page]);
 
     if (checkingSession) {
         return <QotLoader />;
+    }
+
+    function changePage(nextPage: number) {
+        void loadSavedAds(nextPage);
+        window.scrollTo({ top: 0, behavior: "smooth" });
     }
 
     return (
@@ -126,7 +138,7 @@ function SavedAdsContent() {
                         <div className="min-w-0">
                             <h1 className="text-lg font-black text-slate-950 sm:text-xl">Saved Ads</h1>
                             <p className="truncate text-[11px] font-semibold text-slate-500 sm:text-xs">
-                                {ads.length > 0 ? `${ads.length} saved ${ads.length === 1 ? "ad" : "ads"}` : "Your favourite ads"}
+                                {totalCount > 0 ? `${totalCount} saved ${totalCount === 1 ? "ad" : "ads"}` : "Your favourite ads"}
                             </p>
                         </div>
                     </div>
@@ -151,15 +163,25 @@ function SavedAdsContent() {
                         <QotLoader />
                     </div>
                 ) : ads.length > 0 ? (
-                    <div className="mt-4 grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-                        {ads.map((ad) => (
-                            <HomeAdCard
-                                key={String(getAdId(ad))}
-                                ad={ad}
-                                favoriteIds={favoriteIds}
-                            />
-                        ))}
-                    </div>
+                    <>
+                        <div className="mt-4 grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+                            {ads.map((ad) => (
+                                <HomeAdCard
+                                    key={String(getAdId(ad))}
+                                    ad={ad}
+                                    favoriteIds={favoriteIds}
+                                />
+                            ))}
+                        </div>
+                        <PaginationControls
+                            currentPage={page}
+                            pageSize={PAGE_SIZE}
+                            totalCount={totalCount}
+                            itemLabel="saved ads"
+                            loading={loading}
+                            onPageChange={changePage}
+                        />
+                    </>
                 ) : (
                     <div className="mt-4 rounded-[22px] bg-slate-50 px-5 py-9 text-center ring-1 ring-slate-100">
                         <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-orange-500 shadow-sm">

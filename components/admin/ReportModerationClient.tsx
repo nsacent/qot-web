@@ -25,6 +25,9 @@ import {
     AdminRefreshButton,
     AdminStatCard,
 } from "@/components/admin/AdminUi";
+import PaginationControls from "@/components/common/PaginationControls";
+
+const PAGE_SIZE = 20;
 
 const reportReasons = [
     { value: "", label: "All reasons" },
@@ -112,10 +115,13 @@ export default function ReportModerationClient() {
     const [modal, setModal] = useState<ReportModal>(null);
     const [modalValues, setModalValues] = useState<Record<string, string>>({});
     const [modalError, setModalError] = useState("");
+    const [page, setPage] = useState(1);
+    const [totalCount, setTotalCount] = useState(0);
 
     async function loadReports(
         values = { search, reason, status },
-        preserveSuccess = false
+        preserveSuccess = false,
+        pageNumber = page
     ) {
         setLoading(true);
         setError("");
@@ -131,9 +137,14 @@ export default function ReportModerationClient() {
                         : values.status === "resolved"
                             ? "true"
                             : undefined,
+                page: pageNumber,
+                page_size: PAGE_SIZE,
             });
-            const data = await apiGet(`/moderation/reports/${query}`);
-            setReports(getArray(data));
+            const data: any = await apiGet(`/moderation/reports/${query}`);
+            const rows = getArray(data);
+            setReports(rows);
+            setTotalCount(Number.isFinite(Number(data?.count)) ? Number(data.count) : rows.length);
+            setPage(pageNumber);
         } catch (error: any) {
             setReports([]);
             setError(error.message || "Failed to load reports.");
@@ -143,7 +154,7 @@ export default function ReportModerationClient() {
     }
 
     useEffect(() => {
-        loadReports();
+        void loadReports({ search: "", reason: "", status: "pending" }, false, 1);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
@@ -159,7 +170,11 @@ export default function ReportModerationClient() {
         try {
             await callback();
             setSuccess(successMessage);
-            await loadReports({ search, reason, status }, true);
+            await loadReports(
+                { search, reason, status },
+                true,
+                reports.length === 1 && page > 1 ? page - 1 : page
+            );
         } catch (error: any) {
             setError(error.message || "The moderation action failed.");
         } finally {
@@ -218,7 +233,11 @@ export default function ReportModerationClient() {
             }
 
             setModal(null);
-            await loadReports({ search, reason, status }, true);
+            await loadReports(
+                { search, reason, status },
+                true,
+                reports.length === 1 && page > 1 ? page - 1 : page
+            );
         } catch (error: any) {
             setModalError(error.message || "The moderation action failed.");
         } finally {
@@ -231,7 +250,12 @@ export default function ReportModerationClient() {
         setSearch(defaults.search);
         setReason(defaults.reason);
         setStatus(defaults.status);
-        loadReports(defaults);
+        void loadReports(defaults, false, 1);
+    }
+
+    function changePage(nextPage: number) {
+        void loadReports({ search, reason, status }, false, nextPage);
+        window.scrollTo({ top: 0, behavior: "smooth" });
     }
 
     const pendingCount = reports.filter((report) => !isResolved(report)).length;
@@ -265,7 +289,7 @@ export default function ReportModerationClient() {
 
             {!loading && !error && (
                 <div className="mb-6 grid gap-3 sm:grid-cols-3">
-                    <AdminStatCard label="Loaded reports" value={reports.length.toLocaleString()} detail="Current result set" icon={faFlag} tone="slate" />
+                    <AdminStatCard label="Total reports" value={totalCount.toLocaleString()} detail="Matching current filters" icon={faFlag} tone="slate" />
                     <AdminStatCard label="Pending" value={pendingCount.toLocaleString()} detail="Needs moderator attention" icon={faTriangleExclamation} tone="orange" />
                     <AdminStatCard label="Resolved" value={resolvedCount.toLocaleString()} detail="Completed cases" icon={faCircleCheck} tone="green" />
                 </div>
@@ -274,7 +298,7 @@ export default function ReportModerationClient() {
             <form
                 onSubmit={(event) => {
                     event.preventDefault();
-                    loadReports();
+                    void loadReports({ search, reason, status }, false, 1);
                 }}
                 className="mb-6 rounded-[28px] bg-white p-5 shadow-sm ring-1 ring-slate-200/70"
             >
@@ -321,8 +345,9 @@ export default function ReportModerationClient() {
             ) : reports.length === 0 ? (
                 <AdminEmptyState title="No reports found" description="There are no reports matching the selected moderation filters." />
             ) : (
-                <div className="grid gap-4">
-                    {reports.map((report) => {
+                <>
+                    <div className="grid gap-4">
+                        {reports.map((report) => {
                         const id = getReportId(report);
                         const listingId = getListingId(report);
                         const resolved = isResolved(report);
@@ -382,8 +407,17 @@ export default function ReportModerationClient() {
                                 </div>
                             </article>
                         );
-                    })}
-                </div>
+                        })}
+                    </div>
+                    <PaginationControls
+                        currentPage={page}
+                        pageSize={PAGE_SIZE}
+                        totalCount={totalCount}
+                        itemLabel="reports"
+                        loading={loading}
+                        onPageChange={changePage}
+                    />
+                </>
             )}
 
             {modal && (
