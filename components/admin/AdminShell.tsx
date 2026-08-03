@@ -8,6 +8,7 @@ import {
     faArrowUpRightFromSquare,
     faArrowLeft,
     faBars,
+    faBell,
     faChartPie,
     faCreditCard,
     faDatabase,
@@ -62,6 +63,13 @@ const links = [
         href: "/admin/payments",
         icon: faCreditCard,
         adminOnly: false,
+    },
+    {
+        label: "Notifications",
+        description: "Send push updates",
+        href: "/admin/notifications",
+        icon: faBell,
+        adminOnly: true,
     },
     {
         label: "System Trace",

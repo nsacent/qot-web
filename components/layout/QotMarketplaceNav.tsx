@@ -145,7 +145,10 @@ function getNotificationLink(notification: any) {
     if (notification?.chat_thread) return `/account/messages/${notification.chat_thread}`;
     if (notification?.listing) return `/ads/${notification.listing}`;
 
-    return notification?.link || notification?.url || "/account/notifications";
+    const candidate = notification?.link || notification?.url || notification?.action_url || "";
+    return typeof candidate === "string" && candidate.startsWith("/")
+        ? candidate
+        : "/account/notifications";
 }
 
 async function authGet(path: string) {

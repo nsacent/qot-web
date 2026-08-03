@@ -34,7 +34,8 @@ function getLink(notification: any) {
     if (notification?.chat_thread) return `/account/messages/${notification.chat_thread}`;
     if (notification?.listing) return `/ads/${notification.listing}`;
 
-    return notification?.link || notification?.url || "";
+    const candidate = notification?.link || notification?.url || notification?.action_url || "";
+    return typeof candidate === "string" && candidate.startsWith("/") ? candidate : "";
 }
 
 async function notificationRequest(path: string, init: RequestInit = {}) {

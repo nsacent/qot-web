@@ -49,13 +49,16 @@ function getLink(notification: any) {
     if (notification.chat_thread) return `/account/messages/${notification.chat_thread}`;
     if (notification.listing) return `/ads/${notification.listing}`;
 
-    return (
+    const candidate = (
         notification.link ||
         notification.url ||
         notification.action_url ||
         notification.target_url ||
         ""
     );
+    return typeof candidate === "string" && candidate.startsWith("/")
+        ? candidate
+        : "/account/notifications";
 }
 
 export default function NotificationBell() {

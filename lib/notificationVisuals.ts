@@ -5,6 +5,8 @@ import {
     faEnvelope,
     faHeart,
     faShieldHalved,
+    faStar,
+    faTag,
     faUser,
     faTrash,
 } from "@/lib/faIcons";
@@ -23,6 +25,12 @@ export function getNotificationVisual(notification: NotificationLike | null | un
                 icon: faEnvelope,
                 tone: "bg-blue-50 text-blue-600 ring-blue-100",
                 label: "Message",
+            };
+        case "offer":
+            return {
+                icon: faTag,
+                tone: "bg-orange-50 text-orange-600 ring-orange-100",
+                label: "Offer",
             };
         case "listing_approved":
             return {
@@ -59,6 +67,24 @@ export function getNotificationVisual(notification: NotificationLike | null | un
                 icon: faUser,
                 tone: "bg-cyan-50 text-cyan-700 ring-cyan-100",
                 label: "Follower",
+            };
+        case "review":
+            return {
+                icon: faStar,
+                tone: "bg-amber-50 text-amber-600 ring-amber-100",
+                label: "Review",
+            };
+        case "report":
+            return {
+                icon: faShieldHalved,
+                tone: "bg-blue-50 text-blue-600 ring-blue-100",
+                label: "Safety update",
+            };
+        case "announcement":
+            return {
+                icon: faBullhorn,
+                tone: "bg-orange-50 text-orange-600 ring-orange-100",
+                label: "QOT announcement",
             };
         default:
             return {

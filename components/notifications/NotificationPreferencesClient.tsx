@@ -12,6 +12,7 @@ import {
     faEnvelope,
     faHeart,
     faShieldHalved,
+    faStar,
     faUser,
 } from "@/lib/faIcons";
 import UserAvatar from "@/components/account/UserAvatar";
@@ -24,6 +25,7 @@ const defaultPreferences = {
     listing_rejections: true,
     favorites: true,
     followers: true,
+    reviews: true,
     reports: true,
     renewals: true,
     marketing: false,
@@ -73,6 +75,13 @@ const preferenceItems = [
         description: "Know when a member starts following your seller profile.",
         icon: faUser,
         iconTone: "bg-cyan-100 text-cyan-700",
+    },
+    {
+        key: "reviews",
+        title: "Seller Reviews",
+        description: "Know when a buyer leaves a review on your seller profile.",
+        icon: faStar,
+        iconTone: "bg-amber-100 text-amber-600",
     },
     {
         key: "reports",
