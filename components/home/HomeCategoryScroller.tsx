@@ -90,11 +90,11 @@ export default function HomeCategoryScroller({ categories = [] }: HomeCategorySc
             </div>
 
             <div className="flex snap-x snap-mandatory gap-2.5 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                <Link href="/categories" className="relative flex min-h-[116px] min-w-[112px] snap-start flex-col rounded-[18px] bg-gradient-to-br from-orange-50 to-amber-50 p-3 text-left ring-1 ring-orange-100 transition hover:-translate-y-0.5 hover:shadow-md sm:min-w-[120px]">
+                <Link href="/categories" className="relative flex min-h-[116px] min-w-[112px] shrink-0 snap-start flex-col overflow-hidden rounded-[18px] border border-orange-100 bg-gradient-to-br from-orange-50 to-amber-50 p-3 text-left transition hover:-translate-y-0.5 hover:shadow-md sm:min-w-[120px]">
                     <span className="flex h-10 w-10 items-center justify-center rounded-[13px] bg-gradient-to-br from-orange-500 to-orange-600 text-white shadow-sm">
                         <FontAwesomeIcon icon={faShapes} className="h-4 w-4" />
                     </span>
-                    <span className="mt-2 line-clamp-2 text-xs font-black leading-4 text-slate-950">All Categories</span>
+                    <span className="mt-2 min-h-8 whitespace-normal break-words text-xs font-black leading-4 text-slate-950">All Categories</span>
                     <span className="mt-auto pt-1.5 text-[8px] font-black uppercase tracking-wide text-orange-600">
                         Browse every department
                     </span>
@@ -112,7 +112,7 @@ export default function HomeCategoryScroller({ categories = [] }: HomeCategorySc
                             <span className={`flex h-10 w-10 items-center justify-center rounded-[13px] bg-gradient-to-br text-white shadow-sm ${visual.icon}`}>
                                 <FontAwesomeIcon icon={icon} className="h-4 w-4" />
                             </span>
-                            <span className="mt-2 line-clamp-2 text-xs font-black leading-4 text-slate-950">{name}</span>
+                            <span className="mt-2 min-h-8 whitespace-normal break-words text-xs font-black leading-4 text-slate-950">{name}</span>
                             <span className="mt-auto flex flex-col gap-0.5 pt-1.5 text-[8px] font-black uppercase tracking-wide text-slate-400">
                                 <span className={visual.accent}>
                                     {(adCount ?? 0).toLocaleString()} active {(adCount ?? 0) === 1 ? "ad" : "ads"}
@@ -129,7 +129,7 @@ export default function HomeCategoryScroller({ categories = [] }: HomeCategorySc
                             )}
                         </>
                     );
-                    const tileClass = `relative flex min-h-[116px] min-w-[112px] snap-start flex-col rounded-[18px] bg-gradient-to-br p-3 text-left ring-1 transition sm:min-w-[120px] ${visual.panel} ${active ? "ring-2 ring-orange-400 shadow-md" : "ring-black/5 hover:-translate-y-0.5 hover:shadow-md"}`;
+                    const tileClass = `relative flex min-h-[116px] min-w-[112px] shrink-0 snap-start flex-col overflow-hidden rounded-[18px] border-2 bg-gradient-to-br p-3 text-left transition sm:min-w-[120px] ${visual.panel} ${active ? "border-orange-400 shadow-md" : "border-transparent ring-1 ring-inset ring-black/5 hover:-translate-y-0.5 hover:shadow-md"}`;
 
                     return children.length > 0 ? (
                         <button

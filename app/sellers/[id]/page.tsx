@@ -535,8 +535,8 @@ export default async function SellerProfilePage({ params }: PageProps) {
                         <section className="rounded-[26px] bg-white p-5 shadow-sm ring-1 ring-black/5">
                             <div className="flex items-center justify-between gap-3">
                                 <div>
-                                    <p className="text-[10px] font-black uppercase tracking-[0.14em] text-orange-600">Reviews</p>
-                                    <h2 className="mt-1 text-lg font-black text-slate-950">Buyer feedback</h2>
+                                    <p className="text-[10px] font-black uppercase tracking-[0.14em] text-green-700">Verified reviews</p>
+                                    <h2 className="mt-1 text-lg font-black text-slate-950">Purchase feedback</h2>
                                 </div>
                                 <span className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-black text-slate-600">
                                     {totalReviews.toLocaleString()}
@@ -545,7 +545,7 @@ export default async function SellerProfilePage({ params }: PageProps) {
 
                             {reviews.length === 0 ? (
                                 <p className="mt-5 rounded-2xl bg-slate-50 p-4 text-sm font-semibold leading-6 text-slate-500">
-                                    No reviews yet for this seller.
+                                    No verified purchase reviews yet for this seller.
                                 </p>
                             ) : (
                                 <div className="mt-4 space-y-3">
@@ -555,14 +555,31 @@ export default async function SellerProfilePage({ params }: PageProps) {
                                                 <p className="truncate text-sm font-black text-slate-900">
                                                     {review.reviewer_name || review.buyer_name || "QOT buyer"}
                                                 </p>
-                                                <span className="inline-flex items-center gap-1 text-xs font-black text-amber-500">
-                                                    <FontAwesomeIcon icon={faStar} className="h-3 w-3" />
-                                                    {review.rating || review.score || "5"}
-                                                </span>
+                                                <div className="flex shrink-0 items-center gap-2">
+                                                    <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2 py-1 text-[8px] font-black uppercase tracking-wide text-green-700 ring-1 ring-green-100">
+                                                        <FontAwesomeIcon icon={faShieldHalved} className="h-2.5 w-2.5" />
+                                                        Verified purchase
+                                                    </span>
+                                                    <span className="inline-flex items-center gap-1 text-xs font-black text-amber-500">
+                                                        <FontAwesomeIcon icon={faStar} className="h-3 w-3" />
+                                                        {review.rating || review.score || "5"}
+                                                    </span>
+                                                </div>
                                             </div>
                                             <p className="mt-2 text-xs font-semibold leading-5 text-slate-600">
                                                 {review.comment || review.review || review.message || "Good seller."}
                                             </p>
+                                            <div className="mt-3 grid grid-cols-3 gap-1.5 text-center">
+                                                {[
+                                                    ["Accuracy", review.item_accuracy_rating],
+                                                    ["Condition", review.item_condition_rating],
+                                                    ["Chat", review.communication_rating],
+                                                ].map(([label, value]) => (
+                                                    <span key={String(label)} className="rounded-lg bg-white px-1.5 py-1.5 text-[8px] font-black text-slate-500 ring-1 ring-slate-100">
+                                                        {label} <strong className="text-slate-900">{value || review.rating}/5</strong>
+                                                    </span>
+                                                ))}
+                                            </div>
                                         </article>
                                     ))}
                                 </div>

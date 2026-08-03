@@ -6,11 +6,13 @@ import {
     faArrowLeft,
     faClock,
     faMagnifyingGlass,
+    faShieldHalved,
     faStar,
     faUserRegular,
 } from "@/lib/faIcons";
 import { apiGet } from "@/lib/apiClient";
 import PaginationControls from "@/components/common/PaginationControls";
+import ReviewSellerForm from "@/components/reviews/ReviewSellerForm";
 
 const PAGE_SIZE = 12;
 
@@ -92,6 +94,8 @@ function RatingStars({ rating }: { rating: number }) {
 
 export default function MyReviewsClient() {
     const [reviews, setReviews] = useState<any[]>([]);
+    const [eligibleTransactions, setEligibleTransactions] = useState<any[]>([]);
+    const [eligibleLoading, setEligibleLoading] = useState(true);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [page, setPage] = useState(1);
@@ -115,8 +119,21 @@ export default function MyReviewsClient() {
         }
     }
 
+    async function loadEligibleTransactions() {
+        setEligibleLoading(true);
+        try {
+            const data: any = await apiGet("/reviews/eligible/");
+            setEligibleTransactions(getArray(data));
+        } catch {
+            setEligibleTransactions([]);
+        } finally {
+            setEligibleLoading(false);
+        }
+    }
+
     useEffect(() => {
         void loadReviews(1);
+        void loadEligibleTransactions();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
@@ -172,6 +189,55 @@ export default function MyReviewsClient() {
                         Browse Ads
                     </a>
                 </div>
+
+                {(eligibleLoading || eligibleTransactions.length > 0) && (
+                    <div className="mt-4 rounded-[20px] bg-green-50/70 p-3 ring-1 ring-green-100 md:mt-6 md:rounded-[26px] md:p-5">
+                        <div className="flex items-center gap-3">
+                            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-green-600 text-white">
+                                <FontAwesomeIcon icon={faShieldHalved} className="h-4 w-4" />
+                            </span>
+                            <div>
+                                <h2 className="text-sm font-black text-slate-950 md:text-base">Purchases ready to review</h2>
+                                <p className="mt-0.5 text-[11px] font-bold text-green-700 md:text-xs">
+                                    Only completed purchases with an accepted QOT offer appear here.
+                                </p>
+                            </div>
+                        </div>
+
+                        {eligibleLoading ? (
+                            <div className="mt-4 h-20 animate-pulse rounded-[18px] bg-white/80" />
+                        ) : (
+                            <div className="mt-4 grid gap-3 lg:grid-cols-2">
+                                {eligibleTransactions.map((transaction) => (
+                                    <article
+                                        key={transaction.listing}
+                                        className="flex min-w-0 items-center gap-3 rounded-[18px] bg-white p-2.5 shadow-sm ring-1 ring-green-100"
+                                    >
+                                        <div
+                                            className="h-16 w-20 shrink-0 rounded-[13px] bg-slate-100 bg-cover bg-center"
+                                            style={transaction.listing_image ? { backgroundImage: `url(${transaction.listing_image})` } : undefined}
+                                            aria-label={transaction.listing_title}
+                                        />
+                                        <div className="min-w-0 flex-1">
+                                            <p className="truncate text-xs font-black text-slate-950 md:text-sm">{transaction.listing_title}</p>
+                                            <p className="mt-1 truncate text-[10px] font-bold text-slate-500">Bought from {transaction.seller_name || "QOT seller"}</p>
+                                            <div className="mt-2 [&_button]:!h-8 [&_button]:!w-auto [&_button]:!rounded-[10px] [&_button]:!bg-orange-500 [&_button]:!px-3 [&_button]:!text-[10px] [&_button]:!text-white [&_button]:!ring-0">
+                                                <ReviewSellerForm
+                                                    listing={transaction}
+                                                    compact
+                                                    onSubmitted={() => {
+                                                        void loadEligibleTransactions();
+                                                        void loadReviews(1);
+                                                    }}
+                                                />
+                                            </div>
+                                        </div>
+                                    </article>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                )}
 
                 {loading ? (
                     <div className="mt-6 grid gap-4">
@@ -262,9 +328,23 @@ export default function MyReviewsClient() {
                                             </div>
                                         </div>
 
-                                        <span className="shrink-0 rounded-full bg-white px-3 py-1.5 text-[9px] font-black uppercase tracking-wider text-green-700 ring-1 ring-green-100">
-                                            Published
+                                        <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-green-50 px-3 py-1.5 text-[9px] font-black uppercase tracking-wider text-green-700 ring-1 ring-green-100">
+                                            <FontAwesomeIcon icon={faShieldHalved} className="h-2.5 w-2.5" />
+                                            Verified purchase
                                         </span>
+                                    </div>
+
+                                    <div className="mt-4 grid grid-cols-3 gap-2">
+                                        {[
+                                            ["Accuracy", review.item_accuracy_rating],
+                                            ["Condition", review.item_condition_rating],
+                                            ["Communication", review.communication_rating],
+                                        ].map(([label, value]) => (
+                                            <div key={String(label)} className="rounded-xl bg-white px-2 py-2 text-center ring-1 ring-slate-100">
+                                                <p className="truncate text-[8px] font-black uppercase tracking-wide text-slate-400">{label}</p>
+                                                <p className="mt-1 text-xs font-black text-slate-800">{Number(value || rating).toFixed(1)} <span className="text-orange-500">★</span></p>
+                                            </div>
+                                        ))}
                                     </div>
 
                                     <blockquote className="mt-5 rounded-2xl bg-white px-4 py-4 text-sm font-semibold leading-7 text-slate-700 ring-1 ring-slate-100 sm:px-5">
