@@ -204,6 +204,41 @@ async function handleAuthRequest(
         return json(stripTokens(result.data), result.status);
     }
 
+    if (authKey === "otp/confirm") {
+        let payload: any = {};
+
+        try {
+            payload = bodyText ? JSON.parse(bodyText) : {};
+        } catch {
+            payload = {};
+        }
+
+        const result = await backendJson("/auth/otp/confirm/", {
+            method: "POST",
+            body: JSON.stringify({
+                phone: String(payload.phone || "").trim(),
+                code: String(payload.code || payload.otp || "").trim(),
+                device:
+                    payload.device && typeof payload.device === "object"
+                        ? payload.device
+                        : undefined,
+            }),
+        });
+
+        if (!result.ok) {
+            return json(result.data, result.status);
+        }
+
+        const access = extractAccessToken(result.data);
+        const refresh = extractRefreshToken(result.data);
+
+        if (access || refresh) {
+            await setAuthCookies(access, refresh, true);
+        }
+
+        return json(stripTokens(result.data), result.status);
+    }
+
     if (authKey === "register") {
         const result = await backendJson("/auth/register/", {
             method: "POST",
@@ -340,6 +375,7 @@ async function handleAuthRequest(
     const publicPaths = new Set([
         "password-reset/request",
         "password-reset/confirm",
+        "otp/send",
     ]);
 
     if (publicPaths.has(authKey)) {

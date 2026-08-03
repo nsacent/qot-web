@@ -112,7 +112,7 @@ export async function sessionPost(path: string, body?: any) {
     let response: Response;
 
     try {
-        const requestBody = ["/login", "/register", "/google"].includes(path)
+        const requestBody = ["/login", "/register", "/google", "/otp/confirm"].includes(path)
             ? { ...(body || {}), device: body?.device || webDeviceMetadata() }
             : body;
         response = await fetch(`/api/auth${path}`, {
@@ -168,6 +168,17 @@ export async function loginWithGoogle(body: {
     keep_signed_in?: boolean;
 }) {
     return sessionPost("/google", body);
+}
+
+export async function requestPhoneLoginOtp(phone: string) {
+    return sessionPost("/otp/send", { phone });
+}
+
+export async function confirmPhoneLoginOtp(body: {
+    phone: string;
+    code: string;
+}) {
+    return sessionPost("/otp/confirm", body);
 }
 
 export async function registerUser(body: {
