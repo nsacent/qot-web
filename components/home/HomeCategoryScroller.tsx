@@ -77,26 +77,27 @@ export default function HomeCategoryScroller({ categories = [] }: HomeCategorySc
     const activeChildren = getCategoryChildren(activeCategory);
 
     return (
-        <section className="mx-auto mt-5 max-w-[1390px] overflow-hidden rounded-[26px] bg-white p-4 shadow-[0_14px_40px_rgba(15,23,42,0.06)] ring-1 ring-black/5 sm:p-5">
-            <div className="mb-3 flex items-end justify-between gap-3">
+        <section className="mx-auto mt-3 max-w-[1390px] overflow-hidden rounded-[20px] bg-white p-3 shadow-[0_10px_30px_rgba(15,23,42,0.06)] ring-1 ring-black/5 sm:mt-5 sm:rounded-[26px] sm:p-5 sm:shadow-[0_14px_40px_rgba(15,23,42,0.06)]">
+            <div className="mb-2.5 flex items-end justify-between gap-3 sm:mb-3">
                 <div>
-                    <p className="text-[9px] font-black uppercase tracking-[0.18em] text-orange-600">Explore the marketplace</p>
-                    <h2 className="mt-1 text-lg font-black tracking-tight text-slate-950 sm:text-xl">Browse Categories</h2>
-                    <p className="mt-0.5 text-xs font-semibold text-slate-500">Tap a category to see its subcategories.</p>
+                    <p className="hidden text-[9px] font-black uppercase tracking-[0.18em] text-orange-600 sm:block">Explore the marketplace</p>
+                    <h2 className="text-base font-black tracking-tight text-slate-950 sm:mt-1 sm:text-xl">Browse Categories</h2>
+                    <p className="mt-0.5 text-[10px] font-semibold text-slate-500 sm:text-xs">Tap to see subcategories.</p>
                 </div>
-                <Link href="/categories" className="inline-flex shrink-0 items-center gap-1.5 rounded-[12px] bg-slate-950 px-3 py-2 text-[11px] font-black text-white transition hover:bg-orange-500">
+                <Link href="/categories" className="inline-flex shrink-0 items-center gap-1 rounded-[10px] bg-slate-950 px-2.5 py-1.5 text-[10px] font-black text-white transition hover:bg-orange-500 sm:gap-1.5 sm:rounded-[12px] sm:px-3 sm:py-2 sm:text-[11px]">
                     View all <span aria-hidden="true">→</span>
                 </Link>
             </div>
 
-            <div className="flex snap-x snap-mandatory gap-2.5 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                <Link href="/categories" className="relative flex min-h-[116px] min-w-[112px] shrink-0 snap-start flex-col overflow-hidden rounded-[18px] border border-orange-100 bg-gradient-to-br from-orange-50 to-amber-50 p-3 text-left transition hover:-translate-y-0.5 hover:shadow-md sm:min-w-[120px]">
-                    <span className="flex h-10 w-10 items-center justify-center rounded-[13px] bg-gradient-to-br from-orange-500 to-orange-600 text-white shadow-sm">
-                        <FontAwesomeIcon icon={faShapes} className="h-4 w-4" />
+            <div className="flex snap-x snap-mandatory gap-2 overflow-x-auto pb-1.5 [scrollbar-width:none] sm:gap-2.5 sm:pb-2 [&::-webkit-scrollbar]:hidden">
+                <Link href="/categories" className="relative flex min-h-[86px] min-w-[82px] shrink-0 snap-start flex-col items-center overflow-hidden rounded-[14px] border border-orange-100 bg-gradient-to-br from-orange-50 to-amber-50 p-2 text-center transition active:scale-[0.98] hover:-translate-y-0.5 hover:shadow-md sm:min-h-[116px] sm:min-w-[120px] sm:items-start sm:rounded-[18px] sm:p-3 sm:text-left">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-[11px] bg-gradient-to-br from-orange-500 to-orange-600 text-white shadow-sm sm:h-10 sm:w-10 sm:rounded-[13px]">
+                        <FontAwesomeIcon icon={faShapes} className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                     </span>
-                    <span className="mt-2 min-h-8 whitespace-normal break-words text-xs font-black leading-4 text-slate-950">All Categories</span>
-                    <span className="mt-auto pt-1.5 text-[8px] font-black uppercase tracking-wide text-orange-600">
-                        Browse every department
+                    <span className="mt-1.5 min-h-6 whitespace-normal break-words text-[10px] font-black leading-3 text-slate-950 sm:mt-2 sm:min-h-8 sm:text-xs sm:leading-4">All Categories</span>
+                    <span className="mt-auto pt-1 text-[7px] font-black uppercase tracking-wide text-orange-600 sm:pt-1.5 sm:text-[8px]">
+                        <span className="sm:hidden">View all</span>
+                        <span className="hidden sm:inline">Browse every department</span>
                     </span>
                 </Link>
                 {categories.map((category, index) => {
@@ -109,27 +110,27 @@ export default function HomeCategoryScroller({ categories = [] }: HomeCategorySc
                     const active = slug === activeSlug;
                     const content = (
                         <>
-                            <span className={`flex h-10 w-10 items-center justify-center rounded-[13px] bg-gradient-to-br text-white shadow-sm ${visual.icon}`}>
-                                <FontAwesomeIcon icon={icon} className="h-4 w-4" />
+                            <span className={`flex h-8 w-8 items-center justify-center rounded-[11px] bg-gradient-to-br text-white shadow-sm sm:h-10 sm:w-10 sm:rounded-[13px] ${visual.icon}`}>
+                                <FontAwesomeIcon icon={icon} className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                             </span>
-                            <span className="mt-2 min-h-8 whitespace-normal break-words text-xs font-black leading-4 text-slate-950">{name}</span>
-                            <span className="mt-auto flex flex-col gap-0.5 pt-1.5 text-[8px] font-black uppercase tracking-wide text-slate-400">
+                            <span className="mt-1.5 min-h-6 whitespace-normal break-words text-[10px] font-black leading-3 text-slate-950 sm:mt-2 sm:min-h-8 sm:text-xs sm:leading-4">{name}</span>
+                            <span className="mt-auto flex flex-col gap-0.5 pt-1 text-[7px] font-black uppercase tracking-wide text-slate-400 sm:pt-1.5 sm:text-[8px]">
                                 <span className={visual.accent}>
                                     {(adCount ?? 0).toLocaleString()} active {(adCount ?? 0) === 1 ? "ad" : "ads"}
                                 </span>
                                 {children.length > 0 && (
-                                    <span>{children.length} {children.length === 1 ? "subcategory" : "subcategories"}</span>
+                                    <span className="hidden sm:inline">{children.length} {children.length === 1 ? "subcategory" : "subcategories"}</span>
                                 )}
                             </span>
                             {children.length > 0 && (
                                 <FontAwesomeIcon
                                     icon={faChevronDown}
-                                    className={`absolute right-2.5 top-2.5 h-2.5 w-2.5 transition ${active ? "rotate-180 text-orange-600" : "text-slate-400"}`}
+                                    className={`absolute right-1.5 top-1.5 h-2 w-2 transition sm:right-2.5 sm:top-2.5 sm:h-2.5 sm:w-2.5 ${active ? "rotate-180 text-orange-600" : "text-slate-400"}`}
                                 />
                             )}
                         </>
                     );
-                    const tileClass = `relative flex min-h-[116px] min-w-[112px] shrink-0 snap-start flex-col overflow-hidden rounded-[18px] border-2 bg-gradient-to-br p-3 text-left transition sm:min-w-[120px] ${visual.panel} ${active ? "border-orange-400 shadow-md" : "border-transparent ring-1 ring-inset ring-black/5 hover:-translate-y-0.5 hover:shadow-md"}`;
+                    const tileClass = `relative flex min-h-[86px] min-w-[82px] shrink-0 snap-start flex-col items-center overflow-hidden rounded-[14px] border bg-gradient-to-br p-2 text-center transition active:scale-[0.98] sm:min-h-[116px] sm:min-w-[120px] sm:items-start sm:rounded-[18px] sm:border-2 sm:p-3 sm:text-left ${visual.panel} ${active ? "border-orange-400 shadow-sm sm:shadow-md" : "border-transparent ring-1 ring-inset ring-black/5 hover:-translate-y-0.5 hover:shadow-md"}`;
 
                     return children.length > 0 ? (
                         <button
@@ -150,7 +151,7 @@ export default function HomeCategoryScroller({ categories = [] }: HomeCategorySc
             </div>
 
             {activeCategory && activeChildren.length > 0 && (
-                <div className="mt-2 rounded-[20px] bg-slate-50 p-3.5 ring-1 ring-slate-100 sm:p-4">
+                <div className="mt-2 rounded-[16px] bg-slate-50 p-3 ring-1 ring-slate-100 sm:rounded-[20px] sm:p-4">
                     <div className="flex items-center justify-between gap-3">
                         <div>
                             <p className="text-[9px] font-black uppercase tracking-[0.15em] text-orange-600">Choose a subcategory</p>

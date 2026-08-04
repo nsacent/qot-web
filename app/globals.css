@@ -42,6 +42,24 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
+html,
+body {
+  max-width: 100%;
+  overflow-x: clip;
+}
+
+/*
+ * iOS zooms the page when a focused field renders below 16px. Keep mobile
+ * form controls at the native readable size while preserving pinch-to-zoom.
+ */
+@media (max-width: 767px) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
 /*
  * Compact desktop density for lower-resolution laptops. Using the root font
  * size keeps spacing, type, controls, and cards proportional while leaving

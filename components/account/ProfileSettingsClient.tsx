@@ -408,7 +408,7 @@ export default function ProfileSettingsClient() {
                             />
                         </ProfileField>
                         <p className="mt-2 text-xs font-semibold leading-5 text-slate-500">
-                            Buyers may use this number to contact you. It is not verified and cannot be used to sign in.
+                            Buyers may use this number to contact you. It must be unique, is not verified, and cannot be used to sign in.
                         </p>
                     </div>
                     <div>

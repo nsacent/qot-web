@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import MobileBottomNav from "@/components/layout/MobileBottomNav";
@@ -76,6 +76,12 @@ export const metadata: Metadata = {
     description: "Buy and sell cars, phones, property, electronics, services and more across Uganda for free.",
     images: ["/qot-social-card.png"],
   },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
 };
 
 const websiteSchema = {

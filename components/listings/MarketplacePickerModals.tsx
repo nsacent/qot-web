@@ -198,20 +198,20 @@ function PickerModalShell({
                 aria-labelledby="marketplace-picker-title"
                 className="relative z-10 flex h-full max-h-none w-full flex-col overflow-hidden bg-white shadow-[0_30px_110px_rgba(15,23,42,0.35)] ring-1 ring-white/60 sm:h-auto sm:max-h-[86vh] sm:max-w-5xl sm:rounded-[34px]"
             >
-                <header className="relative shrink-0 overflow-hidden bg-slate-950 px-5 pb-5 pt-[max(1.25rem,env(safe-area-inset-top))] text-white sm:px-7 sm:pb-6 sm:pt-6">
+                <header className="relative shrink-0 overflow-hidden bg-slate-950 px-4 pb-4 pt-[max(0.9rem,env(safe-area-inset-top))] text-white sm:px-7 sm:pb-6 sm:pt-6">
                     <div className="pointer-events-none absolute -right-20 -top-24 h-64 w-64 rounded-full bg-orange-500/20 blur-3xl" />
-                    <div className="relative flex items-start gap-4">
+                    <div className="relative flex items-start gap-3 sm:gap-4">
                         <span className="hidden h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-orange-500 text-white shadow-lg shadow-orange-950/30 sm:flex">
                             <FontAwesomeIcon icon={icon} className="h-5 w-5" />
                         </span>
                         <div className="min-w-0 flex-1">
-                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-orange-300">
+                            <p className="hidden text-[10px] font-black uppercase tracking-[0.2em] text-orange-300 sm:block">
                                 {eyebrow}
                             </p>
-                            <h2 id="marketplace-picker-title" className="mt-1 text-2xl font-black tracking-[-0.03em] sm:text-3xl">
+                            <h2 id="marketplace-picker-title" className="text-lg font-black tracking-[-0.03em] sm:mt-1 sm:text-3xl">
                                 {title}
                             </h2>
-                            <p className="mt-1 max-w-2xl text-xs font-semibold leading-5 text-slate-400 sm:text-sm">
+                            <p className="mt-0.5 max-w-2xl text-[11px] font-semibold leading-4 text-slate-400 sm:mt-1 sm:text-sm sm:leading-5">
                                 {description}
                             </p>
                         </div>
@@ -225,7 +225,7 @@ function PickerModalShell({
                         </button>
                     </div>
 
-                    <label className="relative mt-5 block">
+                    <label className="relative mt-3 block sm:mt-5">
                         <span className="sr-only">Search</span>
                         <FontAwesomeIcon
                             icon={faMagnifyingGlass}
@@ -235,8 +235,7 @@ function PickerModalShell({
                             value={search}
                             onChange={(event) => setSearch(event.target.value)}
                             placeholder={searchPlaceholder}
-                            autoFocus
-                            className="h-12 w-full rounded-2xl border border-white/10 bg-white pl-11 pr-4 text-sm font-bold text-slate-900 outline-none placeholder:text-slate-400 focus:border-orange-300 focus:ring-4 focus:ring-orange-500/20"
+                            className="h-11 w-full rounded-2xl border border-white/10 bg-white pl-11 pr-4 text-base font-bold text-slate-900 outline-none placeholder:text-slate-400 focus:border-orange-300 focus:ring-4 focus:ring-orange-500/20 sm:h-12 sm:text-sm"
                         />
                     </label>
                 </header>
@@ -300,8 +299,12 @@ export function CategoryPickerModal({
         filteredCategories.find((category) => category.value === activeParentValue) ||
         selectedParent ||
         filteredCategories[0];
+    const mobileActiveParent = activeParentValue
+        ? filteredCategories.find((category) => category.value === activeParentValue) || null
+        : null;
 
     function close() {
+        setActiveParentValue("");
         setSearch("");
         onClose();
     }
@@ -330,12 +333,97 @@ export function CategoryPickerModal({
                     icon={faLayerGroup}
                 />
             ) : (
-                <div className="grid h-full min-h-0 grid-rows-[auto_minmax(0,1fr)] md:h-[54vh] md:grid-cols-[280px_minmax(0,1fr)] md:grid-rows-1">
-                    <aside className="max-h-44 overflow-x-auto border-b border-slate-200 bg-slate-50 p-3 md:max-h-full md:overflow-x-hidden md:overflow-y-auto md:border-b-0 md:border-r md:p-4">
-                        <p className="mb-3 hidden px-2 text-[9px] font-black uppercase tracking-[0.18em] text-slate-400 md:block">
+                <div className="h-full min-h-0 md:h-[54vh]">
+                    <div className="h-full overflow-y-auto overscroll-contain bg-slate-50 p-3 md:hidden">
+                        {!activeParentValue ? (
+                            <>
+                                <div className="mb-3 flex items-center justify-between px-1">
+                                    <div>
+                                        <p className="text-[9px] font-black uppercase tracking-[0.18em] text-orange-600">Step 1</p>
+                                        <h3 className="text-base font-black text-slate-950">Choose a department</h3>
+                                    </div>
+                                    <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-black text-slate-500 ring-1 ring-slate-200">
+                                        {filteredCategories.length}
+                                    </span>
+                                </div>
+
+                                <div className="grid gap-2">
+                                    {onSelectAll && (
+                                        <MobilePickerRow
+                                            title={allLabel}
+                                            description="Browse every department"
+                                            selected={!selectedValue}
+                                            icon={faLayerGroup}
+                                            onClick={() => {
+                                                onSelectAll();
+                                                close();
+                                            }}
+                                        />
+                                    )}
+                                    {filteredCategories.map((category) => (
+                                        <MobilePickerRow
+                                            key={category.value}
+                                            title={category.label}
+                                            description={`${category.children.length} subcategor${category.children.length === 1 ? "y" : "ies"}`}
+                                            selected={categoryContainsSelection(category, selectedValue)}
+                                            icon={faArrowRight}
+                                            onClick={() => setActiveParentValue(category.value)}
+                                        />
+                                    ))}
+                                </div>
+                            </>
+                        ) : mobileActiveParent ? (
+                            <>
+                                <button
+                                    type="button"
+                                    onClick={() => setActiveParentValue("")}
+                                    className="mb-3 inline-flex h-9 items-center gap-2 rounded-xl bg-white px-3 text-xs font-black text-slate-700 ring-1 ring-slate-200"
+                                >
+                                    <FontAwesomeIcon icon={faArrowLeft} className="h-3 w-3" />
+                                    Departments
+                                </button>
+                                <div className="mb-3 rounded-2xl bg-slate-950 p-4 text-white">
+                                    <p className="text-[9px] font-black uppercase tracking-[0.18em] text-orange-300">Step 2 · Choose within</p>
+                                    <h3 className="mt-1 text-lg font-black">{mobileActiveParent.label}</h3>
+                                </div>
+                                <div className="grid gap-2">
+                                    <MobilePickerRow
+                                        title={`All in ${mobileActiveParent.label}`}
+                                        description="Use the main department"
+                                        selected={mobileActiveParent.value === selectedValue}
+                                        icon={faLayerGroup}
+                                        onClick={() => select(mobileActiveParent.value)}
+                                    />
+                                    {mobileActiveParent.children.map((child) => (
+                                        <MobilePickerRow
+                                            key={child.value}
+                                            title={child.label}
+                                            description={mobileActiveParent.label}
+                                            selected={child.value === selectedValue}
+                                            icon={faArrowRight}
+                                            onClick={() => select(child.value)}
+                                        />
+                                    ))}
+                                </div>
+                            </>
+                        ) : (
+                            <button
+                                type="button"
+                                onClick={() => setActiveParentValue("")}
+                                className="inline-flex h-10 items-center gap-2 rounded-xl bg-white px-3 text-xs font-black text-slate-700 ring-1 ring-slate-200"
+                            >
+                                <FontAwesomeIcon icon={faArrowLeft} className="h-3 w-3" />
+                                Back to departments
+                            </button>
+                        )}
+                    </div>
+
+                    <div className="hidden h-full min-h-0 md:grid md:grid-cols-[280px_minmax(0,1fr)]">
+                    <aside className="overflow-y-auto border-r border-slate-200 bg-slate-50 p-4">
+                        <p className="mb-3 px-2 text-[9px] font-black uppercase tracking-[0.18em] text-slate-400">
                             Departments
                         </p>
-                        <div className="flex gap-2 md:grid">
+                        <div className="grid gap-2">
                             {onSelectAll && (
                                 <button
                                     type="button"
@@ -343,7 +431,7 @@ export function CategoryPickerModal({
                                         onSelectAll();
                                         close();
                                     }}
-                                    className={`flex min-w-52 items-center justify-between gap-3 rounded-2xl px-4 py-3 text-left transition md:min-w-0 ${
+                                    className={`flex items-center justify-between gap-3 rounded-2xl px-4 py-3 text-left transition ${
                                         !selectedValue
                                             ? "bg-orange-500 text-white shadow-lg"
                                             : "bg-white text-slate-700 ring-1 ring-slate-200 hover:text-orange-600"
@@ -373,7 +461,7 @@ export function CategoryPickerModal({
                                         key={category.value}
                                         type="button"
                                         onClick={() => setActiveParentValue(category.value)}
-                                        className={`flex min-w-52 items-center justify-between gap-3 rounded-2xl px-4 py-3 text-left transition md:min-w-0 ${
+                                        className={`flex items-center justify-between gap-3 rounded-2xl px-4 py-3 text-left transition ${
                                             active
                                                 ? "bg-slate-950 text-white shadow-lg"
                                                 : "bg-white text-slate-700 ring-1 ring-slate-200 hover:border-orange-200 hover:text-orange-600"
@@ -396,7 +484,7 @@ export function CategoryPickerModal({
                         </div>
                     </aside>
 
-                    <main className="h-full min-h-0 overflow-y-auto overscroll-contain p-4 sm:p-6 md:max-h-[54vh]">
+                    <main className="h-full min-h-0 overflow-y-auto overscroll-contain p-6">
                         {activeParent && (
                             <>
                                 <div className="flex items-end justify-between gap-4">
@@ -435,6 +523,7 @@ export function CategoryPickerModal({
                             </>
                         )}
                     </main>
+                    </div>
                 </div>
             )}
         </PickerModalShell>
@@ -527,38 +616,19 @@ export function LocationPickerModal({
         selectedRegion ||
         selectedRegionGroup ||
         filteredGroups[0];
-    const selectedCity = regionGroups
-        .flatMap((group) => group.cities)
-        .find((city) => (
-            selectedValues.includes(city.value)
-            || city.areas.some((area) => selectedAreaValues.includes(area.value))
-        ));
     const activeCity = activeRegion?.cities.find(
         (city) => city.value === activeCityValue
     ) || null;
-
-    useEffect(() => {
-        if (!open) return;
-
-        const selectedGroup = regionGroups.find((group) =>
-            selectedCity
-                ? group.cities.some((city) => city.value === selectedCity.value)
-                : group.name.toLowerCase().replace(/\s+/g, "-") === selectedRegionValue
-        );
-
-        setActiveRegionKey(selectedGroup?.key || regionGroups[0]?.key || "");
-        setActiveCityValue(
-            selectedAreaValues.length > 0 && selectedCity ? selectedCity.value : ""
-        );
-    }, [
-        open,
-        regionGroups,
-        selectedAreaValue,
-        selectedRegionValue,
-        selectedValue,
-    ]);
+    const mobileActiveRegion = activeRegionKey
+        ? filteredGroups.find((group) => group.key === activeRegionKey) || null
+        : null;
+    const mobileActiveCity = mobileActiveRegion?.cities.find(
+        (city) => city.value === activeCityValue
+    ) || null;
 
     function close() {
+        setActiveRegionKey("");
+        setActiveCityValue("");
         setSearch("");
         onClose();
     }
@@ -593,12 +663,163 @@ export function LocationPickerModal({
                     icon={faLocationDot}
                 />
             ) : (
-                <div className="grid h-full min-h-0 grid-rows-[auto_minmax(0,1fr)] md:h-[54vh] md:grid-cols-[280px_minmax(0,1fr)] md:grid-rows-1">
-                    <aside className="max-h-44 overflow-x-auto border-b border-slate-200 bg-slate-50 p-3 md:max-h-full md:overflow-x-hidden md:overflow-y-auto md:border-b-0 md:border-r md:p-4">
-                        <p className="mb-3 hidden px-2 text-[9px] font-black uppercase tracking-[0.18em] text-slate-400 md:block">
+                <div className="h-full min-h-0 md:h-[54vh]">
+                    <div className="h-full overflow-y-auto overscroll-contain bg-slate-50 p-3 md:hidden">
+                        {!mobileActiveRegion ? (
+                            <>
+                                <div className="mb-3 flex items-center justify-between px-1">
+                                    <div>
+                                        <p className="text-[9px] font-black uppercase tracking-[0.18em] text-orange-600">Step 1</p>
+                                        <h3 className="text-base font-black text-slate-950">Choose a region</h3>
+                                    </div>
+                                    <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-black text-slate-500 ring-1 ring-slate-200">
+                                        {filteredGroups.length}
+                                    </span>
+                                </div>
+                                <div className="grid gap-2">
+                                    {onSelectAll && (
+                                        <MobilePickerRow
+                                            title={allLabel}
+                                            description="Search the whole country"
+                                            selected={!selectedValue && !selectedRegionValue && !selectedAreaValue}
+                                            icon={faMap}
+                                            onClick={() => {
+                                                onSelectAll();
+                                                close();
+                                            }}
+                                        />
+                                    )}
+                                    {filteredGroups.map((group) => {
+                                        const hasSelection = group.cities.some(
+                                            (city) => selectedValues.includes(city.value)
+                                                || city.areas.some((area) => selectedAreaValues.includes(area.value))
+                                        ) || group.name.toLowerCase().replace(/\s+/g, "-") === selectedRegionValue;
+
+                                        return (
+                                            <MobilePickerRow
+                                                key={group.key}
+                                                title={group.name}
+                                                description={`${group.cities.length} cit${group.cities.length === 1 ? "y" : "ies"}`}
+                                                selected={hasSelection}
+                                                icon={faArrowRight}
+                                                onClick={() => {
+                                                    setActiveRegionKey(group.key);
+                                                    setActiveCityValue("");
+                                                }}
+                                            />
+                                        );
+                                    })}
+                                </div>
+                            </>
+                        ) : !mobileActiveCity ? (
+                            <>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setActiveRegionKey("");
+                                        setActiveCityValue("");
+                                    }}
+                                    className="mb-3 inline-flex h-9 items-center gap-2 rounded-xl bg-white px-3 text-xs font-black text-slate-700 ring-1 ring-slate-200"
+                                >
+                                    <FontAwesomeIcon icon={faArrowLeft} className="h-3 w-3" />
+                                    Regions
+                                </button>
+                                <div className="mb-3 rounded-2xl bg-slate-950 p-4 text-white">
+                                    <p className="text-[9px] font-black uppercase tracking-[0.18em] text-orange-300">Step 2 · Choose a city or district</p>
+                                    <h3 className="mt-1 text-lg font-black">{mobileActiveRegion.name}</h3>
+                                </div>
+                                <div className="grid gap-2">
+                                    {onSelectRegion && (
+                                        <MobilePickerRow
+                                            title={`Anywhere in ${mobileActiveRegion.name}`}
+                                            description="Use the whole region"
+                                            selected={selectedRegionValue === mobileActiveRegion.name.toLowerCase().replace(/\s+/g, "-") && !selectedValue}
+                                            icon={faMap}
+                                            onClick={() => {
+                                                onSelectRegion(mobileActiveRegion.name.toLowerCase().replace(/\s+/g, "-"));
+                                                close();
+                                            }}
+                                        />
+                                    )}
+                                    {mobileActiveRegion.cities.map((city) => {
+                                        const cityHasSelectedArea = city.areas.some((area) => selectedAreaValues.includes(area.value));
+                                        const canChooseArea = Boolean(onSelectArea && city.areas.length);
+                                        return (
+                                            <MobilePickerRow
+                                                key={city.value}
+                                                title={city.label}
+                                                description={canChooseArea
+                                                    ? `${city.areas.length} area${city.areas.length === 1 ? "" : "s"} available`
+                                                    : `${city.regionName}${city.count !== undefined ? ` · ${city.count} ads` : ""}`}
+                                                selected={cityHasSelectedArea || (selectedValues.includes(city.value) && !cityHasSelectedArea)}
+                                                icon={canChooseArea ? faArrowRight : faLocationDot}
+                                                onClick={() => {
+                                                    if (canChooseArea) {
+                                                        setActiveCityValue(city.value);
+                                                        return;
+                                                    }
+                                                    select(city.value);
+                                                }}
+                                            />
+                                        );
+                                    })}
+                                </div>
+                            </>
+                        ) : (
+                            <>
+                                <button
+                                    type="button"
+                                    onClick={() => setActiveCityValue("")}
+                                    className="mb-3 inline-flex h-9 items-center gap-2 rounded-xl bg-white px-3 text-xs font-black text-slate-700 ring-1 ring-slate-200"
+                                >
+                                    <FontAwesomeIcon icon={faArrowLeft} className="h-3 w-3" />
+                                    {mobileActiveRegion.name}
+                                </button>
+                                <div className="mb-3 rounded-2xl bg-slate-950 p-4 text-white">
+                                    <p className="text-[9px] font-black uppercase tracking-[0.18em] text-orange-300">Step 3 · Choose an area</p>
+                                    <h3 className="mt-1 text-lg font-black">{mobileActiveCity.label}</h3>
+                                </div>
+                                <div className="grid gap-2">
+                                    <MobilePickerRow
+                                        title={`Use all of ${mobileActiveCity.label}`}
+                                        description="Don't narrow down to a specific area"
+                                        selected={selectedValues.includes(mobileActiveCity.value) && !mobileActiveCity.areas.some((area) => selectedAreaValues.includes(area.value))}
+                                        icon={faLocationDot}
+                                        onClick={() => select(mobileActiveCity.value)}
+                                    />
+                                    {mobileActiveCity.areas.map((area) => (
+                                        <MobilePickerRow
+                                            key={area.value}
+                                            title={area.label}
+                                            description={mobileActiveCity.label}
+                                            selected={selectedAreaValues.includes(area.value)}
+                                            icon={faArrowRight}
+                                            onClick={() => selectArea(area.value, mobileActiveCity.value)}
+                                        />
+                                    ))}
+                                </div>
+                            </>
+                        )}
+
+                        {multiple && (
+                            <button
+                                type="button"
+                                onClick={close}
+                                className="sticky bottom-0 mt-4 h-12 w-full rounded-2xl bg-orange-500 text-sm font-black text-white shadow-lg shadow-orange-100"
+                            >
+                                Done{selectedValues.length || selectedAreaValues.length
+                                    ? ` · ${selectedValues.length + selectedAreaValues.length} selected`
+                                    : ""}
+                            </button>
+                        )}
+                    </div>
+
+                    <div className="hidden h-full min-h-0 md:grid md:grid-cols-[280px_minmax(0,1fr)]">
+                    <aside className="overflow-y-auto border-r border-slate-200 bg-slate-50 p-4">
+                        <p className="mb-3 px-2 text-[9px] font-black uppercase tracking-[0.18em] text-slate-400">
                             Regions
                         </p>
-                        <div className="flex gap-2 md:grid">
+                        <div className="grid gap-2">
                             {onSelectAll && (
                                 <button
                                     type="button"
@@ -606,7 +827,7 @@ export function LocationPickerModal({
                                         onSelectAll();
                                         close();
                                     }}
-                                    className={`flex min-w-52 items-center justify-between gap-3 rounded-2xl px-4 py-3 text-left transition md:min-w-0 ${
+                                    className={`flex items-center justify-between gap-3 rounded-2xl px-4 py-3 text-left transition ${
                                         !selectedValue && !selectedRegionValue
                                             ? "bg-orange-500 text-white shadow-lg"
                                             : "bg-white text-slate-700 ring-1 ring-slate-200 hover:text-orange-600"
@@ -636,7 +857,7 @@ export function LocationPickerModal({
                                             setActiveRegionKey(group.key);
                                             setActiveCityValue("");
                                         }}
-                                        className={`flex min-w-52 items-center justify-between gap-3 rounded-2xl px-4 py-3 text-left transition md:min-w-0 ${
+                                        className={`flex items-center justify-between gap-3 rounded-2xl px-4 py-3 text-left transition ${
                                             active
                                                 ? "bg-slate-950 text-white shadow-lg"
                                                 : "bg-white text-slate-700 ring-1 ring-slate-200 hover:text-orange-600"
@@ -655,7 +876,7 @@ export function LocationPickerModal({
                         </div>
                     </aside>
 
-                    <main className="h-full min-h-0 overflow-y-auto overscroll-contain bg-white p-4 sm:p-6 md:max-h-[54vh]">
+                    <main className="h-full min-h-0 overflow-y-auto overscroll-contain bg-white p-6">
                         {activeRegion && !activeCity && (
                             <>
                                 <div className="flex items-end justify-between gap-4">
@@ -796,6 +1017,7 @@ export function LocationPickerModal({
                             </button>
                         )}
                     </main>
+                    </div>
                 </div>
             )}
         </PickerModalShell>
@@ -834,6 +1056,43 @@ function PickerChoice({
                     {selected ? "Currently selected" : description}
                 </span>
             </span>
+        </button>
+    );
+}
+
+function MobilePickerRow({
+    title,
+    description,
+    selected,
+    icon,
+    onClick,
+}: {
+    title: string;
+    description: string;
+    selected: boolean;
+    icon: typeof faLayerGroup;
+    onClick: () => void;
+}) {
+    return (
+        <button
+            type="button"
+            onClick={onClick}
+            className={`flex min-h-16 w-full items-center gap-3 rounded-2xl px-3.5 py-3 text-left transition ${
+                selected
+                    ? "bg-orange-500 text-white shadow-md shadow-orange-100 ring-1 ring-orange-500"
+                    : "bg-white text-slate-800 ring-1 ring-slate-200 active:bg-orange-50"
+            }`}
+        >
+            <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${selected ? "bg-white/20 text-white" : "bg-orange-50 text-orange-600"}`}>
+                <FontAwesomeIcon icon={selected ? faCheck : icon} className="h-3.5 w-3.5" />
+            </span>
+            <span className="min-w-0 flex-1">
+                <span className="block truncate text-sm font-black">{title}</span>
+                <span className={`mt-0.5 block truncate text-[10px] font-semibold ${selected ? "text-white/75" : "text-slate-400"}`}>
+                    {selected ? "Currently selected" : description}
+                </span>
+            </span>
+            {!selected && <FontAwesomeIcon icon={faArrowRight} className="h-3 w-3 shrink-0 text-slate-300" />}
         </button>
     );
 }
