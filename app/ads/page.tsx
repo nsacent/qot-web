@@ -10,6 +10,8 @@ import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
 
+const ADS_PAGE_SIZE = 36;
+
 const dynamicFilterKeys = [
     "brand",
     "model",
@@ -174,7 +176,7 @@ function buildListingsQuery(params: any) {
 
     const searchTerm = params.q || params.search || "";
 
-    query.set("page_size", "16");
+    query.set("page_size", String(ADS_PAGE_SIZE));
 
     if (searchTerm) query.set("q", searchTerm);
     if (params.category) query.set("category", params.category);
@@ -287,7 +289,7 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
 
     const endpoint = query.toString()
         ? `/listings/?${query.toString()}`
-        : "/listings/?page_size=16";
+        : `/listings/?page_size=${ADS_PAGE_SIZE}`;
 
     try {
         const [categoriesData, regionsData, citiesData] = await Promise.allSettled([
@@ -354,7 +356,7 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
         numberOfItems: listings.length,
         itemListElement: listings.map((listing, index) => ({
             "@type": "ListItem",
-            position: ((currentPage - 1) * 16) + index + 1,
+            position: ((currentPage - 1) * ADS_PAGE_SIZE) + index + 1,
             name: listing?.title,
             url: `https://qot.ug/ads/${listing?.id}`,
             image: listing?.primary_image || undefined,
@@ -431,10 +433,12 @@ export default async function ListingsPage({ searchParams }: ListingsPageProps) 
                                 hasNext={hasNext}
                                 hasPrevious={hasPrevious}
                                 totalCount={totalCount}
+                                pageSize={ADS_PAGE_SIZE}
                                 searchParams={{
                                     q: searchTerm,
                                     category: params.category,
                                     city: params.city,
+                                    area: params.area,
                                     region: params.region,
                                     min_price: params.min_price,
                                     max_price: params.max_price,
