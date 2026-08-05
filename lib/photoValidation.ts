@@ -13,17 +13,32 @@ export const SUPPORTED_PHOTO_TYPES = [
     "image/heif",
     "image/heic-sequence",
     "image/heif-sequence",
+    "image/x-heic",
+    "image/x-heif",
 ];
-export const PHOTO_INPUT_ACCEPT = "image/jpeg,image/jpg,image/png,image/webp,image/heic,image/heif,.jpg,.jpeg,.png,.webp,.heic,.heif";
-export const CAMERA_PHOTO_ACCEPT = "image/*,.heic,.heif";
+export const PHOTO_INPUT_ACCEPT = "image/jpeg,image/jpg,image/png,image/webp,image/heic,image/heif,image/heic-sequence,image/heif-sequence,image/x-heic,image/x-heif,.jpg,.jpeg,.png,.webp,.heic,.heics,.heif,.heifs,.hif";
+export const CAMERA_PHOTO_ACCEPT = "image/*,.heic,.heics,.heif,.heifs,.hif";
 
-const SUPPORTED_PHOTO_EXTENSIONS = ["jpg", "jpeg", "png", "webp", "heic", "heif"];
+const SUPPORTED_PHOTO_EXTENSIONS = [
+    "jpg",
+    "jpeg",
+    "png",
+    "webp",
+    "heic",
+    "heics",
+    "heif",
+    "heifs",
+    "hif",
+];
 const HEIF_PHOTO_TYPES = [
     "image/heic",
     "image/heif",
     "image/heic-sequence",
     "image/heif-sequence",
+    "image/x-heic",
+    "image/x-heif",
 ];
+const HEIF_PHOTO_EXTENSIONS = ["heic", "heics", "heif", "heifs", "hif"];
 
 function photoExtension(file: File) {
     return file.name.split(".").pop()?.toLowerCase() || "";
@@ -33,7 +48,7 @@ export function isHeifPhoto(file: File) {
     const type = file.type.toLowerCase();
     const extension = photoExtension(file);
 
-    return HEIF_PHOTO_TYPES.includes(type) || extension === "heic" || extension === "heif";
+    return HEIF_PHOTO_TYPES.includes(type) || HEIF_PHOTO_EXTENSIONS.includes(extension);
 }
 
 export async function preparePhotoForUpload(file: File) {
@@ -50,7 +65,7 @@ export async function preparePhotoForUpload(file: File) {
 
         if (!jpeg) throw new Error("No image was produced.");
 
-        const baseName = file.name.replace(/\.(heic|heif)$/i, "") || "iphone-photo";
+        const baseName = file.name.replace(/\.(heic|heics|heif|heifs|hif)$/i, "") || "iphone-photo";
         return new File([jpeg], `${baseName}.jpg`, {
             type: "image/jpeg",
             lastModified: file.lastModified || Date.now(),
@@ -95,7 +110,7 @@ export async function getPhotoValidationError(file: File) {
     const type = file.type.toLowerCase();
     const extension = photoExtension(file);
     if (!SUPPORTED_PHOTO_TYPES.includes(type) && !SUPPORTED_PHOTO_EXTENSIONS.includes(extension)) {
-        return `${file.name} is not a supported photo. Use JPEG/JPG, HEIC, HEIF, PNG, or WEBP.`;
+        return `${file.name} is not a supported photo. Use JPEG/JPG, HEIC, HEIF/HIF, PNG, or WEBP.`;
     }
 
     if (file.size > MAX_PHOTO_BYTES) {
