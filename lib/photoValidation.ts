@@ -4,11 +4,20 @@ export type PhotoDimensions = {
 };
 
 export const MAX_PHOTO_BYTES = 8 * 1024 * 1024;
-export const SUPPORTED_PHOTO_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
+export const SUPPORTED_PHOTO_TYPES = [
+    "image/jpeg",
+    "image/jpg",
+    "image/png",
+    "image/webp",
+    "image/heic",
+    "image/heif",
+    "image/heic-sequence",
+    "image/heif-sequence",
+];
 export const PHOTO_INPUT_ACCEPT = "image/jpeg,image/jpg,image/png,image/webp,image/heic,image/heif,.jpg,.jpeg,.png,.webp,.heic,.heif";
 export const CAMERA_PHOTO_ACCEPT = "image/*,.heic,.heif";
 
-const SUPPORTED_PHOTO_EXTENSIONS = ["jpg", "jpeg", "png", "webp"];
+const SUPPORTED_PHOTO_EXTENSIONS = ["jpg", "jpeg", "png", "webp", "heic", "heif"];
 const HEIF_PHOTO_TYPES = [
     "image/heic",
     "image/heif",
@@ -47,7 +56,9 @@ export async function preparePhotoForUpload(file: File) {
             lastModified: file.lastModified || Date.now(),
         });
     } catch {
-        throw new Error(`${file.name} could not be converted from HEIC/HEIF. Try choosing Most Compatible in iPhone Camera settings or select another photo.`);
+        // Some iPhone Safari versions cannot run the browser HEIF decoder.
+        // Keep the original so the API can decode and optimize it instead.
+        return file;
     }
 }
 
@@ -90,6 +101,10 @@ export async function getPhotoValidationError(file: File) {
     if (file.size > MAX_PHOTO_BYTES) {
         return `${file.name} is larger than the 8MB limit.`;
     }
+
+    // When browser-side HEIF conversion is unavailable, defer dimension
+    // validation to the API, which has a native HEIF decoder.
+    if (isHeifPhoto(file)) return "";
 
     try {
         const { width, height } = await getPhotoDimensions(file);
