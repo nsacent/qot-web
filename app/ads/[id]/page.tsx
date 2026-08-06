@@ -115,9 +115,7 @@ function getLocation(listing: any) {
 
     const locality = area || city;
 
-    if (region && locality && String(region).toLowerCase() !== String(locality).toLowerCase()) {
-        return `${region} · ${locality}`;
-    }
+    if (region && locality) return `${region} · ${locality}`;
     if (locality) return locality;
     if (region) return region;
     if (location) return location;

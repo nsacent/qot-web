@@ -122,9 +122,7 @@ function getAdLocation(ad: any) {
 
     const locality = area || city;
 
-    if (region && locality && region.toLowerCase() !== locality.toLowerCase()) {
-        return `${region} · ${locality}`;
-    }
+    if (region && locality) return `${region} · ${locality}`;
     if (locality) return locality;
     if (region) return region;
     if (location) return location;
