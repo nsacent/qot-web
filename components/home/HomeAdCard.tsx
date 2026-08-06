@@ -105,6 +105,14 @@ function getAdLocation(ad: any) {
         ad?.location?.district
     );
 
+    const area = getLocationName(
+        ad?.area_name ||
+        ad?.area?.name ||
+        ad?.area ||
+        ad?.location?.area_name ||
+        ad?.location?.area
+    );
+
     const location = getLocationName(
         ad?.location_name ||
         ad?.location_text ||
@@ -112,8 +120,12 @@ function getAdLocation(ad: any) {
         ad?.address
     );
 
-    if (city && region) return `${city}, ${region}`;
-    if (city) return city;
+    const locality = area || city;
+
+    if (region && locality && region.toLowerCase() !== locality.toLowerCase()) {
+        return `${region} · ${locality}`;
+    }
+    if (locality) return locality;
     if (region) return region;
     if (location) return location;
 

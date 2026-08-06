@@ -101,14 +101,24 @@ function getLocation(listing: any) {
         listing?.location?.region_name ||
         listing?.location?.district_name;
 
+    const area =
+        listing?.area?.name ||
+        listing?.area_name ||
+        listing?.location?.area_name ||
+        listing?.location?.area;
+
     const location =
         listing?.location_name ||
         listing?.location_text ||
         listing?.address ||
         listing?.location;
 
-    if (city && region) return `${city}, ${region}`;
-    if (city) return city;
+    const locality = area || city;
+
+    if (region && locality && String(region).toLowerCase() !== String(locality).toLowerCase()) {
+        return `${region} · ${locality}`;
+    }
+    if (locality) return locality;
     if (region) return region;
     if (location) return location;
 
