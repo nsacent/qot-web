@@ -272,6 +272,20 @@ async function handleAuthRequest(
         });
     }
 
+    if (authKey === "account" && method === "DELETE") {
+        if (!hasTrustedOrigin(request)) {
+            return json({ detail: "Invalid account deletion origin." }, 403);
+        }
+
+        const result = await backendJsonWithSession("/auth/account/", {
+            method: "DELETE",
+            body: bodyText || JSON.stringify({ confirmation: "" }),
+        });
+
+        if (result.ok) await clearAuthCookies();
+        return json(result.data, result.status);
+    }
+
     if (authKey === "token/refresh") {
         const access = await refreshAccessToken();
 
@@ -405,4 +419,8 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
 export async function PATCH(request: NextRequest, context: RouteContext) {
     return handleAuthRequest(request, context, "PATCH");
+}
+
+export async function DELETE(request: NextRequest, context: RouteContext) {
+    return handleAuthRequest(request, context, "DELETE");
 }

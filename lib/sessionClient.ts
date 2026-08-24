@@ -145,6 +145,19 @@ export async function sessionPatch(path: string, body?: any) {
     return readResponse(response);
 }
 
+export async function sessionDelete(path: string, body?: any) {
+    const response = await fetch(`/api/auth${path}`, {
+        method: "DELETE",
+        credentials: "include",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: body ? JSON.stringify(body) : undefined,
+    });
+
+    return readResponse(response);
+}
+
 export async function sessionGet(path: string) {
     const response = await fetch(`/api/auth${path}`, {
         method: "GET",
@@ -193,6 +206,10 @@ export async function registerUser(body: {
 
 export async function logoutUser() {
     return sessionPost("/logout");
+}
+
+export async function deleteCurrentAccount() {
+    return sessionDelete("/account", { confirmation: "DELETE" });
 }
 
 export async function getCurrentUser() {

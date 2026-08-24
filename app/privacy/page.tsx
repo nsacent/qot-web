@@ -146,7 +146,7 @@ export default function PrivacyPolicyPage() {
                     <LegalListItem>Receive or transfer information where a portability right applies.</LegalListItem>
                 </LegalList>
                 <p>
-                    You may update some information through account settings. For another request, contact info@qot.ug. We may need to verify your identity before acting and may retain information where the law permits or requires it. You may also raise a concern with Uganda&apos;s Personal Data Protection Office.
+                    You may update some information through account settings or permanently remove your account through the <a className="font-black text-orange-600 hover:text-orange-700" href="/delete-account">QOT account deletion page</a>. For another request, contact info@qot.ug. We may need to verify your identity before acting and may retain limited information where the law permits or requires it. You may also raise a concern with Uganda&apos;s Personal Data Protection Office.
                 </p>
             </LegalSection>
 
