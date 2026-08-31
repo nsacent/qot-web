@@ -275,7 +275,13 @@ export default function AdminListingDetailClient({
 
     function openModal(type: ModerationAction) {
         setModal({ type });
-        setModalValues(type === "feature" ? { days: "7" } : { reason: "" });
+        setModalValues(
+            type === "feature"
+                ? { days: "7" }
+                : type === "renew"
+                  ? { days: "30" }
+                  : { reason: "" }
+        );
         setModalError("");
     }
 
@@ -313,10 +319,10 @@ export default function AdminListingDetailClient({
 
         const days = Number(modalValues.days);
         if (
-            modal.type === "feature" &&
-            (!Number.isFinite(days) || days < 1 || days > 365)
+            (modal.type === "feature" || modal.type === "renew") &&
+            (!Number.isInteger(days) || days < 1 || days > 365)
         ) {
-            setModalError("Enter a featured duration from 1 to 365 days.");
+            setModalError("Enter a whole number between 1 and 365 days.");
             return;
         }
 
@@ -338,8 +344,10 @@ export default function AdminListingDetailClient({
                 await apiPost(`/admin-panel/listings/${listing.id}/unfeature/`);
                 setSuccess("Featured placement removed from this ad.");
             } else if (modal.type === "renew") {
-                await apiPost(`/admin-panel/listings/${listing.id}/renew/`);
-                setSuccess("Ad renewed and published for another 30 days.");
+                await apiPost(`/admin-panel/listings/${listing.id}/renew/`, { days });
+                setSuccess(
+                    `Ad renewed and published for another ${days} day${days === 1 ? "" : "s"}.`
+                );
             } else {
                 await apiPost(`/admin-panel/listings/${listing.id}/delete/`, {
                     deletion_reason: modalValues.reason.trim(),
@@ -416,9 +424,20 @@ export default function AdminListingDetailClient({
         ];
     } else if (modal?.type === "renew") {
         modalTitle = "Renew this expired ad?";
-        modalDescription = `“${listing.title}” will become active immediately and receive a fresh 30-day expiry period.`;
-        modalConfirmLabel = "Renew for 30 days";
+        modalDescription = `Choose how long “${listing.title}” should remain active after renewal.`;
+        modalConfirmLabel = "Renew ad";
         modalTone = "green";
+        modalFields = [
+            {
+                key: "days",
+                label: "Renewal duration in days",
+                type: "number",
+                helper: "Choose from 1 to 365 days.",
+                min: 1,
+                max: 365,
+                required: true,
+            },
+        ];
     } else if (modal?.type === "unfeature") {
         modalTitle = "Remove featured status?";
         modalDescription = `“${listing.title}” will immediately return to normal marketplace placement.`;
