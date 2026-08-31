@@ -47,6 +47,11 @@ type ListingFilters = {
     dateTo: string;
 };
 
+type RenewableListing = {
+    status?: string | null;
+    expires_at?: string | null;
+};
+
 const DEFAULT_FILTERS: ListingFilters = {
     search: "",
     status: "pending_only",
@@ -60,7 +65,7 @@ const DEFAULT_FILTERS: ListingFilters = {
 
 type ListingModal =
     | {
-        type: "reject" | "feature" | "unfeature";
+        type: "reject" | "renew" | "feature" | "unfeature";
         id: string | number;
         title: string;
     }
@@ -105,6 +110,14 @@ function getImage(listing: any) {
 
 function isFeatured(listing: any) {
     return listingIsCurrentlyFeatured(listing);
+}
+
+function isRenewable(listing: RenewableListing) {
+    if (listing?.status === "expired") return true;
+    if (listing?.status !== "active" || !listing?.expires_at) return false;
+
+    const expiry = new Date(listing.expires_at).getTime();
+    return Number.isFinite(expiry) && expiry <= Date.now();
 }
 
 function statusClass(status: string) {
@@ -208,7 +221,7 @@ export default function AdminListingsClient() {
     }
 
     function openListingModal(
-        type: "reject" | "feature" | "unfeature",
+        type: "reject" | "renew" | "feature" | "unfeature",
         listing: any
     ) {
         setModal({
@@ -250,6 +263,9 @@ export default function AdminListingsClient() {
                     rejection_reason: modalValues.reason.trim(),
                 });
                 setSuccess(`“${modal.title}” was rejected. The seller can now see the reason.`);
+            } else if (modal.type === "renew") {
+                await apiPost(`/admin-panel/listings/${modal.id}/renew/`);
+                setSuccess(`“${modal.title}” was renewed and is active for another 30 days.`);
             } else if (modal.type === "feature") {
                 await apiPost(`/admin-panel/listings/${modal.id}/feature/`, {
                     days,
@@ -319,6 +335,11 @@ export default function AdminListingsClient() {
                 max: 365,
             },
         ];
+    } else if (modal?.type === "renew") {
+        modalTitle = "Renew expired ad?";
+        modalDescription = `“${modal.title}” will become active immediately with a new 30-day expiry period.`;
+        modalConfirmLabel = "Renew for 30 days";
+        modalTone = "green";
     } else if (modal?.type === "unfeature") {
         modalTitle = "Remove featured status?";
         modalDescription = `“${modal.title}” will return to normal marketplace placement immediately.`;
@@ -471,6 +492,7 @@ export default function AdminListingsClient() {
                             const listingFeatured = isFeatured(listing);
                             const listingExpiry = getListingExpiryValue(listing);
                             const featuredUntil = getListingFeaturedUntil(listing);
+                            const listingRenewable = isRenewable(listing);
                             const id = listing.id;
 
                             return (
@@ -571,15 +593,27 @@ export default function AdminListingsClient() {
                                                 <FontAwesomeIcon icon={faEye} className="h-3 w-3" />
                                                 Review
                                             </a>
-                                            <button
-                                                type="button"
-                                                onClick={() => approveListing(id)}
-                                                disabled={actionLoading === `approve-${id}`}
-                                                className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-3 py-2.5 text-[11px] font-black text-white hover:bg-emerald-700 disabled:opacity-60"
-                                            >
-                                                <FontAwesomeIcon icon={faCircleCheck} className="h-3 w-3" />
-                                                {actionLoading === `approve-${id}` ? "Working…" : "Approve"}
-                                            </button>
+                                            {listingRenewable ? (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => openListingModal("renew", listing)}
+                                                    disabled={actionLoading === `renew-${id}`}
+                                                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-3 py-2.5 text-[11px] font-black text-white hover:bg-emerald-700 disabled:opacity-60"
+                                                >
+                                                    <FontAwesomeIcon icon={faRotateLeft} className="h-3 w-3" />
+                                                    {actionLoading === `renew-${id}` ? "Working…" : "Renew ad"}
+                                                </button>
+                                            ) : listing.status !== "active" ? (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => approveListing(id)}
+                                                    disabled={actionLoading === `approve-${id}`}
+                                                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-3 py-2.5 text-[11px] font-black text-white hover:bg-emerald-700 disabled:opacity-60"
+                                                >
+                                                    <FontAwesomeIcon icon={faCircleCheck} className="h-3 w-3" />
+                                                    {actionLoading === `approve-${id}` ? "Working…" : "Approve"}
+                                                </button>
+                                            ) : null}
                                             <button
                                                 type="button"
                                                 onClick={() => openListingModal("reject", listing)}
@@ -589,20 +623,22 @@ export default function AdminListingsClient() {
                                                 <FontAwesomeIcon icon={faXmark} className="h-3 w-3" />
                                                 {actionLoading === `reject-${id}` ? "Working…" : "Reject"}
                                             </button>
-                                            <button
-                                                type="button"
-                                                onClick={() =>
-                                                    openListingModal(
-                                                        listingFeatured ? "unfeature" : "feature",
-                                                        listing
-                                                    )
-                                                }
-                                                disabled={actionLoading.endsWith(`-${id}`)}
-                                                className="inline-flex items-center justify-center gap-2 rounded-xl bg-violet-50 px-3 py-2.5 text-[11px] font-black text-violet-700 hover:bg-violet-100 disabled:opacity-60"
-                                            >
-                                                <FontAwesomeIcon icon={faBolt} className="h-3 w-3" />
-                                                {listingFeatured ? "Unfeature" : "Feature"}
-                                            </button>
+                                            {(listing.status === "active" || listingFeatured) && !listingRenewable && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() =>
+                                                        openListingModal(
+                                                            listingFeatured ? "unfeature" : "feature",
+                                                            listing
+                                                        )
+                                                    }
+                                                    disabled={actionLoading.endsWith(`-${id}`)}
+                                                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-violet-50 px-3 py-2.5 text-[11px] font-black text-violet-700 hover:bg-violet-100 disabled:opacity-60"
+                                                >
+                                                    <FontAwesomeIcon icon={faBolt} className="h-3 w-3" />
+                                                    {listingFeatured ? "Unfeature" : "Feature"}
+                                                </button>
+                                            )}
                                         </div>
                                     </div>
                                 </article>

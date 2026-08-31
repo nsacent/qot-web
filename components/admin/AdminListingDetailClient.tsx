@@ -17,6 +17,7 @@ import {
     faImages,
     faMoneyBillWave,
     faPenToSquare,
+    faRotateLeft,
     faShieldHalved,
     faShareNodes,
     faStore,
@@ -111,7 +112,7 @@ type AdminListingDetail = {
     edit_changes: ListingEditChange[];
 };
 
-type ModerationAction = "reject" | "feature" | "unfeature" | "delete";
+type ModerationAction = "reject" | "renew" | "feature" | "unfeature" | "delete";
 
 type ActionModal = {
     type: ModerationAction;
@@ -173,6 +174,14 @@ function attributeValue(attribute: ListingAttribute) {
 
 function imageSource(image: ListingImage) {
     return getImageUrl(image.image_url || image.image || "");
+}
+
+function listingCanBeRenewed(listing: AdminListingDetail) {
+    if (listing.status === "expired") return true;
+    if (listing.status !== "active" || !listing.expires_at) return false;
+
+    const expiry = new Date(listing.expires_at).getTime();
+    return Number.isFinite(expiry) && expiry <= Date.now();
 }
 
 export default function AdminListingDetailClient({
@@ -328,6 +337,9 @@ export default function AdminListingDetailClient({
             } else if (modal.type === "unfeature") {
                 await apiPost(`/admin-panel/listings/${listing.id}/unfeature/`);
                 setSuccess("Featured placement removed from this ad.");
+            } else if (modal.type === "renew") {
+                await apiPost(`/admin-panel/listings/${listing.id}/renew/`);
+                setSuccess("Ad renewed and published for another 30 days.");
             } else {
                 await apiPost(`/admin-panel/listings/${listing.id}/delete/`, {
                     deletion_reason: modalValues.reason.trim(),
@@ -362,9 +374,10 @@ export default function AdminListingDetailClient({
     }
 
     const isDeleted = listing.status === "deleted";
-    const canApprove = !isDeleted && listing.status !== "active";
+    const canRenew = !isDeleted && listingCanBeRenewed(listing);
+    const canApprove = !isDeleted && !canRenew && listing.status !== "active";
     const canReject = !isDeleted && listing.status !== "rejected";
-    const canFeature = listing.status === "active" && !listing.is_featured;
+    const canFeature = listing.status === "active" && !listing.is_featured && !canRenew;
 
     let modalTitle = "";
     let modalDescription = "";
@@ -401,6 +414,11 @@ export default function AdminListingDetailClient({
                 required: true,
             },
         ];
+    } else if (modal?.type === "renew") {
+        modalTitle = "Renew this expired ad?";
+        modalDescription = `“${listing.title}” will become active immediately and receive a fresh 30-day expiry period.`;
+        modalConfirmLabel = "Renew for 30 days";
+        modalTone = "green";
     } else if (modal?.type === "unfeature") {
         modalTitle = "Remove featured status?";
         modalDescription = `“${listing.title}” will immediately return to normal marketplace placement.`;
@@ -701,6 +719,15 @@ export default function AdminListingDetailClient({
                             </div>
                         ) : (
                             <div className="mt-5 grid gap-2">
+                                {canRenew && (
+                                    <ActionButton
+                                        icon={faRotateLeft}
+                                        label={actionLoading === "renew" ? "Renewing…" : "Renew ad for 30 days"}
+                                        onClick={() => openModal("renew")}
+                                        disabled={Boolean(actionLoading)}
+                                        className="bg-emerald-600 text-white hover:bg-emerald-500"
+                                    />
+                                )}
                                 {canApprove && (
                                     <ActionButton
                                         icon={faCircleCheck}
