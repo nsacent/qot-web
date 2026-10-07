@@ -44,7 +44,7 @@ export default function TermsOfServicePage() {
             eyebrow="Marketplace rules"
             title="Terms of Service"
             summary="These terms explain the rules for using QOT Uganda and help keep the marketplace useful, lawful, and safer for buyers and sellers."
-            updated="21 July 2026"
+            updated="6 October 2026"
             sections={sections}
         >
             <LegalSection id="acceptance" title="1. Acceptance of these terms">
@@ -53,6 +53,9 @@ export default function TermsOfServicePage() {
                 </p>
                 <p>
                     By using QOT, you agree to these Terms and acknowledge our <a className="font-black text-orange-600 hover:text-orange-700" href="/privacy">Privacy Policy</a>. If you do not agree, do not create an account or use the marketplace.
+                </p>
+                <p>
+                    QOT has zero tolerance for objectionable content or abusive users. By creating an account or signing in, you expressly agree not to post, send, promote, or engage in unlawful, threatening, harassing, hateful, sexually exploitative, fraudulent, or otherwise objectionable content or conduct.
                 </p>
             </LegalSection>
 
@@ -134,7 +137,10 @@ export default function TermsOfServicePage() {
                     QOT may use automated tools and human review to detect spam, fraud, prohibited content, safety concerns, and violations. We may request information, limit visibility, reject or remove an advert, remove featured status, restrict messaging, warn a user, suspend an account, preserve relevant records, or refer a matter to authorities where reasonably necessary.
                 </p>
                 <p>
-                    Moderation decisions involve judgement and may not be immediate or error-free. You may ask us to review a decision by contacting info@qot.ug with the relevant account and advert details.
+                    New and materially edited adverts are filtered through moderation before they become publicly visible. Users may also flag adverts and conversations or block abusive users. Blocking a user immediately removes that conversation from the blocker&apos;s main inbox and sends a moderation report to QOT.
+                </p>
+                <p>
+                    QOT reviews objectionable-content reports within 24 hours. When a violation is confirmed, QOT removes the offending content and suspends or ejects the user who provided it. Moderation decisions involve judgement and may not be error-free. You may ask us to review a decision by contacting info@qot.ug with the relevant account and advert details.
                 </p>
             </LegalSection>
 
