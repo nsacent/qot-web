@@ -114,9 +114,8 @@ export default async function SellersPage({ searchParams }: SellersPageProps) {
             <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(sellerListSchema).replace(/</g, "\\u003c") }} />
         )}
         <main className="min-h-screen bg-[#fff7f2] text-slate-950 antialiased">
+            <QotMarketplaceNav />
             <div className="mx-auto max-w-[1500px] px-3 py-2 md:px-6 md:py-4">
-                <QotMarketplaceNav />
-
                 <form action="/sellers" method="get" className="rounded-[15px] bg-white p-1 text-slate-950 shadow-sm ring-1 ring-black/5 md:hidden">
                     <label className="flex h-11 items-center gap-2.5 rounded-[13px] bg-slate-50 px-3 ring-1 ring-slate-100 focus-within:ring-2 focus-within:ring-orange-300">
                         <FontAwesomeIcon icon={faMagnifyingGlass} className="h-4 w-4 text-slate-400" />

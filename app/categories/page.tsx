@@ -54,8 +54,8 @@ export default async function CategoriesPage() {
             <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(categorySchema).replace(/</g, "\\u003c") }} />
         )}
         <main className="min-h-screen bg-[#fff7f2] text-slate-950 antialiased">
+            <QotMarketplaceNav categories={categories} />
             <div className="mx-auto max-w-[1500px] px-3 py-2 md:px-6 md:py-4">
-                <QotMarketplaceNav categories={categories} />
                 <CategoriesExplorerClient categories={categories} />
             </div>
 

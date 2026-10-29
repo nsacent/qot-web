@@ -305,9 +305,7 @@ export default async function SellerProfilePage({ params }: PageProps) {
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(sellerSchema).replace(/</g, "\\u003c") }} />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema).replace(/</g, "\\u003c") }} />
         <main className="min-h-screen bg-[#f6f7f9] text-slate-950">
-            <div className="mx-auto max-w-[1500px] px-4 pt-4 sm:px-6">
-                <Navbar />
-            </div>
+            <Navbar />
 
             <div className="mx-auto max-w-7xl px-4 pb-14 pt-1 sm:px-6 sm:pt-3">
                 <a

@@ -65,9 +65,7 @@ export default function LegalPageShell({
 }: LegalPageShellProps) {
     return (
         <main className="min-h-screen bg-[#f8fafc] text-slate-950">
-            <div className="mx-auto max-w-[1500px] px-3 pt-2 md:px-6 md:pt-4">
-                <QotMarketplaceNav />
-            </div>
+            <QotMarketplaceNav />
 
             <section className="border-b border-slate-200/80 bg-white">
                 <div className="mx-auto max-w-[1180px] px-3 py-4 md:px-6 md:py-16 lg:px-8 lg:py-20">
@@ -89,7 +87,7 @@ export default function LegalPageShell({
             </section>
 
             <div className="mx-auto grid max-w-[1180px] gap-4 px-3 py-4 md:gap-8 md:px-6 md:py-10 lg:grid-cols-[280px_minmax(0,1fr)] lg:px-8 lg:py-14">
-                <aside className="lg:sticky lg:top-6 lg:self-start">
+                <aside className="lg:sticky lg:top-24 lg:self-start">
                     <div className="rounded-[26px] bg-white p-5 shadow-sm ring-1 ring-slate-200/80">
                         <p className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">
                             On this page

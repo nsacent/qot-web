@@ -603,8 +603,8 @@ export default function QotMarketplaceNav({
 
     return (
         <>
-            <header className={`${pathname === "/" ? "" : "hidden md:block"} sticky top-2 z-40 mb-3 rounded-[20px] border border-white/80 bg-white/95 px-2.5 py-1.5 shadow-[0_10px_32px_rgba(15,23,42,0.08)] backdrop-blur-xl md:px-3`}>
-                <div className="flex items-center gap-2 lg:gap-3">
+            <header className={`${pathname === "/" ? "" : "hidden md:block"} sticky top-0 z-40 w-full border-b border-slate-200/70 bg-white/95 pt-[env(safe-area-inset-top)] shadow-[0_10px_32px_rgba(15,23,42,0.08)] backdrop-blur-xl`}>
+                <div className="mx-auto flex max-w-[1500px] items-center gap-2 px-4 py-2 sm:px-6 lg:gap-3">
                     <a href="/" aria-label="QOT Uganda home" className="flex shrink-0 items-center">
                         <QotLogo markOnly className="h-9 w-9 text-orange-500 sm:hidden" />
                         <QotLogo className="hidden h-8 w-auto text-orange-500 sm:block xl:h-9" />
