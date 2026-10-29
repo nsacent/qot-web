@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import QotLogo from "@/components/brand/QotLogo";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import CookieSettingsButton from "@/components/privacy/CookieSettingsButton";
@@ -7,7 +8,6 @@ import {
     faEnvelope,
     faHeartRegular,
     faLocationDot,
-    faMobileScreen,
     faPlus,
     faShieldHalved,
     faStore,
@@ -15,20 +15,29 @@ import {
 
 const appStoreLinks = [
     {
-        label: "Google Play",
-        platform: "Android",
-        href: "https://play.google.com/store/apps/details?id=ug.qot.mobile",
+        label: "App Store",
+        href: "https://apps.apple.com/ug/app/qot-uganda/id6801803137",
+        badge: "/images/app-badges/app-store.svg",
+        alt: "Download on the App Store",
+        width: 119.66407,
+        height: 40,
+        imageClassName: "h-[52px] w-auto",
     },
     {
-        label: "App Store",
-        platform: "iPhone",
-        href: "https://apps.apple.com/ug/app/qot-uganda/id6801803137",
+        label: "Google Play",
+        href: "https://play.google.com/store/apps/details?id=ug.qot.mobile",
+        badge: "/images/app-badges/google-play.png",
+        alt: "Get it on Google Play",
+        width: 646,
+        height: 250,
+        // Google's artwork includes transparent padding; align the visible badges.
+        imageClassName: "-m-[13px] h-[78px] w-auto max-w-none",
     },
 ];
 
 function AppStoreLinks({ className = "" }: { className?: string }) {
     return (
-        <nav aria-label="Download the QOT app" className={`grid gap-3 ${className}`}>
+        <nav aria-label="Download the QOT app" className={`flex flex-col items-center gap-4 min-[480px]:flex-row ${className}`}>
             {appStoreLinks.map((store) => (
                 <a
                     key={store.href}
@@ -36,13 +45,16 @@ function AppStoreLinks({ className = "" }: { className?: string }) {
                     target="_blank"
                     rel="noopener noreferrer"
                     aria-label={`QOT on ${store.label} (opens in a new tab)`}
-                    className="inline-flex min-h-14 items-center gap-3 rounded-2xl bg-white/7 px-3 py-3 text-white ring-1 ring-white/20 transition hover:bg-white/15 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-orange-300"
+                    className="inline-flex shrink-0 rounded-lg focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-orange-300"
                 >
-                    <FontAwesomeIcon icon={faMobileScreen} aria-hidden="true" className="h-5 w-5 shrink-0 text-orange-300" />
-                    <span>
-                        <span className="block text-[10px] font-semibold text-slate-300">{store.platform}</span>
-                        <span className="block whitespace-nowrap text-sm font-black">{store.label}</span>
-                    </span>
+                    <Image
+                        src={store.badge}
+                        alt={store.alt}
+                        width={store.width}
+                        height={store.height}
+                        className={store.imageClassName}
+                        unoptimized
+                    />
                 </a>
             ))}
         </nav>
@@ -109,10 +121,10 @@ const trustItems = [
 export default function QotMarketplaceFooter() {
     return (
         <footer className="mx-auto mt-10 max-w-[1500px] px-4 pb-8 sm:px-6">
-            <section aria-label="QOT mobile app" className="rounded-[28px] bg-slate-950 p-5 text-white md:hidden">
+            <section aria-label="QOT mobile app" className="rounded-[28px] bg-slate-950 px-5 py-7 text-center text-white md:hidden">
                 <h2 className="text-lg font-black">Get the QOT app</h2>
                 <p className="mt-1 text-sm text-slate-300">Buy &amp; sell on the go.</p>
-                <AppStoreLinks className="mt-4 min-[375px]:grid-cols-2" />
+                <AppStoreLinks className="mt-6 justify-center" />
             </section>
             <div className="relative hidden overflow-hidden rounded-[36px] bg-slate-950 text-white shadow-[0_28px_80px_rgba(15,23,42,0.20)] md:block">
                 <div className="absolute -right-24 -top-32 h-80 w-80 rounded-full bg-orange-500/15 blur-3xl" />
@@ -171,11 +183,6 @@ export default function QotMarketplaceFooter() {
                                 Quality, Opportunities and Trust. A simpler way to buy, sell, and connect with people across Uganda.
                             </p>
 
-                            <h3 className="mt-6 text-[11px] font-black uppercase tracking-[0.16em] text-orange-300">
-                                Get the app
-                            </h3>
-                            <AppStoreLinks className="mt-3 max-w-56" />
-
                             <div className="mt-5 flex flex-wrap gap-2">
                                 <Link
                                     href="/account/saved"
@@ -215,7 +222,15 @@ export default function QotMarketplaceFooter() {
                         ))}
                     </div>
 
-                    <section className="mt-7 grid gap-3 rounded-[24px] bg-white/[0.045] p-3 ring-1 ring-white/10 sm:grid-cols-3 sm:p-4">
+                    <section aria-label="QOT mobile app" className="mt-7 flex flex-wrap items-center justify-between gap-6 rounded-[24px] bg-white/[0.045] px-6 py-6 ring-1 ring-white/10">
+                        <div>
+                            <h2 className="text-xl font-black tracking-tight">Get the QOT app</h2>
+                            <p className="mt-1 text-sm text-slate-300">Buy &amp; sell on the go.</p>
+                        </div>
+                        <AppStoreLinks />
+                    </section>
+
+                    <section className="mt-5 grid gap-3 rounded-[24px] bg-white/[0.045] p-3 ring-1 ring-white/10 sm:grid-cols-3 sm:p-4">
                         {trustItems.map((item) => (
                             <div key={item.title} className="flex items-center gap-3 rounded-[18px] px-3 py-3 transition hover:bg-white/5">
                                 <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[13px] bg-orange-500/15 text-orange-300 ring-1 ring-orange-300/15">
