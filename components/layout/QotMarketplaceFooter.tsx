@@ -120,18 +120,20 @@ const trustItems = [
 
 export default function QotMarketplaceFooter() {
     return (
-        <footer className="mt-10 w-full px-3 pb-8 sm:px-4">
-            <section aria-label="QOT mobile app" className="rounded-[28px] bg-slate-950 px-5 py-7 text-center text-white md:hidden">
+        <footer className="mt-10 w-full pb-8">
+            <section aria-label="QOT mobile app" className="mx-3 rounded-[28px] bg-slate-950 px-5 py-7 text-center text-white sm:mx-4 md:hidden">
                 <h2 className="text-lg font-black">Get the QOT app</h2>
                 <p className="mt-1 text-sm text-slate-300">Buy &amp; sell on the go.</p>
                 <AppStoreLinks className="mt-6 justify-center" />
             </section>
-            <div className="relative hidden overflow-hidden rounded-[36px] bg-slate-950 text-white shadow-[0_28px_80px_rgba(15,23,42,0.20)] md:block">
-                <div className="absolute -right-24 -top-32 h-80 w-80 rounded-full bg-orange-500/15 blur-3xl" />
-                <div className="absolute -bottom-40 left-1/4 h-80 w-80 rounded-full bg-orange-400/8 blur-3xl" />
-                <div className="absolute left-1/2 top-0 h-px w-1/2 bg-gradient-to-r from-transparent via-orange-300/50 to-transparent" />
+            <div className="relative hidden text-white md:block">
+                <div aria-hidden="true" className="pointer-events-none absolute inset-x-3 inset-y-0 overflow-hidden rounded-[36px] bg-slate-950 shadow-[0_28px_80px_rgba(15,23,42,0.20)] sm:inset-x-4">
+                    <div className="absolute -right-24 -top-32 h-80 w-80 rounded-full bg-orange-500/15 blur-3xl" />
+                    <div className="absolute -bottom-40 left-1/4 h-80 w-80 rounded-full bg-orange-400/8 blur-3xl" />
+                    <div className="absolute left-1/2 top-0 h-px w-1/2 bg-gradient-to-r from-transparent via-orange-300/50 to-transparent" />
+                </div>
 
-                <div className="relative mx-auto max-w-[1500px] p-4 sm:p-6 lg:p-8">
+                <div className="relative mx-auto max-w-[1500px] px-4 py-4 sm:px-6 sm:py-6 lg:py-8">
                     <section className="relative overflow-hidden rounded-[28px] bg-gradient-to-r from-orange-500 via-orange-500 to-amber-500 px-5 py-6 shadow-[0_20px_45px_rgba(249,115,22,0.22)] sm:px-7 sm:py-7 lg:flex lg:items-center lg:justify-between lg:gap-8">
                         <span className="absolute -right-12 -top-24 h-64 w-64 rounded-full bg-white/15 blur-2xl" />
                         <div className="relative flex items-start gap-4">
@@ -168,7 +170,7 @@ export default function QotMarketplaceFooter() {
                         </div>
                     </section>
 
-                    <div className="grid gap-9 px-2 pb-3 pt-9 sm:px-3 lg:grid-cols-[1.35fr_repeat(4,minmax(0,0.72fr))] lg:gap-8 lg:pt-11">
+                    <div className="grid gap-9 pb-3 pt-9 lg:grid-cols-[1.35fr_repeat(4,minmax(0,0.72fr))] lg:gap-8 lg:pt-11">
                         <div className="lg:pr-6">
                             <Link href="/" aria-label="QOT Uganda home" className="inline-flex items-center">
                                 <span>
@@ -244,7 +246,7 @@ export default function QotMarketplaceFooter() {
                         ))}
                     </section>
 
-                    <div className="mt-6 flex flex-col justify-between gap-4 border-t border-white/10 px-2 pt-5 text-[11px] font-semibold text-slate-500 sm:flex-row sm:items-center sm:px-3">
+                    <div className="mt-6 flex flex-col justify-between gap-4 border-t border-white/10 pt-5 text-[11px] font-semibold text-slate-500 sm:flex-row sm:items-center">
                         <p>© {new Date().getFullYear()} QOT Uganda. All rights reserved.</p>
                         <nav aria-label="Legal" className="flex flex-wrap items-center gap-x-4 gap-y-2">
                             <Link href="/privacy" className="font-black text-slate-400 transition hover:text-white">
