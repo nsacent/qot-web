@@ -120,7 +120,7 @@ const trustItems = [
 
 export default function QotMarketplaceFooter() {
     return (
-        <footer className="mx-auto mt-10 max-w-[1500px] px-4 pb-8 sm:px-6">
+        <footer className="mt-10 w-full px-3 pb-8 sm:px-4">
             <section aria-label="QOT mobile app" className="rounded-[28px] bg-slate-950 px-5 py-7 text-center text-white md:hidden">
                 <h2 className="text-lg font-black">Get the QOT app</h2>
                 <p className="mt-1 text-sm text-slate-300">Buy &amp; sell on the go.</p>
@@ -131,7 +131,7 @@ export default function QotMarketplaceFooter() {
                 <div className="absolute -bottom-40 left-1/4 h-80 w-80 rounded-full bg-orange-400/8 blur-3xl" />
                 <div className="absolute left-1/2 top-0 h-px w-1/2 bg-gradient-to-r from-transparent via-orange-300/50 to-transparent" />
 
-                <div className="relative p-4 sm:p-6 lg:p-8">
+                <div className="relative mx-auto max-w-[1500px] p-4 sm:p-6 lg:p-8">
                     <section className="relative overflow-hidden rounded-[28px] bg-gradient-to-r from-orange-500 via-orange-500 to-amber-500 px-5 py-6 shadow-[0_20px_45px_rgba(249,115,22,0.22)] sm:px-7 sm:py-7 lg:flex lg:items-center lg:justify-between lg:gap-8">
                         <span className="absolute -right-12 -top-24 h-64 w-64 rounded-full bg-white/15 blur-2xl" />
                         <div className="relative flex items-start gap-4">
