@@ -7,10 +7,47 @@ import {
     faEnvelope,
     faHeartRegular,
     faLocationDot,
+    faMobileScreen,
     faPlus,
     faShieldHalved,
     faStore,
 } from "@/lib/faIcons";
+
+const appStoreLinks = [
+    {
+        label: "Google Play",
+        platform: "Android",
+        href: "https://play.google.com/store/apps/details?id=ug.qot.mobile",
+    },
+    {
+        label: "App Store",
+        platform: "iPhone",
+        href: "https://apps.apple.com/ug/app/qot-uganda/id6801803137",
+    },
+];
+
+function AppStoreLinks({ className = "" }: { className?: string }) {
+    return (
+        <nav aria-label="Download the QOT app" className={`grid gap-3 ${className}`}>
+            {appStoreLinks.map((store) => (
+                <a
+                    key={store.href}
+                    href={store.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={`QOT on ${store.label} (opens in a new tab)`}
+                    className="inline-flex min-h-14 items-center gap-3 rounded-2xl bg-white/7 px-3 py-3 text-white ring-1 ring-white/20 transition hover:bg-white/15 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-orange-300"
+                >
+                    <FontAwesomeIcon icon={faMobileScreen} aria-hidden="true" className="h-5 w-5 shrink-0 text-orange-300" />
+                    <span>
+                        <span className="block text-[10px] font-semibold text-slate-300">{store.platform}</span>
+                        <span className="block whitespace-nowrap text-sm font-black">{store.label}</span>
+                    </span>
+                </a>
+            ))}
+        </nav>
+    );
+}
 
 const footerGroups = [
     {
@@ -71,8 +108,13 @@ const trustItems = [
 
 export default function QotMarketplaceFooter() {
     return (
-        <footer className="mx-auto mt-10 hidden max-w-[1500px] px-4 pb-8 sm:px-6 md:block">
-            <div className="relative overflow-hidden rounded-[36px] bg-slate-950 text-white shadow-[0_28px_80px_rgba(15,23,42,0.20)]">
+        <footer className="mx-auto mt-10 max-w-[1500px] px-4 pb-8 sm:px-6">
+            <section aria-label="QOT mobile app" className="rounded-[28px] bg-slate-950 p-5 text-white md:hidden">
+                <h2 className="text-lg font-black">Get the QOT app</h2>
+                <p className="mt-1 text-sm text-slate-300">Buy &amp; sell on the go.</p>
+                <AppStoreLinks className="mt-4 min-[375px]:grid-cols-2" />
+            </section>
+            <div className="relative hidden overflow-hidden rounded-[36px] bg-slate-950 text-white shadow-[0_28px_80px_rgba(15,23,42,0.20)] md:block">
                 <div className="absolute -right-24 -top-32 h-80 w-80 rounded-full bg-orange-500/15 blur-3xl" />
                 <div className="absolute -bottom-40 left-1/4 h-80 w-80 rounded-full bg-orange-400/8 blur-3xl" />
                 <div className="absolute left-1/2 top-0 h-px w-1/2 bg-gradient-to-r from-transparent via-orange-300/50 to-transparent" />
@@ -128,6 +170,11 @@ export default function QotMarketplaceFooter() {
                             <p className="mt-5 max-w-sm text-sm font-semibold leading-6 text-slate-300">
                                 Quality, Opportunities and Trust. A simpler way to buy, sell, and connect with people across Uganda.
                             </p>
+
+                            <h3 className="mt-6 text-[11px] font-black uppercase tracking-[0.16em] text-orange-300">
+                                Get the app
+                            </h3>
+                            <AppStoreLinks className="mt-3 max-w-56" />
 
                             <div className="mt-5 flex flex-wrap gap-2">
                                 <Link
