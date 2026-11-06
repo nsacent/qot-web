@@ -311,6 +311,8 @@ function EditAdForm({ id }: { id: string }) {
     const [checkingSession, setCheckingSession] = useState(true);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [photosPreparing, setPhotosPreparing] = useState(false);
+    const photoSelectionRef = useRef(false);
     const [filtersLoading, setFiltersLoading] = useState(false);
     const [showPreview, setShowPreview] = useState(false);
 
@@ -692,7 +694,18 @@ function EditAdForm({ id }: { id: string }) {
     async function handleAddImages(event: React.ChangeEvent<HTMLInputElement>) {
         const files = Array.from(event.target.files || []);
         event.target.value = "";
-        if (!files.length) return;
+        if (!files.length || photoSelectionRef.current || saving) return;
+        photoSelectionRef.current = true;
+        setPhotosPreparing(true);
+        try {
+            await prepareSelectedImages(files);
+        } finally {
+            photoSelectionRef.current = false;
+            setPhotosPreparing(false);
+        }
+    }
+
+    async function prepareSelectedImages(files: File[]) {
 
         const acceptedFiles: File[] = [];
         const rejectedFiles: string[] = [];
@@ -989,6 +1002,7 @@ function EditAdForm({ id }: { id: string }) {
             (field) => field.required && !String(categoryFilterValues[field.key] || "").trim()
         );
         if (missingSpecification) return `Please complete ${missingSpecification.label}.`;
+        if (photoSelectionRef.current) return "Please wait for your photos to finish preparing.";
         if (totalPhotos < photoRequirements.minimum) {
             return `${selectedCategory ? getOptionLabel(selectedCategory) : "This category"} requires at least ${photoRequirements.minimum} photos.`;
         }
@@ -1049,6 +1063,7 @@ function EditAdForm({ id }: { id: string }) {
     }
 
     async function saveChanges() {
+        if (photoSelectionRef.current || saving) return;
         const validationError = validateForm();
         if (validationError) {
             setCategoryError("");
@@ -1236,7 +1251,7 @@ function EditAdForm({ id }: { id: string }) {
                             <p className="truncate text-xs font-semibold text-slate-500">The updated ad will be sent for review.</p>
                         </div>
 
-                        <button type="button" onClick={saveChanges} disabled={saving} className="inline-flex h-12 items-center justify-center gap-2 rounded-[16px] bg-orange-500 px-6 text-sm font-black text-white shadow-lg shadow-orange-200 hover:bg-orange-600 disabled:opacity-50">
+                        <button type="button" onClick={saveChanges} disabled={saving || photosPreparing} className="inline-flex h-12 items-center justify-center gap-2 rounded-[16px] bg-orange-500 px-6 text-sm font-black text-white shadow-lg shadow-orange-200 hover:bg-orange-600 disabled:opacity-50">
                             {saving ? "Saving changes..." : "Save Changes"}
                             <FontAwesomeIcon icon={faArrowRight} className="h-4 w-4" />
                         </button>
@@ -1268,11 +1283,11 @@ function EditAdForm({ id }: { id: string }) {
                             <FontAwesomeIcon icon={faCamera} className="h-4 w-4" />
                         </span>
                         <span className="min-w-0 flex-1">
-                            <span className="block text-sm font-black text-slate-900">Choose photos from gallery</span>
+                            <span className="block text-sm font-black text-slate-900">{photosPreparing ? "Preparing photos..." : "Choose photos from gallery"}</span>
                             <span className="mt-0.5 block text-xs font-semibold text-slate-500">JPEG/JPG, HEIC or HEIF, PNG or WEBP · 8MB maximum each · optimized automatically</span>
                         </span>
                         <span className="hidden rounded-full bg-orange-500 px-3 py-1.5 text-xs font-black text-white sm:inline-flex">Choose</span>
-                        <input type="file" accept={PHOTO_INPUT_ACCEPT} multiple onChange={handleAddImages} className="sr-only" />
+                        <input type="file" accept={PHOTO_INPUT_ACCEPT} multiple onChange={handleAddImages} disabled={photosPreparing || saving} className="sr-only" />
                     </label>
 
                     <label className="mt-2 flex min-h-14 cursor-pointer items-center justify-center gap-3 rounded-[14px] bg-white px-3 text-left text-orange-600 shadow-sm ring-1 ring-orange-200 active:bg-orange-50 sm:hidden">
@@ -1288,6 +1303,7 @@ function EditAdForm({ id }: { id: string }) {
                             accept={CAMERA_PHOTO_ACCEPT}
                             capture="environment"
                             onChange={handleAddImages}
+                            disabled={photosPreparing || saving}
                             className="sr-only"
                         />
                     </label>
@@ -1545,7 +1561,7 @@ function EditAdForm({ id }: { id: string }) {
                     <FontAwesomeIcon icon={faArrowLeft} className="h-4 w-4" />
                     Cancel
                 </Link>
-                <button type="submit" disabled={saving} className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-[18px] bg-orange-500 px-5 text-sm font-black text-white hover:bg-orange-600 disabled:opacity-50">
+                <button type="submit" disabled={saving || photosPreparing} className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-[18px] bg-orange-500 px-5 text-sm font-black text-white hover:bg-orange-600 disabled:opacity-50">
                     Preview Changes
                     <FontAwesomeIcon icon={faArrowRight} className="h-4 w-4" />
                 </button>

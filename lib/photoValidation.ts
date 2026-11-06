@@ -39,6 +39,9 @@ const HEIF_PHOTO_TYPES = [
     "image/x-heif",
 ];
 const HEIF_PHOTO_EXTENSIONS = ["heic", "heics", "heif", "heifs", "hif"];
+// Match the API's retained source resolution and avoid a full-size 48MP canvas
+// on iPhones. Smaller photos are never enlarged.
+const MAX_CONVERTED_PHOTO_EDGE = 2560;
 
 function photoExtension(file: File) {
     return file.name.split(".").pop()?.toLowerCase() || "";
@@ -51,8 +54,72 @@ export function isHeifPhoto(file: File) {
     return HEIF_PHOTO_TYPES.includes(type) || HEIF_PHOTO_EXTENSIONS.includes(extension);
 }
 
+function jpegFile(blob: Blob, original: File) {
+    if (!blob.size || blob.type !== "image/jpeg") {
+        throw new Error("The photo could not be converted to JPEG.");
+    }
+    const baseName = original.name.replace(/\.[^.]+$/, "") || "iphone-photo";
+    return new File([blob], `${baseName}.jpg`, {
+        type: "image/jpeg",
+        lastModified: original.lastModified,
+    });
+}
+
+async function convertPhotoWithBrowser(file: File) {
+    const url = URL.createObjectURL(file);
+    const image = new Image();
+    const canvas = document.createElement("canvas");
+    let timer: ReturnType<typeof setTimeout> | undefined;
+
+    try {
+        await new Promise<void>((resolve, reject) => {
+            image.onload = () => resolve();
+            image.onerror = () => reject(new Error("This browser cannot decode the photo."));
+            timer = setTimeout(() => reject(new Error("Photo decoding timed out.")), 15000);
+            image.src = url;
+        });
+
+        if (!image.naturalWidth || !image.naturalHeight) {
+            throw new Error("The photo has no readable dimensions.");
+        }
+
+        const scale = Math.min(1, MAX_CONVERTED_PHOTO_EDGE / Math.max(image.naturalWidth, image.naturalHeight));
+        canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
+        canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+        const context = canvas.getContext("2d");
+        if (!context) throw new Error("Image conversion is unavailable.");
+        context.fillStyle = "#fff";
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        context.drawImage(image, 0, 0, canvas.width, canvas.height);
+
+        const jpeg = await new Promise<Blob>((resolve, reject) => {
+            canvas.toBlob((blob) => {
+                if (blob) resolve(blob);
+                else reject(new Error("The photo could not be converted."));
+            }, "image/jpeg", 0.86);
+        });
+        return jpegFile(jpeg, file);
+    } finally {
+        clearTimeout(timer);
+        image.onload = null;
+        image.onerror = null;
+        image.src = "";
+        URL.revokeObjectURL(url);
+        canvas.width = 0;
+        canvas.height = 0;
+    }
+}
+
 export async function preparePhotoForUpload(file: File) {
     if (!isHeifPhoto(file)) return file;
+
+    // Safari supports iPhone HEIF variants natively. Prefer its decoder over
+    // the older JS decoder, which cannot read some HDR/depth-image variants.
+    try {
+        return await convertPhotoWithBrowser(file);
+    } catch {
+        // Browsers without native HEIF support can still use the JS decoder.
+    }
 
     try {
         const { default: heic2any } = await import("heic2any");
@@ -65,11 +132,7 @@ export async function preparePhotoForUpload(file: File) {
 
         if (!jpeg) throw new Error("No image was produced.");
 
-        const baseName = file.name.replace(/\.(heic|heics|heif|heifs|hif)$/i, "") || "iphone-photo";
-        return new File([jpeg], `${baseName}.jpg`, {
-            type: "image/jpeg",
-            lastModified: file.lastModified || Date.now(),
-        });
+        return jpegFile(jpeg, file);
     } catch {
         // Some iPhone Safari versions cannot run the browser HEIF decoder.
         // Keep the original so the API can decode and optimize it instead.

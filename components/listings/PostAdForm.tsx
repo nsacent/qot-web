@@ -365,6 +365,8 @@ export default function PostAdForm() {
     const [isNegotiable, setIsNegotiable] = useState(false);
     const [photos, setPhotos] = useState<DraftPhoto[]>([]);
     const [photosUploading, setPhotosUploading] = useState(false);
+    const [photosPreparing, setPhotosPreparing] = useState(false);
+    const photoSelectionRef = useRef(false);
 
     const [categories, setCategories] = useState<any[]>([]);
     const [cities, setCities] = useState<any[]>([]);
@@ -631,6 +633,7 @@ export default function PostAdForm() {
     }
 
     async function saveDraft() {
+        if (photoSelectionRef.current || photosUploading) return;
         const hasContent = Boolean(
             title.trim() || description.trim() || price || category || photos.length
         );
@@ -660,6 +663,7 @@ export default function PostAdForm() {
     }
 
     async function clearDraft() {
+        if (photoSelectionRef.current || photosUploading) return;
         setDraftReady(false);
         setClearDraftLoading(true);
         setClearDraftError("");
@@ -711,7 +715,7 @@ export default function PostAdForm() {
             title.trim() || description.trim() || price || category || photos.length
         );
 
-        if (!draftReady || !hasContent || photosUploading || loading) return;
+        if (!draftReady || !hasContent || photosPreparing || photosUploading || loading) return;
 
         const payload = {
             data: {
@@ -752,6 +756,7 @@ export default function PostAdForm() {
         isNegotiable,
         loading,
         photos.length,
+        photosPreparing,
         photosUploading,
         price,
         stagedPhotoIds,
@@ -770,6 +775,7 @@ export default function PostAdForm() {
             (field) => field.required && !String(categoryFilterValues[field.key] || "").trim()
         );
         if (missingSpecification) return `Please complete ${missingSpecification.label}.`;
+        if (photoSelectionRef.current && !photosUploading) return "Please wait for your photos to finish preparing.";
         if (photos.length < photoRequirements.minimum) {
             return `${getSelectedCategoryName()} requires at least ${photoRequirements.minimum} photos.`;
         }
@@ -809,7 +815,18 @@ export default function PostAdForm() {
         const selectedFiles = Array.from(event.target.files || []);
         event.target.value = "";
 
-        if (!selectedFiles.length) return;
+        if (!selectedFiles.length || photoSelectionRef.current || photosUploading || loading) return;
+        photoSelectionRef.current = true;
+        setPhotosPreparing(true);
+        try {
+            await prepareAndUploadPhotos(selectedFiles);
+        } finally {
+            photoSelectionRef.current = false;
+            setPhotosPreparing(false);
+        }
+    }
+
+    async function prepareAndUploadPhotos(selectedFiles: File[]) {
         if (!category) {
             setError("");
             setPhotoError("Choose a category before adding photos so QOT can apply the correct photo limit.");
@@ -1086,6 +1103,7 @@ export default function PostAdForm() {
     }
 
     async function submitAdvert() {
+        if (photoSelectionRef.current || photosUploading || loading) return;
         setLoading(true);
         setError("");
         setPhotoError("");
@@ -1209,7 +1227,7 @@ export default function PostAdForm() {
                         <button
                             type="button"
                             onClick={submitAdvert}
-                            disabled={loading}
+                            disabled={loading || photosPreparing || photosUploading}
                             className="inline-flex h-12 items-center justify-center gap-2 rounded-[16px] bg-orange-500 px-6 text-sm font-black text-white shadow-lg shadow-orange-200 hover:bg-orange-600 disabled:opacity-60"
                         >
                             {loading ? uploadProgress || "Publishing ad..." : "Publish Ad"}
@@ -1261,7 +1279,9 @@ export default function PostAdForm() {
                                     ? "Choose a category first"
                                     : photosUploading
                                         ? "Uploading photos..."
-                                        : "Choose photos from gallery"}
+                                        : photosPreparing
+                                            ? "Preparing photos..."
+                                            : "Choose photos from gallery"}
                             </span>
                             <span className="mt-0.5 block text-xs font-semibold text-slate-500">
                                 JPEG/JPG, HEIC or HEIF, PNG or WEBP · 8MB maximum each · optimized automatically
@@ -1275,7 +1295,7 @@ export default function PostAdForm() {
                             accept={PHOTO_INPUT_ACCEPT}
                             multiple
                             onChange={handlePhotoSelection}
-                            disabled={photosUploading || !category}
+                            disabled={photosPreparing || photosUploading || loading || !category}
                             className="sr-only"
                         />
                     </label>
@@ -1293,7 +1313,7 @@ export default function PostAdForm() {
                             accept={CAMERA_PHOTO_ACCEPT}
                             capture="environment"
                             onChange={handlePhotoSelection}
-                            disabled={photosUploading || !category}
+                            disabled={photosPreparing || photosUploading || loading || !category}
                             className="sr-only"
                         />
                     </label>
@@ -1727,7 +1747,7 @@ export default function PostAdForm() {
                         setClearDraftError("");
                         setClearDraftOpen(true);
                     }}
-                    disabled={draftSaving || photosUploading}
+                    disabled={draftSaving || photosPreparing || photosUploading}
                     className="inline-flex h-12 items-center justify-center gap-2 rounded-[18px] bg-red-50 px-5 text-sm font-black text-red-600 ring-1 ring-red-100 hover:bg-red-100 disabled:opacity-60"
                 >
                     <FontAwesomeIcon icon={faTrash} className="h-3.5 w-3.5" />
@@ -1736,7 +1756,7 @@ export default function PostAdForm() {
                 <button
                     type="button"
                     onClick={saveDraft}
-                    disabled={draftSaving || photosUploading}
+                    disabled={draftSaving || photosPreparing || photosUploading}
                     className="inline-flex h-12 items-center justify-center gap-2 rounded-[18px] bg-white px-5 text-sm font-black text-slate-700 ring-1 ring-slate-200 hover:bg-slate-50 disabled:opacity-60"
                 >
                     <FontAwesomeIcon icon={faFileLines} className="h-4 w-4 text-orange-500" />
@@ -1744,7 +1764,8 @@ export default function PostAdForm() {
                 </button>
                 <button
                     type="submit"
-                    className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-[18px] bg-orange-500 px-5 text-sm font-black text-white hover:bg-orange-600"
+                    disabled={photosPreparing || photosUploading || loading}
+                    className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-[18px] bg-orange-500 px-5 text-sm font-black text-white hover:bg-orange-600 disabled:opacity-60"
                 >
                     Preview Advert
                     <FontAwesomeIcon icon={faArrowRight} className="h-4 w-4" />

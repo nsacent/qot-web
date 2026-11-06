@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiDelete, apiGet, apiPost } from "@/lib/apiClient";
 import { getOrderedListingImages } from "@/lib/listingImages";
+import { isHeifPhoto, PHOTO_INPUT_ACCEPT, preparePhotoForUpload, SUPPORTED_PHOTO_TYPES } from "@/lib/photoValidation";
 
 const API_BASE_URL =
     process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000/api/v1";
@@ -78,6 +79,8 @@ export default function ListingImageManager({
     const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
     const [loading, setLoading] = useState(true);
     const [uploading, setUploading] = useState(false);
+    const [preparingImages, setPreparingImages] = useState(false);
+    const imagePreparationRef = useRef(false);
     const [actionLoading, setActionLoading] = useState("");
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
@@ -115,45 +118,53 @@ export default function ListingImageManager({
         loadListing();
     }, [listingId]);
 
-    function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
+    async function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
+        const files = Array.from(event.target.files || []);
+        event.target.value = "";
+        if (imagePreparationRef.current || uploading) return;
         setError("");
         setSuccess("");
-
-        const files = Array.from(event.target.files || []);
+        setSelectedFiles([]);
 
         if (files.length === 0) {
-            setSelectedFiles([]);
             return;
         }
 
         if (images.length + files.length > 10) {
             setError("You can upload a maximum of 10 images per advert.");
-            event.target.value = "";
             return;
         }
 
-        const allowedTypes = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
+        imagePreparationRef.current = true;
+        setPreparingImages(true);
+        try {
+            const preparedFiles: File[] = [];
+            for (const originalFile of files) {
+                if (!SUPPORTED_PHOTO_TYPES.includes(originalFile.type.toLowerCase()) && !isHeifPhoto(originalFile)) {
+                    setError("Only JPG, JPEG, HEIC, HEIF, PNG, and WEBP images are allowed.");
+                    return;
+                }
 
-        for (const file of files) {
-            if (!allowedTypes.includes(file.type)) {
-                setError("Only JPG, JPEG, PNG, and WEBP images are allowed.");
-                event.target.value = "";
-                return;
+                const file = await preparePhotoForUpload(originalFile);
+                if (file.size > 5 * 1024 * 1024) {
+                    setError("Each image must be 5MB or less.");
+                    return;
+                }
+                preparedFiles.push(file);
             }
-
-            if (file.size > 5 * 1024 * 1024) {
-                setError("Each image must be 5MB or less.");
-                event.target.value = "";
-                return;
-            }
+            setSelectedFiles(preparedFiles);
+        } catch (error) {
+            setError(error instanceof Error ? error.message : "These photos could not be prepared. Please try again.");
+        } finally {
+            imagePreparationRef.current = false;
+            setPreparingImages(false);
         }
-
-        setSelectedFiles(files);
     }
 
     async function uploadImages(event?: React.MouseEvent<HTMLButtonElement>) {
         event?.preventDefault();
         event?.stopPropagation();
+        if (imagePreparationRef.current || uploading) return;
 
         if (selectedFiles.length === 0) {
             setError("Please select at least one image.");
@@ -306,14 +317,15 @@ export default function ListingImageManager({
                 <input
                     id="listing-image-input"
                     type="file"
-                    accept="image/jpeg,image/jpg,image/png,image/webp"
+                    accept={PHOTO_INPUT_ACCEPT}
+                    disabled={preparingImages || uploading}
                     multiple
                     onChange={handleFileChange}
                     className="w-full rounded-xl border bg-white px-4 py-3 outline-none focus:border-orange-500"
                 />
 
                 <p className="mt-2 text-xs text-slate-500">
-                    Allowed: JPG, JPEG, PNG, WEBP. Maximum 5MB per image. Maximum 10
+                    Allowed: JPG, JPEG, HEIC, HEIF, PNG, WEBP. Maximum 5MB per image. Maximum 10
                     images per advert.
                 </p>
 
@@ -337,10 +349,10 @@ export default function ListingImageManager({
                 <button
                     type="button"
                     onClick={uploadImages}
-                    disabled={uploading || selectedFiles.length === 0}
+                    disabled={preparingImages || uploading || selectedFiles.length === 0}
                     className="mt-5 rounded-xl bg-orange-500 px-5 py-3 font-semibold text-white hover:bg-orange-600 disabled:opacity-60"
                 >
-                    {uploading ? "Uploading..." : "Upload Images"}
+                    {preparingImages ? "Preparing photos..." : uploading ? "Uploading..." : "Upload Images"}
                 </button>
             </div>
 

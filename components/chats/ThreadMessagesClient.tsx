@@ -25,6 +25,7 @@ import AdActionModal from "@/components/listings/AdActionModal";
 import MessageText from "@/components/chats/MessageText";
 import { createChatSocket, type ChatSocketController } from "@/lib/chatSocket";
 import { formatRelativeTime } from "@/lib/dateTime";
+import { PHOTO_INPUT_ACCEPT, preparePhotoForUpload } from "@/lib/photoValidation";
 
 const QUICK_MESSAGES = [
     "Hi, is this ad still available?",
@@ -126,6 +127,8 @@ export default function ThreadMessagesClient({ threadId }: { threadId: string })
     const [offerError, setOfferError] = useState("");
     const [offerSending, setOfferSending] = useState(false);
     const [attachments, setAttachments] = useState<File[]>([]);
+    const [preparingAttachments, setPreparingAttachments] = useState(false);
+    const attachmentPreparationRef = useRef(false);
     const [otherUserOnline, setOtherUserOnline] = useState(false);
     const [otherUserLastSeen, setOtherUserLastSeen] = useState<string | null>(null);
     const [otherUserTyping, setOtherUserTyping] = useState(false);
@@ -513,7 +516,7 @@ export default function ThreadMessagesClient({ threadId }: { threadId: string })
         event.preventDefault();
 
         const cleanBody = body.trim();
-        if ((!cleanBody && attachments.length === 0) || sending) return;
+        if ((!cleanBody && attachments.length === 0) || sending || attachmentPreparationRef.current) return;
 
         stopTyping();
         setSending(true);
@@ -626,26 +629,36 @@ export default function ThreadMessagesClient({ threadId }: { threadId: string })
         }
     }
 
-    function chooseAttachments(event: React.ChangeEvent<HTMLInputElement>) {
+    async function chooseAttachments(event: React.ChangeEvent<HTMLInputElement>) {
         const selectedFiles = Array.from(event.target.files || []);
-        if (selectedFiles.length === 0) return;
-
-        const oversizedFile = selectedFiles.find((file) => file.size > MAX_ATTACHMENT_SIZE);
-        if (oversizedFile) {
-            setSendError(`${oversizedFile.name} is larger than 10 MB.`);
-            event.target.value = "";
-            return;
-        }
+        event.target.value = "";
+        if (selectedFiles.length === 0 || attachmentPreparationRef.current || sending) return;
 
         if (attachments.length + selectedFiles.length > 5) {
             setSendError("You can attach up to 5 files at a time.");
-            event.target.value = "";
             return;
         }
 
+        attachmentPreparationRef.current = true;
+        setPreparingAttachments(true);
         setSendError("");
-        setAttachments((current) => [...current, ...selectedFiles]);
-        event.target.value = "";
+        try {
+            const preparedFiles: File[] = [];
+            for (const originalFile of selectedFiles) {
+                const file = await preparePhotoForUpload(originalFile);
+                if (file.size > MAX_ATTACHMENT_SIZE) {
+                    setSendError(`${file.name} is larger than 10 MB.`);
+                    return;
+                }
+                preparedFiles.push(file);
+            }
+            setAttachments((current) => [...current, ...preparedFiles]);
+        } catch (error) {
+            setSendError(error instanceof Error ? error.message : "These attachments could not be prepared. Please try again.");
+        } finally {
+            attachmentPreparationRef.current = false;
+            setPreparingAttachments(false);
+        }
     }
 
     function removeAttachment(index: number) {
@@ -910,6 +923,7 @@ export default function ThreadMessagesClient({ threadId }: { threadId: string })
 
             <form onSubmit={sendMessage} className="border-t border-slate-100 bg-white p-3.5 sm:p-5">
                 {sendError && <InlineError message={sendError} onDismiss={() => setSendError("")} className="mb-3" />}
+                {preparingAttachments && <p role="status" className="mb-3 text-sm text-slate-600">Preparing photos...</p>}
                 {replyingTo && (
                     <div className="mb-3 flex items-center gap-3 rounded-[14px] border-l-4 border-orange-400 bg-orange-50 px-3 py-2.5 text-left">
                         <div className="min-w-0 flex-1">
@@ -939,8 +953,8 @@ export default function ThreadMessagesClient({ threadId }: { threadId: string })
                 )}
 
                 <div className="flex items-end gap-2 rounded-[20px] bg-slate-100 p-2 ring-1 ring-slate-200 focus-within:bg-white focus-within:ring-2 focus-within:ring-orange-200 sm:gap-3">
-                    <input ref={fileInputRef} type="file" multiple accept="image/jpeg,image/png,image/webp,image/gif,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv" onChange={chooseAttachments} className="hidden" />
-                    <button type="button" onClick={() => fileInputRef.current?.click()} disabled={sending || attachments.length >= 5} aria-label="Attach files" title="Attach up to 5 files, 10 MB each" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[15px] bg-white text-slate-500 ring-1 ring-slate-200 transition hover:text-orange-600 disabled:opacity-40"><FontAwesomeIcon icon={faPaperclip} className="h-4 w-4" /></button>
+                    <input ref={fileInputRef} type="file" multiple accept={`${PHOTO_INPUT_ACCEPT},image/gif,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv`} disabled={sending || preparingAttachments} onChange={chooseAttachments} className="hidden" />
+                    <button type="button" onClick={() => fileInputRef.current?.click()} disabled={sending || preparingAttachments || attachments.length >= 5} aria-label="Attach files" title="Attach up to 5 files, 10 MB each" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[15px] bg-white text-slate-500 ring-1 ring-slate-200 transition hover:text-orange-600 disabled:opacity-40"><FontAwesomeIcon icon={faPaperclip} className="h-4 w-4" /></button>
                     {canMakeOffer && (
                         <button type="button" onClick={() => { setOfferOpen(true); setOfferError(""); }} disabled={sending} aria-label="Make an offer" title="Make an offer" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[15px] bg-orange-50 text-orange-600 ring-1 ring-orange-100 transition hover:bg-orange-100 disabled:opacity-40"><FontAwesomeIcon icon={faMoneyBillWave} className="h-4 w-4" /></button>
                     )}
@@ -960,7 +974,7 @@ export default function ThreadMessagesClient({ threadId }: { threadId: string })
                         maxLength={1000}
                         className="max-h-28 min-h-11 min-w-0 flex-1 resize-none bg-transparent px-2 py-3 text-sm font-semibold text-slate-900 outline-none placeholder:text-slate-400 sm:px-3"
                     />
-                    <button type="submit" disabled={sending || (!body.trim() && attachments.length === 0)} aria-label="Send message" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[15px] bg-orange-500 text-white shadow-[0_8px_18px_rgba(249,115,22,0.20)] transition hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-45 sm:w-auto sm:px-5">
+                    <button type="submit" disabled={sending || preparingAttachments || (!body.trim() && attachments.length === 0)} aria-label="Send message" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[15px] bg-orange-500 text-white shadow-[0_8px_18px_rgba(249,115,22,0.20)] transition hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-45 sm:w-auto sm:px-5">
                         {sending ? <span className="text-xs font-black">...</span> : <><FontAwesomeIcon icon={faPaperPlane} className="h-4 w-4" /><span className="ml-2 hidden text-sm font-black sm:inline">Send</span></>}
                     </button>
                 </div>
